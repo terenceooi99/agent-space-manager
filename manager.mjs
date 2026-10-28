@@ -1175,6 +1175,18 @@ export function syncIdePlugins(ide, allPlugins = []) {
       );
       skillLinks = skillSync.nextLinks;
 
+      // Ensure outside-of-project.json is never created with empty object which breaks LS project reader
+      try {
+        const projDir = path.join(geminiConfigDir, "projects");
+        const defaultProjFile = path.join(projDir, "outside-of-project.json");
+        if (fs.existsSync(defaultProjFile)) {
+          const content = fs.readFileSync(defaultProjFile, "utf8").trim();
+          if (content === "{}" || content === "") {
+            fs.unlinkSync(defaultProjFile);
+          }
+        }
+      } catch {}
+
       // Sync rules & subagents into ~/.gemini/config/rules and ~/.gemini/config/agents
       const prevRuleFiles = filterOwnedFilesForSpec(prevState.files, geminiRulesSpec);
       const prevAgentFiles = filterOwnedFilesForSpec(prevState.files, geminiAgentsSpec);
@@ -1434,16 +1446,21 @@ export function killAgentProcesses(ide) {
   const normalized = normalizeIdeEntry(ide);
   const targets = new Set();
 
-  if (normalized.exePath) {
-    targets.add(path.basename(normalized.exePath).toLowerCase());
+  const type = normalized.agentType || inferAgentType(normalized);
+  // Antigravity dynamically hot-reloads plugin bundles and skills on the fly;
+  // NEVER terminate Antigravity IDE processes with taskkill.
+  if (type === "antigravity") {
+    return { success: true, skipped: "hot-reload-supported" };
   }
 
-  const type = normalized.agentType || inferAgentType(normalized);
-  if (type === "antigravity") {
-    targets.add("antigravity.exe");
-    targets.add("antigravity ide.exe");
-    targets.add("agy.exe");
-  } else if (type === "cursor") {
+  if (normalized.exePath) {
+    const exeName = path.basename(normalized.exePath).toLowerCase();
+    if (!exeName.includes("antigravity") && !exeName.includes("agy")) {
+      targets.add(exeName);
+    }
+  }
+
+  if (type === "cursor") {
     targets.add("cursor.exe");
   } else if (type === "windsurf") {
     targets.add("windsurf.exe");

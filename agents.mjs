@@ -63,7 +63,7 @@ export const AGENT_PROFILES = {
         primary: path.join(base, "plugins"),
         bundle: path.join(base, "plugins"),
         skills: path.join(base, "skills"),
-        rulesDir: { dir: path.join(base, "rules"), suffix: ".md" },
+        rulesDir: { dir: path.join(base, "rules"), suffix: ".md", format: "antigravity-rule" },
         agentsDir: { dir: path.join(base, "agents"), suffix: ".md" },
         mcp: { file: path.join(base, "mcp_config.json"), format: "json", key: "mcpServers" },
         hooks: { file: path.join(base, "hooks.json"), format: "json" },

@@ -169,7 +169,7 @@ function startMagpieConfigWatcher() {
   syncFromMagpiePluginsJson(true);
   magpieWatchInterval = setInterval(() => {
     syncFromMagpiePluginsJson(false);
-  }, 350);
+  }, 2000);
   if (typeof magpieWatchInterval.unref === "function") {
     magpieWatchInterval.unref();
   }
@@ -354,7 +354,7 @@ export function startApiServer(port = API_PORT) {
               return;
             }
             const [removedIde] = config.ides.splice(idx, 1);
-            unlinkAllForIde(removedIde, killProcesses !== false);
+            unlinkAllForIde(removedIde, killProcesses === true);
             config.projects = (config.projects || []).filter((p) => p.ideId !== ideId);
             saveHubConfig(config);
             const effPath = getEffectiveHubRoot(config);

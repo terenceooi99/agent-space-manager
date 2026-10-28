@@ -1,7 +1,7 @@
 window.__PLUGINS_CACHE__ = {
   "path": "D:\\Software\\AI Agent Space",
   "count": 23,
-  "updatedAt": 1793197790055,
+  "updatedAt": 1793203539943,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -631,7 +631,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "data-agent-kit-plugin",
       "name": "data-agent-kit-plugin",
       "version": "1.0.0",
-      "description": "Invalid plugin.json",
+      "description": "data-agent-kit-plugin plugin",
       "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
       "hasMcp": false,
       "hasHooks": false,
@@ -644,7 +644,7 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 126
+          "size": 123
         }
       ]
     },
@@ -808,7 +808,7 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 1105
+          "size": 1359
         },
         {
           "name": "README.md",
@@ -818,7 +818,7 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "flutter-hot-reload.md",
           "relPath": "rules/flutter-hot-reload.md",
-          "size": 1217
+          "size": 1203
         },
         {
           "name": "flutter-hot-reload.mdc",
@@ -1352,7 +1352,7 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 291
+          "size": 263
         },
         {
           "name": "SKILL.md",
@@ -3173,7 +3173,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "data-agent-kit-plugin",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
-        "description": "Invalid plugin.json",
+        "description": "data-agent-kit-plugin plugin",
         "skillsCount": 0,
         "filesCount": 1,
         "hasMcp": false,

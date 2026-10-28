@@ -3,6 +3,9 @@
 // Overrides HOME / USERPROFILE / APPDATA / LOCALAPPDATA / AGENT_TOOLS_ROOT in a temp directory
 // so zero tests ever touch the user's real home or real hub directory.
 
+process.env.ASM_TEST = "1";
+process.env.NODE_ENV = "test";
+
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";

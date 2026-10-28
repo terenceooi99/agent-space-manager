@@ -391,9 +391,10 @@ export function syncPluginBundles(
             results.push({ plugin: entryName, action: "unlinked", success: true });
           }
         } else if (stat.isDirectory()) {
-          const isAsmDir = isAsmOwnedDirectory(entryPath) || prevLinksSet.has(resolvedEntry);
-          if (isAsmDir && !activePluginMap.has(entryName)) {
-            fs.rmSync(entryPath, { recursive: true, force: true });
+          const isAsmDir = isAsmOwnedDirectory(entryPath) || prevLinksSet.has(resolvedEntry) || isTargetInsideHub(entryPath, allPlugins, resolveHubRoot());
+          const hasPluginJson = fs.existsSync(path.join(entryPath, "plugin.json"));
+          if ((isAsmDir || !hasPluginJson) && !activePluginMap.has(entryName)) {
+            try { fs.rmSync(entryPath, { recursive: true, force: true }); } catch {}
             results.push({ plugin: entryName, action: "unlinked", success: true });
           }
         }
@@ -928,6 +929,23 @@ export function syncOwnedFiles(items, targetDirSpec, prevOwnedFiles = []) {
           "---",
           `description: ${JSON.stringify(desc)}`,
           "mode: subagent",
+          "---",
+          "",
+          body,
+          "",
+        ].join("\n");
+        fs.writeFileSync(destResolved, formatted, "utf8");
+      } else if (format === "antigravity-rule") {
+        const raw = fs.readFileSync(srcFile, "utf8");
+        const { frontmatter, body } = parseMarkdownFrontmatter(raw);
+        const desc = (frontmatter.description || `Rule ${path.basename(destResolved, suffix)}`)
+          .replace(/\r?\n/g, " ")
+          .trim();
+        const trigger = frontmatter.trigger || "always_on";
+        const formatted = [
+          "---",
+          `description: ${JSON.stringify(desc)}`,
+          `trigger: ${trigger}`,
           "---",
           "",
           body,
