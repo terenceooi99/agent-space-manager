@@ -125,8 +125,8 @@ export function syncFromMagpiePluginsJson(force = false) {
       ? { ...baseCfg, ...opts.hubConfig }
       : baseCfg;
 
-    if (!Array.isArray(cfg.ides) || cfg.ides.length === 0) {
-      cfg.ides = baseCfg.ides && baseCfg.ides.length > 0 ? baseCfg.ides : [
+    if (!Array.isArray(cfg.ides)) {
+      cfg.ides = Array.isArray(baseCfg.ides) ? baseCfg.ides : [
         {
           id: "antigravity",
           name: "Antigravity (Google Gemini)",
@@ -340,7 +340,7 @@ export function startApiServer(port = API_PORT) {
         req.on("data", (chunk) => { body += chunk; });
         req.on("end", () => {
           try {
-            const { ideId } = JSON.parse(body || "{}");
+            const { ideId, killProcesses } = JSON.parse(body || "{}");
             if (!ideId) {
               res.writeHead(400, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ success: false, error: "ideId required" }));
@@ -354,7 +354,7 @@ export function startApiServer(port = API_PORT) {
               return;
             }
             const [removedIde] = config.ides.splice(idx, 1);
-            unlinkAllForIde(removedIde);
+            unlinkAllForIde(removedIde, killProcesses !== false);
             config.projects = (config.projects || []).filter((p) => p.ideId !== ideId);
             saveHubConfig(config);
             const effPath = getEffectiveHubRoot(config);

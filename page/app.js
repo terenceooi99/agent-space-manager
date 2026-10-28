@@ -8,16 +8,7 @@
   const DEFAULTS = {
     hubRoot: "",
     smartMiddleware: { enabled: true, maxTools: 96 },
-    ides: [
-      {
-        id: "antigravity",
-        name: "Antigravity (Google Gemini)",
-        exePath: "",
-        configPath: "",
-        enabled: true,
-        plugins: {},
-      },
-    ],
+    ides: null,
     projects: [],
   };
 
@@ -352,6 +343,40 @@
       return null;
     },
 
+    async removeIde(ideId, killProcesses = true) {
+      const magpieApi = getMagpieApi();
+      if (typeof magpieApi?.removeIde === "function") {
+        return await magpieApi.removeIde(ideId, killProcesses);
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/remove-ide`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ideId, killProcesses }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
+
+    async removeProject(projectId) {
+      const magpieApi = getMagpieApi();
+      if (typeof magpieApi?.removeProject === "function") {
+        return await magpieApi.removeProject(projectId);
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/remove-project`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
+
     async resolveDroppedTarget(raw, mode) {
       try {
         const magpieApi = getMagpieApi();
@@ -516,14 +541,14 @@
   // Read from localStorage fallback
   try {
     const local = localStorage.getItem("magpie_agent_space_config");
-    if (local && (!hubConfig.ides || hubConfig.ides.length === 0)) {
+    if (local && !Array.isArray(hubConfig.ides)) {
       const parsed = JSON.parse(local);
       if (parsed?.ides) hubConfig = parsed;
     }
   } catch {}
 
-  // Ensure default Antigravity IDE is present if ides list is empty
-  if (!hubConfig.ides || !Array.isArray(hubConfig.ides) || hubConfig.ides.length === 0) {
+  // Ensure default Antigravity IDE is present ONLY on first run if ides was never configured
+  if (!Array.isArray(hubConfig.ides)) {
     hubConfig.ides = [
       {
         id: "antigravity",
@@ -1121,28 +1146,28 @@
           e.stopPropagation();
 
           const targetId = ide.id;
-          try {
-            await fetch("http://127.0.0.1:41789/api/remove-ide", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ ideId: targetId }),
-            });
-          } catch {}
+          const ideName = ide.name || "Agent";
+
+          const confirmRemove = confirm(`Remove "${ideName}"?\n\nThis will sever all component links and close any running "${ideName}" background processes immediately so changes take effect without restarting your computer.\n\nContinue?`);
+          if (!confirmRemove) return;
+
+          removeBtn.disabled = true;
+          removeBtn.textContent = "Removing...";
 
           try {
-            if (window.magpie?.api?.agentSpaceManager?.removeIde) {
-              await window.magpie.api.agentSpaceManager.removeIde(targetId);
-            }
-          } catch (err) {}
+            await apiClient.removeIde(targetId, true);
+          } catch (err) {
+            console.warn("apiClient.removeIde error:", err);
+          }
 
-          hubConfig.ides = hubConfig.ides.filter((i) => i.id !== targetId);
-          hubConfig.projects = hubConfig.projects.filter((p) => p.ideId !== targetId);
+          hubConfig.ides = (hubConfig.ides || []).filter((i) => i.id !== targetId);
+          hubConfig.projects = (hubConfig.projects || []).filter((p) => p.ideId !== targetId);
 
           if (currentSelection.id === targetId) {
             currentSelection = { type: "ide", id: hubConfig.ides[0]?.id || "" };
           }
 
-          triggerAutoSync();
+          await persistConfig();
           renderAll();
         });
       }
@@ -1240,26 +1265,33 @@
       }
 
       // Remove button: unlinks all owned project links and removes state
-      const removeBtn = item.querySelector(".delete-proj-btn");
-      if (removeBtn) {
-        removeBtn.addEventListener("click", async (e) => {
+      // Direct, reliable removal for project overrides
+      const deleteProjBtn = item.querySelector(".delete-proj-btn");
+      if (deleteProjBtn) {
+        deleteProjBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
 
           const targetId = proj.id;
-          try {
-            await fetch("http://127.0.0.1:41789/api/remove-project", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ projectId: targetId }),
-            });
-          } catch {}
+          const projName = proj.name || "Project";
+          const confirmRemove = confirm(`Remove project override "${projName}"?\n\nAll repository component links will be severed immediately.\n\nContinue?`);
+          if (!confirmRemove) return;
 
-          hubConfig.projects = hubConfig.projects.filter((p) => p.id !== targetId);
+          deleteProjBtn.disabled = true;
+          deleteProjBtn.textContent = "Removing...";
+
+          try {
+            await apiClient.removeProject(targetId);
+          } catch (err) {
+            console.warn("apiClient.removeProject error:", err);
+          }
+
+          hubConfig.projects = (hubConfig.projects || []).filter((p) => p.id !== targetId);
           if (currentSelection.type === "project" && currentSelection.id === targetId) {
             currentSelection = { type: "ide", id: hubConfig.ides[0]?.id || "" };
           }
-          triggerAutoSync();
+
+          await persistConfig();
           renderAll();
         });
       }

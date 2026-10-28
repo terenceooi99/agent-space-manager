@@ -531,9 +531,9 @@ export function loadHubConfig(configFile = null) {
     if (fs.existsSync(effectiveFile)) {
       const data = fs.readFileSync(effectiveFile, "utf8");
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed.ides) && parsed.ides.length > 0) {
+      if (Array.isArray(parsed.ides)) {
         parsed.ides = parsed.ides.map(normalizeIdeEntry);
-      } else if (!Array.isArray(parsed.ides) || parsed.ides.length === 0) {
+      } else {
         const defaultHome = getHomeDir();
         parsed.ides = [
           normalizeIdeEntry({
@@ -1188,7 +1188,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
           if (parsed && Array.isArray(parsed.entries)) {
             const filtered = parsed.entries.filter((entry) => {
               const entryPath = typeof entry === "string" ? entry : entry?.path;
-              return !isTargetInsideHub(entryPath, allPlugins);
+              return !isTargetInsideHub(entryPath, allPlugins, resolveHubRoot());
             });
             fs.writeFileSync(geminiSkillsJson, JSON.stringify({ ...parsed, entries: filtered }, null, 2), "utf8");
           }
@@ -1423,15 +1423,67 @@ export function syncProjectOverrides(project, ide, allPlugins = []) {
 }
 
 /**
+ * Safely terminates running processes matching the agent's executable path or process names.
+ * Ensures component removal takes effect immediately without requiring a computer reboot.
+ */
+export function killAgentProcesses(ide) {
+  if (!ide) return { success: true };
+  if (process.env.NODE_ENV === "test" || process.env.ASM_TEST === "1") {
+    return { success: true, skipped: "test-environment" };
+  }
+  const normalized = normalizeIdeEntry(ide);
+  const targets = new Set();
+
+  if (normalized.exePath) {
+    targets.add(path.basename(normalized.exePath).toLowerCase());
+  }
+
+  const type = normalized.agentType || inferAgentType(normalized);
+  if (type === "antigravity") {
+    targets.add("antigravity.exe");
+    targets.add("antigravity ide.exe");
+    targets.add("agy.exe");
+  } else if (type === "cursor") {
+    targets.add("cursor.exe");
+  } else if (type === "windsurf") {
+    targets.add("windsurf.exe");
+  } else if (type === "vscode") {
+    targets.add("code.exe");
+  } else if (type === "vscodium") {
+    targets.add("codium.exe");
+    targets.add("vscodium.exe");
+  }
+
+  let killedAny = false;
+  for (const procName of targets) {
+    if (!procName) continue;
+    try {
+      if (process.platform === "win32") {
+        execSync(`taskkill /F /IM "${procName}" /T`, { stdio: "ignore" });
+        killedAny = true;
+      } else {
+        execSync(`pkill -9 -f "${procName}"`, { stdio: "ignore" });
+        killedAny = true;
+      }
+    } catch {}
+  }
+
+  return { success: true, killed: killedAny };
+}
+
+/**
  * Severs all owned junctions, MCP keys, rule blocks, and copied files for a given IDE when removed.
  */
-export function unlinkAllForIde(ide) {
+export function unlinkAllForIde(ide, killProcesses = false) {
   if (!ide) return { success: true };
   const normalized = normalizeIdeEntry(ide);
   const ownerKey = `ide-${normalized.id || normalized.agentType}`;
   // Passing empty allPlugins cleanly unlinks and prunes all owned links, files, MCP keys, hooks, blocks!
   syncIdePlugins(normalized, []);
   deleteOwnershipState(ownerKey);
+  if (killProcesses) {
+    killAgentProcesses(normalized);
+  }
   return { success: true };
 }
 

@@ -85,7 +85,7 @@ export const AgentSpaceManagerPlugin = {
       const plugins = scanPlugins(getEffectiveHubRoot(cfg));
       return syncIdePlugins(ide, plugins);
     },
-    removeIde: async (ideId) => {
+    removeIde: async (ideId, killProcesses = true) => {
       const cfg = loadHubConfig();
       const ideIndex = cfg.ides.findIndex((i) => i.id === ideId);
       if (ideIndex === -1) return { success: false, error: "IDE not found" };
@@ -93,7 +93,7 @@ export const AgentSpaceManagerPlugin = {
       const ide = cfg.ides[ideIndex];
 
       // Sever all junctions, MCP keys, rule blocks, and copied files created in this IDE
-      unlinkAllForIde(ide);
+      unlinkAllForIde(ide, killProcesses);
 
       // Remove from config and persist
       cfg.ides.splice(ideIndex, 1);
