@@ -461,6 +461,41 @@
       } catch {}
       return null;
     },
+
+    async checkModifications(customHubRoot) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.checkModifications === "function") {
+          const res = await magpieApi.checkModifications(customHubRoot);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/check-modifications?path=${encodeURIComponent(customHubRoot || "")}&t=${Date.now()}`, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
+
+    async startupSync(customConfig) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.startupSync === "function") {
+          const res = await magpieApi.startupSync(customConfig);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/startup-sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(customConfig || {}),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
   };
 
   const FALLBACK_AGENT_PROFILES = [
@@ -570,6 +605,22 @@
     }
   } catch {}
   await reloadPluginsFromHub();
+
+  // 4b. On startup: check for modification difference in Components Storage Path and auto-reconnect connected agents!
+  let startupSyncResult = null;
+  try {
+    startupSyncResult = await apiClient.startupSync(hubConfig);
+    if (startupSyncResult?.hasChanges && startupSyncResult?.autoReconnected) {
+      if (startupSyncResult.sync?.results && Array.isArray(startupSyncResult.sync.results)) {
+        for (const r of startupSyncResult.sync.results) {
+          if (r.ideId) lastSyncByIde[r.ideId] = r;
+        }
+      }
+      await reloadPluginsFromHub(true);
+    }
+  } catch (err) {
+    console.warn("Startup modification check/reconnect failed:", err);
+  }
 
   let editingIdeId = null;
   let editingProjectId = null;
@@ -704,6 +755,7 @@
   // 5. Render initial view and setup listeners
   renderAll();
   setupEventListeners();
+  renderStartupReconnectStatus(startupSyncResult);
 
   async function reloadPluginsFromHub(forceReloadScript = false) {
     const effective = computeEffectiveHubPath();
@@ -2329,6 +2381,41 @@
           });
         }
       });
+    }
+
+    // Dismiss button for startup auto-reconnect banner
+    if ($("btnDismissStartupBanner")) {
+      $("btnDismissStartupBanner").addEventListener("click", () => {
+        const banner = $("startupReconnectBanner");
+        if (banner) banner.style.display = "none";
+      });
+    }
+  }
+
+  function renderStartupReconnectStatus(result) {
+    const banner = $("startupReconnectBanner");
+    const msg = $("startupReconnectMsg");
+    const title = $("startupReconnectTitle");
+    const icon = $("startupReconnectIcon");
+    const badge = $("hubPathBadge");
+
+    if (!banner || !msg) return;
+
+    if (result?.hasChanges && result?.autoReconnected) {
+      banner.style.display = "flex";
+      banner.className = "startup-reconnect-banner active";
+      if (title) title.textContent = "⚡ Auto-reconnected Connected Agents";
+      if (icon) icon.textContent = "⚡";
+      msg.textContent = `Detected changes in Components Storage Path: ${result.summary}. Auto-reconnected ${result.connectedAgentsCount || 0} agent(s).`;
+      if (badge && !badge.classList.contains("disabled")) {
+        badge.textContent = "✓ Auto-Synced on Startup";
+        badge.className = "hub-path-badge auto";
+      }
+    } else if (result && result.hasChanges === false) {
+      if (badge && !badge.classList.contains("disabled") && (!hubConfig.hubRoot || hubConfig.hubRoot.trim() === "")) {
+        badge.textContent = "✓ In Sync with Storage";
+        badge.className = "hub-path-badge auto";
+      }
     }
   }
 

@@ -24,6 +24,9 @@ import {
   resolveHubRoot,
   listAgentProfilesForUi,
   inferAgentType,
+  checkComponentsModifications,
+  checkAndAutoReconnectOnStartup,
+  getComponentsStorageSnapshot,
 } from "./manager.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -277,6 +280,32 @@ export function startApiServer(port = API_PORT) {
         return;
       }
 
+      if (pathname === "/api/check-modifications" && req.method === "GET") {
+        const rawPath = query.path !== undefined ? String(query.path).trim() : "";
+        const reqPath = rawPath || resolveHubRoot();
+        const result = checkComponentsModifications(reqPath);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, ...result }));
+        return;
+      }
+
+      if (pathname === "/api/startup-sync" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          try {
+            const customCfg = body ? JSON.parse(body) : null;
+            const result = checkAndAutoReconnectOnStartup(customCfg);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
       if (pathname === "/api/save" && req.method === "POST") {
         let body = "";
         req.on("data", (chunk) => { body += chunk; });
@@ -454,6 +483,15 @@ export function startApiServer(port = API_PORT) {
 
   if (port === API_PORT) {
     activeServer = server;
+    try {
+      const startupRes = checkAndAutoReconnectOnStartup();
+      if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env.ASM_TEST !== "1") {
+        console.log(`[Startup] Components Storage Path: ${startupRes.summary}`);
+        if (startupRes.autoReconnected) {
+          console.log(`[Startup] Auto-reconnected ${startupRes.connectedAgentsCount} connected agent(s).`);
+        }
+      }
+    } catch {}
     startMagpieConfigWatcher();
   }
   return server;

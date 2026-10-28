@@ -22,6 +22,9 @@ import {
   getEffectiveHubRoot,
   listAgentProfilesForUi,
   inferAgentType,
+  checkComponentsModifications,
+  checkAndAutoReconnectOnStartup,
+  getComponentsStorageSnapshot,
 } from "./manager.mjs";
 
 if (!process.env.ASM_NO_SERVER) {
@@ -132,6 +135,15 @@ export const AgentSpaceManagerPlugin = {
       const categories = buildCategoriesRegistry(plugins, effHub);
       const syncRes = syncAllIdes(cfg, plugins);
       return { success: true, hubRoot: effHub, count: plugins.length, plugins, categories, sync: syncRes };
+    },
+    checkModifications: async (customHubRoot) => {
+      return checkComponentsModifications(customHubRoot);
+    },
+    startupSync: async (customConfig) => {
+      return checkAndAutoReconnectOnStartup(customConfig);
+    },
+    getComponentsSnapshot: async (customHubRoot) => {
+      return getComponentsStorageSnapshot(getEffectiveHubRoot(customHubRoot));
     },
   },
 };

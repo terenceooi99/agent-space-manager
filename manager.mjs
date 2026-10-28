@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { createHash } from "node:crypto";
 import { execSync, execFileSync, execFile } from "child_process";
 import {
   AGENT_PROFILES,
@@ -15,6 +16,7 @@ import {
   expandHomePath,
 } from "./agents.mjs";
 import {
+  getStateDir,
   loadOwnershipState,
   saveOwnershipState,
   deleteOwnershipState,
@@ -618,9 +620,9 @@ export function listFilesRecursiveRel(dir, baseDir = dir, maxDepth = 4, depth = 
       } else {
         try {
           const stats = fs.statSync(full);
-          results.push({ name: e.name, relPath: rel, size: stats.size });
+          results.push({ name: e.name, relPath: rel, size: stats.size, mtime: Math.round(stats.mtimeMs) });
         } catch {
-          results.push({ name: e.name, relPath: rel, size: 0 });
+          results.push({ name: e.name, relPath: rel, size: 0, mtime: 0 });
         }
       }
     }
@@ -1678,5 +1680,666 @@ export function syncAllIdes(hubConfig, customPlugins = null) {
     writeHubCommunicationFiles(effectiveHub, hubConfig, plugins, { ides: syncResults, projects: projectResults });
   } catch {}
 
+  // 5. Update components storage snapshot to reflect current sync state
+  try {
+    const currentSnap = getComponentsStorageSnapshot(effectiveHub);
+    saveComponentsStorageSnapshot(effectiveHub, currentSnap);
+  } catch {}
+
   return { success: true, results: syncResults, projectResults };
+}
+
+/**
+ * Resolves the state file path for saving the Components Storage Path snapshot.
+ */
+export function getSnapshotFilePath(hubRoot = resolveHubRoot()) {
+  const clean = getEffectiveHubRoot(hubRoot);
+  const hashKey = createHash("md5").update(path.resolve(clean).toLowerCase()).digest("hex").slice(0, 10);
+  return path.join(getStateDir(), `components-snapshot-${hashKey}.json`);
+}
+
+/**
+ * Persists the components storage snapshot to the state directory.
+ */
+export function saveComponentsStorageSnapshot(hubRoot, snapshot) {
+  try {
+    const filePath = getSnapshotFilePath(hubRoot);
+    ensureDir(path.dirname(filePath));
+    fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2), "utf8");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Loads the persisted components storage snapshot for the specified hubRoot.
+ */
+export function loadComponentsStorageSnapshot(hubRoot = resolveHubRoot()) {
+  try {
+    const filePath = getSnapshotFilePath(hubRoot);
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, "utf8"));
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Scans the Components Storage Path (where skills, MCPs, rules, agents, and plugins are saved)
+ * and generates a deterministic fingerprint snapshot with component lists, mtimes, and canonical hash.
+ */
+export function getComponentsStorageSnapshot(hubRoot = resolveHubRoot()) {
+  const cleanHub = getEffectiveHubRoot(hubRoot);
+  if (!cleanHub || !fs.existsSync(cleanHub)) {
+    return {
+      hubRoot: cleanHub,
+      exists: false,
+      timestamp: Date.now(),
+      plugins: {},
+      rootComponents: { skills: {}, rules: {}, agents: {}, mcp: null, hooks: null },
+      hash: "empty",
+      summary: { pluginCount: 0, skillCount: 0, ruleCount: 0, agentCount: 0, mcpCount: 0, hookCount: 0 },
+    };
+  }
+
+  // Determine plugins directory (plugins/ subdirectory or cleanHub directly if manifests present)
+  let pluginsDir = path.join(cleanHub, "plugins");
+  if (!fs.existsSync(pluginsDir)) {
+    try {
+      const sub = fs.readdirSync(cleanHub);
+      const hasManifest = sub.some((name) => {
+        const itemPath = path.join(cleanHub, name);
+        try {
+          if (!fs.statSync(itemPath).isDirectory()) return false;
+          return (
+            fs.existsSync(path.join(itemPath, "plugin.json")) ||
+            fs.existsSync(path.join(itemPath, "skills")) ||
+            fs.existsSync(path.join(itemPath, "rules")) ||
+            fs.existsSync(path.join(itemPath, "mcp_config.json"))
+          );
+        } catch {
+          return false;
+        }
+      });
+      if (hasManifest) pluginsDir = cleanHub;
+    } catch {}
+  }
+
+  const plugins = {};
+  let totalSkills = 0;
+  let totalRules = 0;
+  let totalAgents = 0;
+  let totalMcps = 0;
+  let totalHooks = 0;
+
+  if (fs.existsSync(pluginsDir)) {
+    try {
+      const entries = fs.readdirSync(pluginsDir);
+      for (const entry of entries) {
+        if (entry.startsWith(".") || entry === "node_modules") continue;
+        const pDir = path.join(pluginsDir, entry);
+        try {
+          const st = fs.statSync(pDir);
+          if (!st.isDirectory()) continue;
+        } catch {
+          continue;
+        }
+
+        const manifestPath = path.join(pDir, "plugin.json");
+        let manifestInfo = null;
+        if (fs.existsSync(manifestPath)) {
+          try {
+            const mStat = fs.statSync(manifestPath);
+            const mContent = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+            manifestInfo = {
+              version: mContent.version || "1.0.0",
+              mtime: Math.round(mStat.mtimeMs),
+              size: mStat.size,
+            };
+          } catch {
+            manifestInfo = { version: "unknown", mtime: 0, size: 0 };
+          }
+        }
+
+        // Skills inside plugin
+        const pluginSkills = {};
+        const skillsDir = path.join(pDir, "skills");
+        if (fs.existsSync(skillsDir)) {
+          try {
+            for (const s of fs.readdirSync(skillsDir)) {
+              const sPath = path.join(skillsDir, s);
+              try {
+                const sStat = fs.statSync(sPath);
+                if (sStat.isDirectory()) {
+                  const skillMd = path.join(sPath, "SKILL.md");
+                  let smStat = null;
+                  if (fs.existsSync(skillMd)) {
+                    try { smStat = fs.statSync(skillMd); } catch {}
+                  }
+                  pluginSkills[s] = {
+                    mtime: Math.round(smStat ? smStat.mtimeMs : sStat.mtimeMs),
+                    size: smStat ? smStat.size : 0,
+                  };
+                  totalSkills++;
+                }
+              } catch {}
+            }
+          } catch {}
+        }
+
+        // Rules inside plugin
+        const pluginRules = {};
+        const rulesDir = path.join(pDir, "rules");
+        if (fs.existsSync(rulesDir)) {
+          try {
+            for (const r of fs.readdirSync(rulesDir)) {
+              if (!r.endsWith(".md")) continue;
+              const rPath = path.join(rulesDir, r);
+              try {
+                const rStat = fs.statSync(rPath);
+                pluginRules[r] = { mtime: Math.round(rStat.mtimeMs), size: rStat.size };
+                totalRules++;
+              } catch {}
+            }
+          } catch {}
+        }
+
+        // Agents inside plugin
+        const pluginAgents = {};
+        const agentsDir = path.join(pDir, "agents");
+        if (fs.existsSync(agentsDir)) {
+          try {
+            for (const a of fs.readdirSync(agentsDir)) {
+              if (!a.endsWith(".md")) continue;
+              const aPath = path.join(agentsDir, a);
+              try {
+                const aStat = fs.statSync(aPath);
+                pluginAgents[a] = { mtime: Math.round(aStat.mtimeMs), size: aStat.size };
+                totalAgents++;
+              } catch {}
+            }
+          } catch {}
+        }
+
+        // MCP inside plugin
+        let mcpInfo = null;
+        const mcpFile = path.join(pDir, "mcp_config.json");
+        if (fs.existsSync(mcpFile)) {
+          try {
+            const mcpStat = fs.statSync(mcpFile);
+            mcpInfo = { mtime: Math.round(mcpStat.mtimeMs), size: mcpStat.size };
+            totalMcps++;
+          } catch {}
+        }
+
+        // Hooks inside plugin
+        let hooksInfo = null;
+        const hooksFile = path.join(pDir, "hooks.json");
+        if (fs.existsSync(hooksFile)) {
+          try {
+            const hStat = fs.statSync(hooksFile);
+            hooksInfo = { mtime: Math.round(hStat.mtimeMs), size: hStat.size };
+            totalHooks++;
+          } catch {}
+        }
+
+        // Files count & total size for catch-all modification sensitivity
+        let totalFilesCount = 0;
+        let totalFilesSize = 0;
+        let maxFileMtime = 0;
+        try {
+          const files = listFilesRecursiveRel(pDir, pDir);
+          totalFilesCount = files.length;
+          for (const f of files) {
+            totalFilesSize += f.size || 0;
+            if (f.mtime && f.mtime > maxFileMtime) maxFileMtime = f.mtime;
+          }
+        } catch {}
+
+        if (manifestInfo || Object.keys(pluginSkills).length > 0 || Object.keys(pluginRules).length > 0 || mcpInfo) {
+          plugins[entry] = {
+            version: manifestInfo?.version || "1.0.0",
+            manifest: manifestInfo,
+            skills: pluginSkills,
+            rules: pluginRules,
+            agents: pluginAgents,
+            mcp: mcpInfo,
+            hooks: hooksInfo,
+            filesCount: totalFilesCount,
+            totalSize: totalFilesSize,
+            maxMtime: maxFileMtime,
+          };
+        }
+      }
+    } catch {}
+  }
+
+  // Root standalone components in hubRoot
+  const rootSkills = {};
+  const rootSkillsDir = path.join(cleanHub, "skills");
+  if (fs.existsSync(rootSkillsDir)) {
+    try {
+      for (const s of fs.readdirSync(rootSkillsDir)) {
+        const sPath = path.join(rootSkillsDir, s);
+        try {
+          const sStat = fs.statSync(sPath);
+          if (sStat.isDirectory()) {
+            const skillMd = path.join(sPath, "SKILL.md");
+            let smStat = null;
+            if (fs.existsSync(skillMd)) {
+              try { smStat = fs.statSync(skillMd); } catch {}
+            }
+            rootSkills[s] = {
+              mtime: Math.round(smStat ? smStat.mtimeMs : sStat.mtimeMs),
+              size: smStat ? smStat.size : 0,
+            };
+            totalSkills++;
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  const rootRules = {};
+  const rootRulesDir = path.join(cleanHub, "rules");
+  if (fs.existsSync(rootRulesDir)) {
+    try {
+      for (const r of fs.readdirSync(rootRulesDir)) {
+        if (!r.endsWith(".md")) continue;
+        const rPath = path.join(rootRulesDir, r);
+        try {
+          const rStat = fs.statSync(rPath);
+          rootRules[r] = { mtime: Math.round(rStat.mtimeMs), size: rStat.size };
+          totalRules++;
+        } catch {}
+      }
+    } catch {}
+  }
+
+  const rootAgents = {};
+  const rootAgentsDir = path.join(cleanHub, "agents");
+  if (fs.existsSync(rootAgentsDir)) {
+    try {
+      for (const a of fs.readdirSync(rootAgentsDir)) {
+        if (!a.endsWith(".md")) continue;
+        const aPath = path.join(rootAgentsDir, a);
+        try {
+          const aStat = fs.statSync(aPath);
+          rootAgents[a] = { mtime: Math.round(aStat.mtimeMs), size: aStat.size };
+          totalAgents++;
+        } catch {}
+      }
+    } catch {}
+  }
+
+  let rootMcp = null;
+  const rootMcpFile = path.join(cleanHub, "mcp_config.json");
+  if (fs.existsSync(rootMcpFile)) {
+    try {
+      const mStat = fs.statSync(rootMcpFile);
+      rootMcp = { mtime: Math.round(mStat.mtimeMs), size: mStat.size };
+      totalMcps++;
+    } catch {}
+  }
+
+  let rootHooks = null;
+  const rootHooksFile = path.join(cleanHub, "hooks.json");
+  if (fs.existsSync(rootHooksFile)) {
+    try {
+      const hStat = fs.statSync(rootHooksFile);
+      rootHooks = { mtime: Math.round(hStat.mtimeMs), size: hStat.size };
+      totalHooks++;
+    } catch {}
+  }
+
+  const rootComponents = {
+    skills: rootSkills,
+    rules: rootRules,
+    agents: rootAgents,
+    mcp: rootMcp,
+    hooks: rootHooks,
+  };
+
+  const canonicalObj = {
+    hubRoot: cleanHub,
+    plugins,
+    rootComponents,
+  };
+
+  function canonicalize(val) {
+    if (val === null || typeof val !== "object") return val;
+    if (Array.isArray(val)) return val.map(canonicalize);
+    const sorted = {};
+    for (const k of Object.keys(val).sort()) {
+      sorted[k] = canonicalize(val[k]);
+    }
+    return sorted;
+  }
+
+  const canonicalJson = JSON.stringify(canonicalize(canonicalObj));
+  const hash = createHash("sha256").update(canonicalJson).digest("hex");
+
+  return {
+    hubRoot: cleanHub,
+    exists: true,
+    timestamp: Date.now(),
+    plugins,
+    rootComponents,
+    hash,
+    summary: {
+      pluginCount: Object.keys(plugins).length,
+      skillCount: totalSkills,
+      ruleCount: totalRules,
+      agentCount: totalAgents,
+      mcpCount: totalMcps,
+      hookCount: totalHooks,
+    },
+  };
+}
+
+/**
+ * Computes exact differences between two components storage snapshots.
+ */
+export function diffComponentsStorageSnapshots(prev, current) {
+  if (!current) return { hasChanges: false, summary: "No current snapshot provided" };
+  if (!prev) {
+    const s = current.summary || {};
+    return {
+      hasChanges: true,
+      isInitial: true,
+      pathChanged: false,
+      pluginsAdded: Object.keys(current.plugins || {}),
+      pluginsRemoved: [],
+      pluginsModified: [],
+      skillsAdded: Object.keys(current.rootComponents?.skills || {}).map((s) => `root/${s}`),
+      skillsRemoved: [],
+      skillsModified: [],
+      rulesAdded: Object.keys(current.rootComponents?.rules || {}).map((r) => `root/${r}`),
+      rulesRemoved: [],
+      rulesModified: [],
+      agentsAdded: Object.keys(current.rootComponents?.agents || {}).map((a) => `root/${a}`),
+      agentsRemoved: [],
+      agentsModified: [],
+      mcpModified: false,
+      hooksModified: false,
+      summary: `Initial components baseline recorded (${s.pluginCount || 0} plugins, ${s.skillCount || 0} skills, ${s.mcpCount || 0} MCP, ${s.ruleCount || 0} rules)`,
+    };
+  }
+
+  const pathChanged =
+    path.resolve(String(prev.hubRoot || "")).toLowerCase() !==
+    path.resolve(String(current.hubRoot || "")).toLowerCase();
+
+  if (prev.hash === current.hash && !pathChanged) {
+    return {
+      hasChanges: false,
+      isInitial: false,
+      pathChanged: false,
+      pluginsAdded: [],
+      pluginsRemoved: [],
+      pluginsModified: [],
+      skillsAdded: [],
+      skillsRemoved: [],
+      skillsModified: [],
+      rulesAdded: [],
+      rulesRemoved: [],
+      rulesModified: [],
+      agentsAdded: [],
+      agentsRemoved: [],
+      agentsModified: [],
+      mcpModified: false,
+      hooksModified: false,
+      summary: "Components Storage Path is up to date (no changes detected)",
+    };
+  }
+
+  const prevPlugins = prev.plugins || {};
+  const currPlugins = current.plugins || {};
+
+  const pluginsAdded = Object.keys(currPlugins).filter((id) => !prevPlugins[id]);
+  const pluginsRemoved = Object.keys(prevPlugins).filter((id) => !currPlugins[id]);
+  const pluginsModified = [];
+
+  const skillsAdded = [];
+  const skillsRemoved = [];
+  const skillsModified = [];
+  const rulesAdded = [];
+  const rulesRemoved = [];
+  const rulesModified = [];
+  const agentsAdded = [];
+  const agentsRemoved = [];
+  const agentsModified = [];
+
+  // Check plugins diff
+  for (const id of Object.keys(currPlugins)) {
+    if (!prevPlugins[id]) continue;
+    const pPrev = prevPlugins[id];
+    const pCurr = currPlugins[id];
+    let isMod = false;
+
+    if (pPrev.version !== pCurr.version) isMod = true;
+    if (pPrev.manifest?.mtime !== pCurr.manifest?.mtime || pPrev.manifest?.size !== pCurr.manifest?.size) isMod = true;
+    if (pPrev.filesCount !== pCurr.filesCount || pPrev.totalSize !== pCurr.totalSize || pPrev.maxMtime !== pCurr.maxMtime) isMod = true;
+
+    // Check skills
+    for (const s of Object.keys(pCurr.skills || {})) {
+      if (!pPrev.skills?.[s]) {
+        skillsAdded.push(`${id}/${s}`);
+        isMod = true;
+      } else if (pPrev.skills[s].mtime !== pCurr.skills[s].mtime || pPrev.skills[s].size !== pCurr.skills[s].size) {
+        skillsModified.push(`${id}/${s}`);
+        isMod = true;
+      }
+    }
+    for (const s of Object.keys(pPrev.skills || {})) {
+      if (!pCurr.skills?.[s]) {
+        skillsRemoved.push(`${id}/${s}`);
+        isMod = true;
+      }
+    }
+
+    // Check rules
+    for (const r of Object.keys(pCurr.rules || {})) {
+      if (!pPrev.rules?.[r]) {
+        rulesAdded.push(`${id}/${r}`);
+        isMod = true;
+      } else if (pPrev.rules[r].mtime !== pCurr.rules[r].mtime || pPrev.rules[r].size !== pCurr.rules[r].size) {
+        rulesModified.push(`${id}/${r}`);
+        isMod = true;
+      }
+    }
+    for (const r of Object.keys(pPrev.rules || {})) {
+      if (!pCurr.rules?.[r]) {
+        rulesRemoved.push(`${id}/${r}`);
+        isMod = true;
+      }
+    }
+
+    // Check agents
+    for (const a of Object.keys(pCurr.agents || {})) {
+      if (!pPrev.agents?.[a]) {
+        agentsAdded.push(`${id}/${a}`);
+        isMod = true;
+      } else if (pPrev.agents[a].mtime !== pCurr.agents[a].mtime || pPrev.agents[a].size !== pCurr.agents[a].size) {
+        agentsModified.push(`${id}/${a}`);
+        isMod = true;
+      }
+    }
+    for (const a of Object.keys(pPrev.agents || {})) {
+      if (!pCurr.agents?.[a]) {
+        agentsRemoved.push(`${id}/${a}`);
+        isMod = true;
+      }
+    }
+
+    // Check MCP & hooks
+    if (JSON.stringify(pPrev.mcp) !== JSON.stringify(pCurr.mcp)) isMod = true;
+    if (JSON.stringify(pPrev.hooks) !== JSON.stringify(pCurr.hooks)) isMod = true;
+
+    if (isMod) pluginsModified.push(id);
+  }
+
+  // Check root components diff
+  const prevRoot = prev.rootComponents || {};
+  const currRoot = current.rootComponents || {};
+
+  // Root skills
+  for (const s of Object.keys(currRoot.skills || {})) {
+    if (!prevRoot.skills?.[s]) skillsAdded.push(`root/${s}`);
+    else if (prevRoot.skills[s].mtime !== currRoot.skills[s].mtime || prevRoot.skills[s].size !== currRoot.skills[s].size) {
+      skillsModified.push(`root/${s}`);
+    }
+  }
+  for (const s of Object.keys(prevRoot.skills || {})) {
+    if (!currRoot.skills?.[s]) skillsRemoved.push(`root/${s}`);
+  }
+
+  // Root rules
+  for (const r of Object.keys(currRoot.rules || {})) {
+    if (!prevRoot.rules?.[r]) rulesAdded.push(`root/${r}`);
+    else if (prevRoot.rules[r].mtime !== currRoot.rules[r].mtime || prevRoot.rules[r].size !== currRoot.rules[r].size) {
+      rulesModified.push(`root/${r}`);
+    }
+  }
+  for (const r of Object.keys(prevRoot.rules || {})) {
+    if (!currRoot.rules?.[r]) rulesRemoved.push(`root/${r}`);
+  }
+
+  // Root agents
+  for (const a of Object.keys(currRoot.agents || {})) {
+    if (!prevRoot.agents?.[a]) agentsAdded.push(`root/${a}`);
+    else if (prevRoot.agents[a].mtime !== currRoot.agents[a].mtime || prevRoot.agents[a].size !== currRoot.agents[a].size) {
+      agentsModified.push(`root/${a}`);
+    }
+  }
+  for (const a of Object.keys(prevRoot.agents || {})) {
+    if (!currRoot.agents?.[a]) agentsRemoved.push(`root/${a}`);
+  }
+
+  const mcpModified = JSON.stringify(prevRoot.mcp) !== JSON.stringify(currRoot.mcp);
+  const hooksModified = JSON.stringify(prevRoot.hooks) !== JSON.stringify(currRoot.hooks);
+
+  const hasChanges =
+    pathChanged ||
+    pluginsAdded.length > 0 ||
+    pluginsRemoved.length > 0 ||
+    pluginsModified.length > 0 ||
+    skillsAdded.length > 0 ||
+    skillsRemoved.length > 0 ||
+    skillsModified.length > 0 ||
+    rulesAdded.length > 0 ||
+    rulesRemoved.length > 0 ||
+    rulesModified.length > 0 ||
+    agentsAdded.length > 0 ||
+    agentsRemoved.length > 0 ||
+    agentsModified.length > 0 ||
+    mcpModified ||
+    hooksModified;
+
+  // Build human-readable summary
+  const parts = [];
+  if (pathChanged) parts.push(`storage path changed to ${current.hubRoot}`);
+  if (pluginsAdded.length) parts.push(`${pluginsAdded.length} plugin(s) added (${pluginsAdded.join(", ")})`);
+  if (pluginsRemoved.length) parts.push(`${pluginsRemoved.length} plugin(s) removed (${pluginsRemoved.join(", ")})`);
+  if (skillsAdded.length) parts.push(`${skillsAdded.length} skill(s) added`);
+  if (skillsRemoved.length) parts.push(`${skillsRemoved.length} skill(s) removed`);
+  if (skillsModified.length) parts.push(`${skillsModified.length} skill(s) modified`);
+  if (rulesAdded.length || rulesModified.length || rulesRemoved.length) parts.push("rules modified");
+  if (agentsAdded.length || agentsModified.length || agentsRemoved.length) parts.push("agents modified");
+  if (mcpModified) parts.push("MCP config modified");
+  if (hooksModified) parts.push("hooks modified");
+
+  const summary = parts.length > 0 ? parts.join(", ") : "No component changes detected";
+
+  return {
+    hasChanges,
+    isInitial: false,
+    pathChanged,
+    pluginsAdded,
+    pluginsRemoved,
+    pluginsModified,
+    skillsAdded,
+    skillsRemoved,
+    skillsModified,
+    rulesAdded,
+    rulesRemoved,
+    rulesModified,
+    agentsAdded,
+    agentsRemoved,
+    agentsModified,
+    mcpModified,
+    hooksModified,
+    summary,
+  };
+}
+
+/**
+ * Checks for modification differences in the Components Storage Path against the persisted snapshot.
+ */
+export function checkComponentsModifications(hubRoot = resolveHubRoot()) {
+  const cleanHub = getEffectiveHubRoot(hubRoot);
+  const currentSnapshot = getComponentsStorageSnapshot(cleanHub);
+  const prevSnapshot = loadComponentsStorageSnapshot(cleanHub);
+  const diff = diffComponentsStorageSnapshots(prevSnapshot, currentSnapshot);
+
+  return {
+    hubRoot: cleanHub,
+    hasChanges: diff.hasChanges,
+    diff,
+    currentSnapshot,
+    prevSnapshot,
+  };
+}
+
+/**
+ * Universal startup check & auto-reconnect function:
+ * Checks for any modification differences in the Components Storage Path on startup,
+ * and if differences are detected (or forced), automatically reconnects / re-synchronizes
+ * all configured connected agents.
+ */
+export function checkAndAutoReconnectOnStartup(customHubConfig = null, options = {}) {
+  const cfg = customHubConfig || loadHubConfig();
+  const effHub = getEffectiveHubRoot(cfg);
+  const { force = false } = options;
+
+  const currentSnapshot = getComponentsStorageSnapshot(effHub);
+  const prevSnapshot = loadComponentsStorageSnapshot(effHub);
+  const diff = diffComponentsStorageSnapshots(prevSnapshot, currentSnapshot);
+
+  // If force is requested or component modifications were detected, auto-reconnect connected agents!
+  if (diff.hasChanges || force) {
+    const plugins = scanPlugins(effHub);
+    const categories = buildCategoriesRegistry(plugins, effHub);
+    const syncRes = syncAllIdes(cfg, plugins);
+    const postSyncSnapshot = getComponentsStorageSnapshot(effHub);
+    saveComponentsStorageSnapshot(effHub, postSyncSnapshot);
+
+    const connectedAgents = (cfg.ides || []).filter((i) => i.enabled !== false).map((i) => i.name || i.id);
+
+    return {
+      success: true,
+      startup: true,
+      hasChanges: diff.hasChanges,
+      autoReconnected: true,
+      hubRoot: effHub,
+      diff,
+      connectedAgentsCount: connectedAgents.length,
+      connectedAgents,
+      sync: syncRes,
+      summary: diff.summary,
+    };
+  }
+
+  return {
+    success: true,
+    startup: true,
+    hasChanges: false,
+    autoReconnected: false,
+    hubRoot: effHub,
+    diff,
+    connectedAgentsCount: (cfg.ides || []).filter((i) => i.enabled !== false).length,
+    connectedAgents: (cfg.ides || []).filter((i) => i.enabled !== false).map((i) => i.name || i.id),
+    summary: diff.summary,
+  };
 }
