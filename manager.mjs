@@ -1064,6 +1064,60 @@ function filterOwnedFilesForSpec(allFiles = [], spec) {
  * Syncs components for an IDE based on its Agent Profile (`bundle` vs `convert` mode)
  * and persists the ownership manifest so only tool-owned items are ever pruned.
  */
+/**
+ * Proactively sanitizes and guards an agent configuration directory against corrupted
+ * or schema-violating stub files (e.g. 0-byte JSONs, empty {} projects without id, empty ghost folders).
+ * Ensures background Language Servers and file watchers never enter crash loops for any connected agent.
+ */
+export function sanitizeAgentConfigDirectory(configDir, agentType = "general") {
+  if (!configDir || !fs.existsSync(configDir)) return;
+  try {
+    // 1. Sanitize projects / workspace manifests (e.g. ~/.gemini/config/projects/)
+    const projDir = path.join(configDir, "projects");
+    if (fs.existsSync(projDir)) {
+      for (const ent of fs.readdirSync(projDir)) {
+        if (!ent.endsWith(".json")) continue;
+        const p = path.join(projDir, ent);
+        try {
+          const st = fs.statSync(p);
+          if (st.size === 0) {
+            fs.unlinkSync(p);
+            continue;
+          }
+          const content = fs.readFileSync(p, "utf8").trim();
+          if (content === "{}" || content === "") {
+            fs.unlinkSync(p);
+            continue;
+          }
+          const parsed = JSON.parse(content);
+          if (parsed && typeof parsed === "object" && !parsed.id) {
+            fs.unlinkSync(p);
+          }
+        } catch {}
+      }
+    }
+
+    // 2. Sanitize empty ghost directories left behind in plugins / skills
+    for (const sub of ["plugins", "skills"]) {
+      const subDir = path.join(configDir, sub);
+      if (fs.existsSync(subDir)) {
+        for (const ent of fs.readdirSync(subDir)) {
+          const itemPath = path.join(subDir, ent);
+          try {
+            const st = fs.lstatSync(itemPath);
+            if (st.isDirectory()) {
+              const children = fs.readdirSync(itemPath);
+              if (children.length === 0) {
+                fs.rmSync(itemPath, { recursive: true, force: true });
+              }
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch {}
+}
+
 export function syncIdePlugins(ide, allPlugins = []) {
   if (!ide) return { success: false, message: "No IDE provided" };
   const normalized = normalizeIdeEntry(ide);
@@ -1077,6 +1131,10 @@ export function syncIdePlugins(ide, allPlugins = []) {
   if (!primaryDir) {
     return { success: false, message: "No config path specified" };
   }
+
+  // Universal Safety Fallback: sanitize config directories before syncing
+  sanitizeAgentConfigDirectory(primaryDir, agentType);
+  sanitizeAgentConfigDirectory(path.dirname(primaryDir), agentType);
 
   const ownerKey = `ide-${normalized.id || agentType}`;
   const prevState = loadOwnershipState(ownerKey);
@@ -1444,31 +1502,50 @@ export function killAgentProcesses(ide) {
     return { success: true, skipped: "test-environment" };
   }
   const normalized = normalizeIdeEntry(ide);
-  const targets = new Set();
-
   const type = normalized.agentType || inferAgentType(normalized);
-  // Antigravity dynamically hot-reloads plugin bundles and skills on the fly;
-  // NEVER terminate Antigravity IDE processes with taskkill.
-  if (type === "antigravity") {
-    return { success: true, skipped: "hot-reload-supported" };
+
+  // Protected Primary GUI Editors: All modern AI IDEs hot-reload configuration on disk.
+  // Forcefully killing them terminates developer sessions and unsaved work.
+  const PROTECTED_GUI_AGENTS = new Set([
+    "antigravity",
+    "cursor",
+    "windsurf",
+    "vscode",
+    "vscode-copilot",
+    "vscodium",
+    "opencode",
+    "kiro",
+    "gemini-cli",
+    "cline",
+    "roo-code",
+  ]);
+
+  if (PROTECTED_GUI_AGENTS.has(type) && !normalized.forceKill) {
+    return { success: true, skipped: "gui-editor-hot-reload-protected" };
   }
 
+  // Never kill known editor executables even if custom agent names are passed
+  const PROTECTED_EXECUTABLES = new Set([
+    "antigravity.exe",
+    "antigravity ide.exe",
+    "agy.exe",
+    "cursor.exe",
+    "windsurf.exe",
+    "code.exe",
+    "codium.exe",
+    "vscodium.exe",
+    "opencode.exe",
+    "electron.exe",
+    "devenv.exe",
+    "idea64.exe",
+  ]);
+
+  const targets = new Set();
   if (normalized.exePath) {
     const exeName = path.basename(normalized.exePath).toLowerCase();
-    if (!exeName.includes("antigravity") && !exeName.includes("agy")) {
+    if (!PROTECTED_EXECUTABLES.has(exeName)) {
       targets.add(exeName);
     }
-  }
-
-  if (type === "cursor") {
-    targets.add("cursor.exe");
-  } else if (type === "windsurf") {
-    targets.add("windsurf.exe");
-  } else if (type === "vscode") {
-    targets.add("code.exe");
-  } else if (type === "vscodium") {
-    targets.add("codium.exe");
-    targets.add("vscodium.exe");
   }
 
   let killedAny = false;
@@ -1476,10 +1553,11 @@ export function killAgentProcesses(ide) {
     if (!procName) continue;
     try {
       if (process.platform === "win32") {
-        execSync(`taskkill /F /IM "${procName}" /T`, { stdio: "ignore" });
+        // Use graceful termination rather than forceful /F /T
+        execSync(`taskkill /IM "${procName}"`, { stdio: "ignore" });
         killedAny = true;
       } else {
-        execSync(`pkill -9 -f "${procName}"`, { stdio: "ignore" });
+        execSync(`pkill -f "${procName}"`, { stdio: "ignore" });
         killedAny = true;
       }
     } catch {}

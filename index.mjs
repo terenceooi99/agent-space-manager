@@ -85,7 +85,7 @@ export const AgentSpaceManagerPlugin = {
       const plugins = scanPlugins(getEffectiveHubRoot(cfg));
       return syncIdePlugins(ide, plugins);
     },
-    removeIde: async (ideId, killProcesses = true) => {
+    removeIde: async (ideId, killProcesses = false) => {
       const cfg = loadHubConfig();
       const ideIndex = cfg.ides.findIndex((i) => i.id === ideId);
       if (ideIndex === -1) return { success: false, error: "IDE not found" };

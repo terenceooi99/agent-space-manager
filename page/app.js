@@ -343,7 +343,7 @@
       return null;
     },
 
-    async removeIde(ideId, killProcesses = true) {
+    async removeIde(ideId, killProcesses = false) {
       const magpieApi = getMagpieApi();
       if (typeof magpieApi?.removeIde === "function") {
         return await magpieApi.removeIde(ideId, killProcesses);
@@ -1141,21 +1141,40 @@
       // Direct, reliable removal: unlinks all owned components and cleans state
       const removeBtn = item.querySelector(".delete-ide-btn");
       if (removeBtn) {
+        let confirmTimer = null;
         removeBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
 
           const targetId = ide.id;
-          const ideName = ide.name || "Agent";
 
-          const confirmRemove = confirm(`Remove "${ideName}"?\n\nThis will sever all component links and close any running "${ideName}" background processes immediately so changes take effect without restarting your computer.\n\nContinue?`);
-          if (!confirmRemove) return;
+          // Step 1: Inline confirmation (immune to WebView2/Electron modal dialog suppression)
+          if (removeBtn.dataset.confirming !== "true") {
+            removeBtn.dataset.confirming = "true";
+            removeBtn.textContent = "Click to Confirm";
+            removeBtn.style.color = "#ef4444";
+            removeBtn.style.fontWeight = "bold";
 
+            if (confirmTimer) clearTimeout(confirmTimer);
+            confirmTimer = setTimeout(() => {
+              if (removeBtn) {
+                delete removeBtn.dataset.confirming;
+                removeBtn.textContent = "Remove";
+                removeBtn.style.color = "";
+                removeBtn.style.fontWeight = "";
+              }
+            }, 4000);
+            return;
+          }
+
+          // Step 2: Confirmed removal
+          if (confirmTimer) clearTimeout(confirmTimer);
+          delete removeBtn.dataset.confirming;
           removeBtn.disabled = true;
           removeBtn.textContent = "Removing...";
 
           try {
-            await apiClient.removeIde(targetId, true);
+            await apiClient.removeIde(targetId, false);
           } catch (err) {
             console.warn("apiClient.removeIde error:", err);
           }
@@ -1268,15 +1287,35 @@
       // Direct, reliable removal for project overrides
       const deleteProjBtn = item.querySelector(".delete-proj-btn");
       if (deleteProjBtn) {
+        let confirmProjTimer = null;
         deleteProjBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
 
           const targetId = proj.id;
-          const projName = proj.name || "Project";
-          const confirmRemove = confirm(`Remove project override "${projName}"?\n\nAll repository component links will be severed immediately.\n\nContinue?`);
-          if (!confirmRemove) return;
 
+          // Step 1: Inline confirmation (immune to WebView2/Electron modal dialog suppression)
+          if (deleteProjBtn.dataset.confirming !== "true") {
+            deleteProjBtn.dataset.confirming = "true";
+            deleteProjBtn.textContent = "Click to Confirm";
+            deleteProjBtn.style.color = "#ef4444";
+            deleteProjBtn.style.fontWeight = "bold";
+
+            if (confirmProjTimer) clearTimeout(confirmProjTimer);
+            confirmProjTimer = setTimeout(() => {
+              if (deleteProjBtn) {
+                delete deleteProjBtn.dataset.confirming;
+                deleteProjBtn.textContent = "Remove";
+                deleteProjBtn.style.color = "";
+                deleteProjBtn.style.fontWeight = "";
+              }
+            }, 4000);
+            return;
+          }
+
+          // Step 2: Confirmed removal
+          if (confirmProjTimer) clearTimeout(confirmProjTimer);
+          delete deleteProjBtn.dataset.confirming;
           deleteProjBtn.disabled = true;
           deleteProjBtn.textContent = "Removing...";
 

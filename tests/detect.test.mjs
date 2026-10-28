@@ -37,4 +37,49 @@ describe("Feature 7: Multi-Agent Config Path Detection & Name Inference", () => 
       sb.cleanup();
     }
   });
+
+  test("killAgentProcesses protects all GUI editors from process termination", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      const guiAgents = ["antigravity", "cursor", "windsurf", "vscode", "opencode", "kiro"];
+      for (const agentType of guiAgents) {
+        const res = m.killAgentProcesses({ agentType, exePath: `C:\\Programs\\${agentType}.exe` });
+        assert.equal(res.success, true);
+        assert.ok(res.skipped);
+      }
+    } finally {
+      sb.cleanup();
+    }
+  });
+
+  test("sanitizeAgentConfigDirectory prunes corrupted empty project manifests and ghost folders", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+
+      const cfgDir = path.join(sb.home, ".gemini", "config");
+      const projDir = path.join(cfgDir, "projects");
+      const pluginsDir = path.join(cfgDir, "plugins");
+      fs.mkdirSync(projDir, { recursive: true });
+      fs.mkdirSync(pluginsDir, { recursive: true });
+
+      // Create corrupted stubs
+      fs.writeFileSync(path.join(projDir, "corrupted-empty.json"), "{}\n", "utf8");
+      fs.writeFileSync(path.join(projDir, "zero-byte.json"), "", "utf8");
+      fs.writeFileSync(path.join(projDir, "valid-project.json"), JSON.stringify({ id: "valid-1", name: "Valid" }), "utf8");
+      fs.mkdirSync(path.join(pluginsDir, "empty-ghost-dir"), { recursive: true });
+
+      m.sanitizeAgentConfigDirectory(cfgDir, "antigravity");
+
+      assert.equal(fs.existsSync(path.join(projDir, "corrupted-empty.json")), false, "Must delete empty {} project");
+      assert.equal(fs.existsSync(path.join(projDir, "zero-byte.json")), false, "Must delete 0-byte project");
+      assert.equal(fs.existsSync(path.join(projDir, "valid-project.json")), true, "Must keep valid project with id");
+      assert.equal(fs.existsSync(path.join(pluginsDir, "empty-ghost-dir")), false, "Must prune empty ghost folder");
+    } finally {
+      sb.cleanup();
+    }
+  });
 });
