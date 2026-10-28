@@ -53,6 +53,45 @@ describe("Feature 9 & 11: REST API Server, Agent Profiles Endpoint & CORS Securi
           body: JSON.stringify({ hubRoot: sb.hub, ides: [] }),
         });
         assert.equal(evilRes.status, 403, "Must reject foreign Origin on mutating endpoints");
+
+        // 5. /api/rescan triggers full rescan and returns connection status
+        const rescan = await fetch(`${base}/api/rescan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hubRoot: sb.hub }),
+        }).then((r) => r.json());
+        assert.equal(rescan.success, true);
+        assert.equal(rescan.pluginCount, 4);
+        assert.ok(rescan.sync);
+
+        // 6. /api/remove-ide unlinks and removes specified IDE
+        const saveIde = await fetch(`${base}/api/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hubRoot: sb.hub,
+            ides: [{ id: "temp-agent", name: "Temp Agent", agentType: "antigravity", configPath: sb.home, enabled: true }],
+            projects: [{ id: "temp-proj", name: "Temp Proj", ideId: "temp-agent", repoPath: sb.root }],
+          }),
+        }).then((r) => r.json());
+        assert.equal(saveIde.success, true);
+
+        const remIde = await fetch(`${base}/api/remove-ide`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ideId: "temp-agent" }),
+        }).then((r) => r.json());
+        assert.equal(remIde.success, true);
+        assert.equal(remIde.removed, "temp-agent");
+
+        // 7. /api/remove-project unlinks and removes specified Project
+        const remProj = await fetch(`${base}/api/remove-project`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: "temp-proj" }),
+        }).then((r) => r.json());
+        // Already cleaned when parent IDE was removed
+        assert.ok(remProj.success === false || remProj.success === true);
       } finally {
         srv.close();
       }

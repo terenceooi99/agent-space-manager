@@ -199,4 +199,68 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
       sb.cleanup();
     }
   });
+
+  test("Custom componentPaths overrides allow typing custom path link for each component type and unlinking cleans 100%", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      const plugins = m.scanPlugins(sb.hub);
+
+      const customSkills = path.join(sb.root, "my-custom-skills");
+      const customCmds = path.join(sb.root, "my-custom-commands");
+      const customMcp = path.join(sb.root, "configs", "custom-mcp.json");
+      const customRules = path.join(sb.root, "my-custom-rules.md");
+      const customAgents = path.join(sb.root, "my-custom-agents");
+      const customHooks = path.join(sb.root, "configs", "custom-hooks.json");
+
+      const ide = {
+        id: "custom-claude",
+        name: "Custom Claude Setup",
+        agentType: "claude-code",
+        configPath: customSkills,
+        componentPaths: {
+          skills: customSkills,
+          commands: customCmds,
+          mcp: customMcp,
+          rules: customRules,
+          agents: customAgents,
+          hooks: customHooks,
+        },
+        enabled: true,
+        plugins: {},
+      };
+
+      const res = m.syncIdePlugins(ide, plugins);
+      assert.equal(res.success, true);
+
+      // Verify custom skills directory
+      assert.equal(fs.existsSync(path.join(customSkills, "code-review", "SKILL.md")), true);
+      // Verify custom commands directory
+      assert.equal(fs.existsSync(path.join(customCmds, "code-review.md")), true);
+      // Verify custom MCP file
+      assert.equal(fs.existsSync(customMcp), true);
+      const parsedMcp = JSON.parse(fs.readFileSync(customMcp, "utf8"));
+      assert.ok(parsedMcp.mcpServers["alpha-mcp"]);
+      // Verify custom rules file
+      assert.equal(fs.existsSync(customRules), true);
+      assert.match(fs.readFileSync(customRules, "utf8"), /alpha-style\.md/);
+      // Verify custom agents directory
+      assert.equal(fs.existsSync(path.join(customAgents, "reviewer.md")), true);
+
+      // Complete unlinking: user removes connected agent
+      m.unlinkAllForIde(ide);
+
+      assert.equal(fs.existsSync(path.join(customSkills, "code-review", "SKILL.md")), false, "Skills must be unlinked");
+      assert.equal(fs.existsSync(path.join(customCmds, "code-review.md")), false, "Commands must be unlinked");
+      assert.equal(fs.existsSync(path.join(customAgents, "reviewer.md")), false, "Agents must be unlinked");
+
+      const afterMcp = JSON.parse(fs.readFileSync(customMcp, "utf8"));
+      assert.equal(Boolean(afterMcp.mcpServers["alpha-mcp"]), false, "Hub MCP servers must be removed from config");
+
+      const afterRules = fs.readFileSync(customRules, "utf8");
+      assert.doesNotMatch(afterRules, /agent-space-manager:start/, "Rules block must be completely removed");
+    } finally {
+      sb.cleanup();
+    }
+  });
 });

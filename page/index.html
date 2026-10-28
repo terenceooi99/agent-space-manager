@@ -253,6 +253,53 @@
           <input type="text" id="ideConfigInput" placeholder="C:\Users\username\.cursor\skills" readonly>
           <p class="field-hint" id="configHint">Auto-detects path based on binary/IDE name. Turn off switch to type custom path.</p>
         </div>
+
+        <!-- Custom Component Path Overrides -->
+        <div class="component-paths-box" style="margin-top:12px; padding:10px 12px; border:1px solid var(--magpie-border, rgba(128,128,128,0.25)); border-radius:6px; background:var(--magpie-surface-alt, rgba(128,128,128,0.04));">
+          <div style="display:flex; justify-content:space-between; align-items:center;" id="componentPathsHeader">
+            <div style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;" id="componentPathsToggleTitle" title="Click to minimize or expand">
+              <span id="componentPathsToggleIcon" style="font-size:10px; display:inline-block; transition:transform 0.2s;">▶</span>
+              <span style="font-weight:600; font-size:12px;">Component Target Paths (Custom Overrides)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button type="button" class="btn-sm" id="btnResetComponentPaths" style="font-size:11px; padding:2px 8px; display:none;" title="Reset fields to selected profile defaults">↺ Reset</button>
+              <button type="button" class="btn-sm" id="btnToggleComponentPaths" style="font-size:11px; padding:2px 8px;">▶ Expand</button>
+            </div>
+          </div>
+          <div id="componentPathsBody" style="display:none; margin-top:8px;">
+            <p class="field-hint" style="margin-bottom:8px; font-size:11px;">You can manually edit the destination path link for each individual component type:</p>
+            <div style="display:grid; grid-template-columns: 1fr; gap:6px; font-size:11px;">
+              <label style="font-size:11px; margin-bottom:0;">
+                Bundle Path (Antigravity Plugins):
+                <input type="text" id="cpBundleInput" placeholder="e.g. ~/.gemini/config/plugins" style="font-size:11px; padding:4px 6px;">
+              </label>
+              <label style="font-size:11px; margin-bottom:0;">
+                Skills Directory:
+                <input type="text" id="cpSkillsInput" placeholder="e.g. ~/.claude/skills" style="font-size:11px; padding:4px 6px;">
+              </label>
+              <label style="font-size:11px; margin-bottom:0;">
+                Slash Commands Directory (/ quick actions):
+                <input type="text" id="cpCommandsInput" placeholder="e.g. ~/.claude/commands" style="font-size:11px; padding:4px 6px;">
+              </label>
+              <label style="font-size:11px; margin-bottom:0;">
+                MCP Configuration File (mcpServers):
+                <input type="text" id="cpMcpInput" placeholder="e.g. ~/.claude.json or config.toml" style="font-size:11px; padding:4px 6px;">
+              </label>
+              <label style="font-size:11px; margin-bottom:0;">
+                Rules File or Folder:
+                <input type="text" id="cpRulesInput" placeholder="e.g. ~/.claude/CLAUDE.md" style="font-size:11px; padding:4px 6px;">
+              </label>
+              <label style="font-size:11px; margin-bottom:0;">
+                Subagents Directory (@ mentions):
+                <input type="text" id="cpAgentsInput" placeholder="e.g. ~/.claude/agents" style="font-size:11px; padding:4px 6px;">
+              </label>
+              <label style="font-size:11px; margin-bottom:0;">
+                Hooks Configuration File:
+                <input type="text" id="cpHooksInput" placeholder="e.g. ~/.claude/hooks.json" style="font-size:11px; padding:4px 6px;">
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-sm" id="cancelIdeBtn">Cancel</button>
@@ -298,6 +345,38 @@
       <div class="modal-footer">
         <button type="button" class="btn-sm" id="cancelProjectBtn">Cancel</button>
         <button type="button" class="btn-sm btn-primary" id="saveProjectBtn">Save Project</button>
+      </div>
+    </div>
+  </div>
+  <!-- Rescan Hub & Linking Progress Modal -->
+  <div class="modal" id="rescanProgressModal">
+    <div class="modal-content" style="max-width: 680px;">
+      <div class="modal-head">
+        <h3>Hub Rescan & Live Linking Connection Status</h3>
+        <button type="button" class="btn-danger-text" id="closeRescanModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+            <span id="rescanStatusStep" style="font-weight:600;">Scanning Hub Components...</span>
+            <span id="rescanStatusPct" style="color:var(--magpie-primary, #60a5fa); font-weight:bold;">0%</span>
+          </div>
+          <div style="width:100%; height:8px; background:var(--magpie-border, #333); border-radius:4px; overflow:hidden;">
+            <div id="rescanProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #3b82f6, #10b981); transition:width 0.25s ease;"></div>
+          </div>
+        </div>
+
+        <div id="rescanSummaryBanner" style="display:none; padding:8px 12px; border-radius:6px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); font-size:12px; margin-bottom:12px; color:var(--magpie-text, #fff);">
+          <strong>Rescan & Synchronization Complete!</strong> Verified all linking connections across connected agent IDEs and repositories.
+        </div>
+
+        <div style="font-size:12px; font-weight:600; margin-bottom:8px;">Live Linking Status for Connected IDEs & Repositories:</div>
+        <div id="rescanCardsContainer" style="display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; padding-right:4px;">
+          <!-- Dynamically populated status cards -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-sm btn-primary" id="btnDoneRescan">Done</button>
       </div>
     </div>
   </div>

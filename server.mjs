@@ -15,6 +15,7 @@ import {
   syncIdePlugins,
   syncAllIdes,
   unlinkAllForIde,
+  unlinkAllForProject,
   detectAgentConfigPath,
   resolveDroppedTarget,
   browseFileSystem,
@@ -30,7 +31,6 @@ const MAGPIE_PLUGINS_JSON = path.join(os.homedir(), ".config", "magpie", "plugin
 const SIBLING_DIRS = [
   __dirname,
   "D:\\Software\\Magpie\\agent-space-manager",
-  "D:\\Software\\Magpie\\smart-middleware",
 ];
 
 export const API_PORT = 41789;
@@ -120,12 +120,30 @@ export function syncFromMagpiePluginsJson(force = false) {
     if (!force && sig === lastMagpieStateSig) return false;
     lastMagpieStateSig = sig;
 
+    const baseCfg = loadHubConfig();
     const cfg = opts.hubConfig && typeof opts.hubConfig === "object"
-      ? { ...loadHubConfig(), ...opts.hubConfig }
-      : loadHubConfig();
+      ? { ...baseCfg, ...opts.hubConfig }
+      : baseCfg;
+
+    if (!Array.isArray(cfg.ides) || cfg.ides.length === 0) {
+      cfg.ides = baseCfg.ides && baseCfg.ides.length > 0 ? baseCfg.ides : [
+        {
+          id: "antigravity",
+          name: "Antigravity (Google Gemini)",
+          agentType: "antigravity",
+          exePath: path.join(os.homedir(), ".gemini", "bin", process.platform === "win32" ? "agy.cmd" : "agy"),
+          configPath: detectAgentConfigPath("antigravity"),
+          enabled: true,
+          plugins: {},
+        },
+      ];
+    }
 
     if (opts.toolsRoot !== undefined && (!opts.hubConfig || opts.hubConfig.hubRoot === undefined)) {
       cfg.hubRoot = String(opts.toolsRoot || "").trim();
+    }
+    if (!cfg.hubRoot || cfg.hubRoot.trim() === "") {
+      cfg.hubRoot = resolveHubRoot();
     }
     if (opts.smartMiddlewareEnabled !== undefined) {
       cfg.smartMiddleware = { ...(cfg.smartMiddleware || {}), enabled: Boolean(opts.smartMiddlewareEnabled) };
@@ -273,6 +291,112 @@ export function startApiServer(port = API_PORT) {
             const syncRes = syncAllIdes(config, plugins);
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ success: true, pluginCount: plugins.length, plugins, categories, sync: syncRes }));
+          } catch (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
+      if (pathname === "/api/rescan" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          try {
+            const data = body ? JSON.parse(body) : {};
+            const config = loadHubConfig();
+            if (data.hubRoot && typeof data.hubRoot === "string") {
+              config.hubRoot = data.hubRoot.trim();
+              saveHubConfig(config);
+            }
+            const effPath = getEffectiveHubRoot(config);
+            const plugins = scanPlugins(effPath);
+            const categories = buildCategoriesRegistry(plugins, effPath);
+            updatePluginsCache(effPath, plugins, categories);
+            const syncRes = syncAllIdes(config, plugins);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                success: true,
+                hubRoot: effPath,
+                pluginCount: plugins.length,
+                plugins,
+                categories,
+                sync: syncRes,
+                timestamp: Date.now(),
+              })
+            );
+          } catch (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
+      if (pathname === "/api/remove-ide" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          try {
+            const { ideId } = JSON.parse(body || "{}");
+            if (!ideId) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: "ideId required" }));
+              return;
+            }
+            const config = loadHubConfig();
+            const idx = (config.ides || []).findIndex((i) => i.id === ideId);
+            if (idx === -1) {
+              res.writeHead(404, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: `IDE '${ideId}' not found` }));
+              return;
+            }
+            const [removedIde] = config.ides.splice(idx, 1);
+            unlinkAllForIde(removedIde);
+            config.projects = (config.projects || []).filter((p) => p.ideId !== ideId);
+            saveHubConfig(config);
+            const effPath = getEffectiveHubRoot(config);
+            const plugins = scanPlugins(effPath);
+            const syncRes = syncAllIdes(config, plugins);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true, removed: ideId, sync: syncRes }));
+          } catch (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
+      if (pathname === "/api/remove-project" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          try {
+            const { projectId } = JSON.parse(body || "{}");
+            if (!projectId) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: "projectId required" }));
+              return;
+            }
+            const config = loadHubConfig();
+            const idx = (config.projects || []).findIndex((p) => p.id === projectId);
+            if (idx === -1) {
+              res.writeHead(404, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: `Project '${projectId}' not found` }));
+              return;
+            }
+            const [removedProj] = config.projects.splice(idx, 1);
+            const parentIde = (config.ides || []).find((i) => i.id === removedProj.ideId) || null;
+            unlinkAllForProject(removedProj, parentIde);
+            saveHubConfig(config);
+            const effPath = getEffectiveHubRoot(config);
+            const plugins = scanPlugins(effPath);
+            const syncRes = syncAllIdes(config, plugins);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true, removed: projectId, sync: syncRes }));
           } catch (err) {
             res.writeHead(400, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ success: false, error: err.message }));

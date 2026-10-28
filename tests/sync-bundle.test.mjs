@@ -100,4 +100,59 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
       sb.cleanup();
     }
   });
+
+  test("Antigravity bundle materializes real directories for Go os.ReadDir compatibility and unlinks 100% on removal", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      const plugins = m.scanPlugins(sb.hub);
+      const agyConfig = path.join(sb.home, ".gemini", "config", "plugins");
+      const ide = {
+        id: "antigravity",
+        name: "Antigravity",
+        agentType: "antigravity",
+        configPath: agyConfig,
+        enabled: true,
+        plugins: {},
+      };
+
+      m.syncIdePlugins(ide, plugins);
+
+      const alphaPluginDir = path.join(agyConfig, "alpha-plugin");
+      const alphaStat = fs.lstatSync(alphaPluginDir);
+      assert.equal(alphaStat.isDirectory(), true, "Must be a real directory so Go os.ReadDir sees IsDir() == true");
+      assert.equal(alphaStat.isSymbolicLink(), false, "Must not be a top-level junction");
+      assert.equal(fs.existsSync(path.join(alphaPluginDir, ".asm-owned.json")), true, "Must have .asm-owned marker");
+      assert.equal(fs.existsSync(path.join(alphaPluginDir, "plugin.json")), true, "Must have real plugin.json");
+
+      const flattenedSkillDir = path.join(sb.home, ".gemini", "config", "skills", "code-review");
+      const skillStat = fs.lstatSync(flattenedSkillDir);
+      assert.equal(skillStat.isDirectory(), true, "Flattened skill must be a real directory");
+      assert.equal(skillStat.isSymbolicLink(), false, "Flattened skill must not be a top-level junction");
+      assert.equal(fs.existsSync(path.join(flattenedSkillDir, "SKILL.md")), true, "Must have real SKILL.md");
+
+      // Verify communication files written in hub
+      m.syncAllIdes({ hubRoot: sb.hub, ides: [ide], projects: [] }, plugins);
+      const bridgeFile = path.join(sb.hub, "agent-space-bridge.json");
+      assert.equal(fs.existsSync(bridgeFile), true, "agent-space-bridge.json must exist in hub");
+      const bridge = JSON.parse(fs.readFileSync(bridgeFile, "utf8"));
+      assert.equal(bridge.activeAgents.length, 1);
+      assert.equal(bridge.activeAgents[0].name, "Antigravity");
+
+      const connectorsFile = path.join(sb.hub, "shared", "agent-connectors.json");
+      assert.equal(fs.existsSync(connectorsFile), true, "shared/agent-connectors.json must exist");
+      const connectors = JSON.parse(fs.readFileSync(connectorsFile, "utf8"));
+      assert.ok(connectors.connectors["antigravity"]);
+      assert.ok(fs.existsSync(connectors.connectors["antigravity"].handoffInbox));
+
+      // Test complete unlinking when agent is removed
+      m.unlinkAllForIde(ide);
+      assert.equal(fs.existsSync(alphaPluginDir), false, "All plugin bundle folders must be completely removed");
+      assert.equal(fs.existsSync(flattenedSkillDir), false, "All flattened skill folders must be completely removed");
+      assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "rules", "alpha-style.md")), false);
+      assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "agents", "reviewer.md")), false);
+    } finally {
+      sb.cleanup();
+    }
+  });
 });

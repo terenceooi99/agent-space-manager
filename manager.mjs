@@ -17,7 +17,13 @@ import {
 import {
   loadOwnershipState,
   saveOwnershipState,
+  deleteOwnershipState,
+  listAllOwnershipStates,
   isTargetInsideHub,
+  isAsmOwnedDirectory,
+  materializeSkillDir,
+  materializePluginBundle,
+  syncPluginBundles,
   collectEnabledComponents,
   syncFlattenedSkills,
   syncSkillSlashCommands,
@@ -25,10 +31,26 @@ import {
   syncTomlMcpServers,
   syncMarkdownRulesBlock,
   syncOwnedFiles,
+  syncJsonHooks,
+  writeHubCommunicationFiles,
   ensureGitInfoExclude,
 } from "./adapters.mjs";
+import {
+  resolveEffectiveAgentPaths,
+  resolveEffectiveProjectPaths,
+} from "./agents.mjs";
 
-export { AGENT_PROFILES, inferAgentType, listAgentProfilesForUi, expandHomePath };
+export {
+  AGENT_PROFILES,
+  inferAgentType,
+  listAgentProfilesForUi,
+  expandHomePath,
+  deleteOwnershipState,
+  listAllOwnershipStates,
+  writeHubCommunicationFiles,
+  resolveEffectiveAgentPaths,
+  resolveEffectiveProjectPaths,
+};
 
 /**
  * Resolves the Hub root dynamically:
@@ -480,11 +502,21 @@ export function normalizeIdeEntry(ide) {
   }
 
   const exePath = ide.exePath ? expandHomePath(ide.exePath) : ide.exePath || "";
+  const componentPaths = ide.componentPaths && typeof ide.componentPaths === "object"
+    ? { ...ide.componentPaths }
+    : {};
+  for (const [k, v] of Object.entries(componentPaths)) {
+    if (typeof v === "string" && v.trim()) {
+      componentPaths[k] = expandHomePath(v.trim());
+    }
+  }
+
   return {
     ...ide,
     agentType,
     exePath,
     configPath,
+    componentPaths,
     enabled: ide.enabled !== false,
     plugins: ide.plugins && typeof ide.plugins === "object" ? ide.plugins : {},
   };
@@ -499,11 +531,27 @@ export function loadHubConfig(configFile = null) {
     if (fs.existsSync(effectiveFile)) {
       const data = fs.readFileSync(effectiveFile, "utf8");
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed.ides)) {
+      if (Array.isArray(parsed.ides) && parsed.ides.length > 0) {
         parsed.ides = parsed.ides.map(normalizeIdeEntry);
+      } else if (!Array.isArray(parsed.ides) || parsed.ides.length === 0) {
+        const defaultHome = getHomeDir();
+        parsed.ides = [
+          normalizeIdeEntry({
+            id: "antigravity",
+            name: "Antigravity (Google Gemini)",
+            agentType: "antigravity",
+            exePath: path.join(defaultHome, ".gemini", "bin", process.platform === "win32" ? "agy.cmd" : "agy"),
+            configPath: detectAgentConfigPath("antigravity"),
+            enabled: true,
+            plugins: {},
+          }),
+        ];
       }
       if (!Array.isArray(parsed.projects)) {
         parsed.projects = [];
+      }
+      if (!parsed.hubRoot || parsed.hubRoot.trim() === "") {
+        parsed.hubRoot = resolveHubRoot();
       }
       return parsed;
     }
@@ -1023,8 +1071,8 @@ export function syncIdePlugins(ide, allPlugins = []) {
   const profile = AGENT_PROFILES[agentType] || AGENT_PROFILES.custom;
   const home = getHomeDir();
   const appData = getAppDataDir(home);
-  const paths = profile.resolvePaths(home, appData, normalized.name);
-  const primaryDir = expandHomePath(normalized.configPath || paths.primary);
+  const paths = resolveEffectiveAgentPaths(normalized, home, appData);
+  const primaryDir = expandHomePath(paths.primary || paths.bundle || paths.skills || normalized.configPath);
 
   if (!primaryDir) {
     return { success: false, message: "No config path specified" };
@@ -1035,7 +1083,8 @@ export function syncIdePlugins(ide, allPlugins = []) {
 
   // Mode 1: Bundle Agent (Antigravity)
   if (profile.mode === "bundle") {
-    ensureDir(primaryDir);
+    const bundleDir = paths.bundle || primaryDir;
+    ensureDir(bundleDir);
 
     const activePluginMap = new Map();
     for (const plugin of allPlugins) {
@@ -1049,45 +1098,19 @@ export function syncIdePlugins(ide, allPlugins = []) {
     const bundleLinks = [];
     const results = [];
 
-    // 1. Prune only owned (or hub-pointing) junctions in primaryDir
-    try {
-      const existingEntries = fs.readdirSync(primaryDir);
-      for (const entryName of existingEntries) {
-        const entryPath = path.join(primaryDir, entryName);
-        const resolvedEntry = path.resolve(entryPath);
-        try {
-          const stat = fs.lstatSync(entryPath);
-          if (stat.isSymbolicLink()) {
-            let currentTarget = "";
-            try {
-              currentTarget = fs.readlinkSync(entryPath);
-            } catch {}
-
-            const isOwned = prevLinksSet.has(resolvedEntry) || isTargetInsideHub(currentTarget, allPlugins);
-            if (!isOwned) continue; // Preserve foreign user-created symlinks
-
-            const activeTarget = activePluginMap.get(entryName);
-            const targetMatches =
-              activeTarget && currentTarget && path.resolve(currentTarget) === path.resolve(activeTarget);
-
-            if (!targetMatches) {
-              const rem = removeJunction(entryPath);
-              results.push({ plugin: entryName, action: "unlinked", ...rem });
-            }
-          }
-        } catch {}
-      }
-    } catch {}
-
-    // 2. Create or verify all active plugin bundle links
-    for (const [pluginId, sourcePath] of activePluginMap.entries()) {
-      const linkPath = path.join(primaryDir, pluginId);
-      const res = createJunction(sourcePath, linkPath);
-      if (res.success) {
-        bundleLinks.push(path.resolve(linkPath));
-      }
-      results.push({ plugin: pluginId, action: "linked", ...res });
-    }
+    // Use syncPluginBundles which uses real-directory materialization on Windows
+    // to bypass Go os.ReadDir IsDir() == false bug on junctions!
+    const bundleRes = syncPluginBundles(
+      bundleDir,
+      activePluginMap,
+      prevState.links || [],
+      createJunction,
+      removeJunction,
+      allPlugins,
+      ownerKey
+    );
+    bundleLinks.push(...bundleRes.bundleLinks);
+    results.push(...bundleRes.results);
 
     // 3. Antigravity ~/.gemini/config harmonization:
     //    - Link ALL enabled skills into ~/.gemini/config/skills/<skill-name> so `/` slash commands work for all plugins & root skills
@@ -1097,14 +1120,16 @@ export function syncIdePlugins(ide, allPlugins = []) {
     const isGeminiIde = agentType === "antigravity" || primaryDir.toLowerCase().includes(".gemini");
     let skillLinks = [];
     let nextFiles = [];
+    const nextJsonKeys = {};
+    const nextBlocks = [];
     const components = collectEnabledComponents(allPlugins, normalized.plugins);
 
     if (isGeminiIde) {
-      const geminiConfigDir = path.dirname(primaryDir);
-      const geminiSkillsDir = path.join(geminiConfigDir, "skills");
-      const geminiRulesSpec = { dir: path.join(geminiConfigDir, "rules"), suffix: ".md" };
-      const geminiAgentsSpec = { dir: path.join(geminiConfigDir, "agents"), suffix: ".md" };
-      const geminiSkillsJson = path.join(geminiConfigDir, "skills.json");
+      const geminiConfigDir = path.dirname(bundleDir);
+      const geminiSkillsDir = paths.skills || path.join(geminiConfigDir, "skills");
+      const geminiRulesSpec = paths.rules || paths.rulesDir || { dir: path.join(geminiConfigDir, "rules"), suffix: ".md" };
+      const geminiAgentsSpec = paths.agents || paths.agentsDir || { dir: path.join(geminiConfigDir, "agents"), suffix: ".md" };
+      const geminiSkillsJson = paths.skillsJson || path.join(geminiConfigDir, "skills.json");
 
       // Clean any stray plugin junctions that were mistakenly created directly in geminiConfigDir
       try {
@@ -1133,7 +1158,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
       );
       for (const oldLink of prevState.links || []) {
         const oldParent = path.dirname(path.resolve(oldLink));
-        if (oldParent !== path.resolve(primaryDir) && oldParent !== path.resolve(geminiSkillsDir)) {
+        if (oldParent !== path.resolve(bundleDir) && oldParent !== path.resolve(geminiSkillsDir)) {
           removeJunction(oldLink);
         }
       }
@@ -1145,7 +1170,8 @@ export function syncIdePlugins(ide, allPlugins = []) {
         prevSkillLinks,
         createJunction,
         removeJunction,
-        allPlugins
+        allPlugins,
+        ownerKey
       );
       skillLinks = skillSync.nextLinks;
 
@@ -1170,8 +1196,19 @@ export function syncIdePlugins(ide, allPlugins = []) {
       }
     }
 
+    if (paths.mcp) {
+      const prevKeys = (prevState.jsonKeys && prevState.jsonKeys[paths.mcp.file]) || [];
+      const jsonRes = syncJsonMcpServers(paths.mcp, components.mcpServers, prevKeys);
+      if (jsonRes.ownedKeys.length > 0) nextJsonKeys[paths.mcp.file] = jsonRes.ownedKeys;
+    }
+    if (paths.hooks) {
+      const prevHooks = (prevState.jsonKeys && prevState.jsonKeys[paths.hooks.file]) || [];
+      const hookRes = syncJsonHooks(paths.hooks, components.hooks, prevHooks);
+      if (hookRes.ownedKeys.length > 0) nextJsonKeys[paths.hooks.file] = hookRes.ownedKeys;
+    }
+
     const allOwnedLinks = [...bundleLinks, ...skillLinks];
-    saveOwnershipState(ownerKey, { links: allOwnedLinks, files: nextFiles, jsonKeys: {}, blocks: [] });
+    saveOwnershipState(ownerKey, { links: allOwnedLinks, files: nextFiles, jsonKeys: nextJsonKeys, blocks: nextBlocks });
     return {
       success: true,
       agentType,
@@ -1188,7 +1225,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
 
   // Mode 2: Native-Format Converted Agent (Claude Code, Codex, OpenCode, Copilot, Cursor, Windsurf, Gemini CLI, Cline, Roo, Kiro, Universal, Custom)
   const components = collectEnabledComponents(allPlugins, normalized.plugins);
-  const skillsTargetDir = primaryDir;
+  const skillsTargetDir = paths.skills || primaryDir;
 
   // 1. Link flattened skills (<skillsTargetDir>/<skill-name>/SKILL.md)
   const skillSync = syncFlattenedSkills(
@@ -1197,7 +1234,8 @@ export function syncIdePlugins(ide, allPlugins = []) {
     prevState.links || [],
     createJunction,
     removeJunction,
-    allPlugins
+    allPlugins,
+    ownerKey
   );
 
   // 2. Sync `/` quick-action slash command files (commands/, global_workflows/, prompts/, etc.)
@@ -1261,6 +1299,15 @@ export function syncIdePlugins(ide, allPlugins = []) {
     agentsSyncedCount = aFiles.nextFiles.length;
   }
 
+  // 6. Sync Hooks (e.g. ~/.claude/hooks.json)
+  if (paths.hooks) {
+    const prevHooks = (prevState.jsonKeys && prevState.jsonKeys[paths.hooks.file]) || [];
+    const hookRes = syncJsonHooks(paths.hooks, components.hooks, prevHooks);
+    if (hookRes.ownedKeys.length > 0) {
+      nextJsonKeys[paths.hooks.file] = hookRes.ownedKeys;
+    }
+  }
+
   saveOwnershipState(ownerKey, {
     links: skillSync.nextLinks,
     files: nextFiles,
@@ -1295,10 +1342,7 @@ export function syncProjectOverrides(project, ide, allPlugins = []) {
   }
 
   const agentType = inferAgentType(ide || project.ideId || "antigravity");
-  const profile = AGENT_PROFILES[agentType] || AGENT_PROFILES.custom;
-  const projPaths = profile.resolveProjectPaths
-    ? profile.resolveProjectPaths(repoPath)
-    : { skills: path.join(repoPath, ".agents", "skills"), excludeRel: [".agents/skills"] };
+  const projPaths = resolveEffectiveProjectPaths(project, ide);
 
   // Merge IDE global plugin map with project-specific override map
   const mergedPluginMap = {
@@ -1316,7 +1360,8 @@ export function syncProjectOverrides(project, ide, allPlugins = []) {
     prevState.links || [],
     createJunction,
     removeJunction,
-    allPlugins
+    allPlugins,
+    ownerKey
   );
 
   const nextJsonKeys = {};
@@ -1337,6 +1382,12 @@ export function syncProjectOverrides(project, ide, allPlugins = []) {
     const hadBlock = (prevState.blocks || []).includes(projPaths.rules.file);
     const mdRes = syncMarkdownRulesBlock(projPaths.rules, components.rules, hadBlock);
     if (mdRes.hasBlock) nextBlocks.push(projPaths.rules.file);
+  }
+
+  if (projPaths.hooks) {
+    const prevHooks = (prevState.jsonKeys && prevState.jsonKeys[projPaths.hooks.file]) || [];
+    const hookRes = syncJsonHooks(projPaths.hooks, components.hooks, prevHooks);
+    if (hookRes.ownedKeys.length > 0) nextJsonKeys[projPaths.hooks.file] = hookRes.ownedKeys;
   }
 
   let nextFiles = [];
@@ -1376,8 +1427,22 @@ export function syncProjectOverrides(project, ide, allPlugins = []) {
  */
 export function unlinkAllForIde(ide) {
   if (!ide) return { success: true };
-  // Running syncIdePlugins with an empty plugin list cleanly prunes all owned links, MCP keys, blocks, and files!
-  syncIdePlugins(ide, []);
+  const normalized = normalizeIdeEntry(ide);
+  const ownerKey = `ide-${normalized.id || normalized.agentType}`;
+  // Passing empty allPlugins cleanly unlinks and prunes all owned links, files, MCP keys, hooks, blocks!
+  syncIdePlugins(normalized, []);
+  deleteOwnershipState(ownerKey);
+  return { success: true };
+}
+
+/**
+ * Severs all owned junctions, MCP keys, rule blocks, and copied files for a given Project when removed.
+ */
+export function unlinkAllForProject(project, ide = null) {
+  if (!project) return { success: true };
+  const ownerKey = `project-${project.id || path.basename(project.repoPath || "")}`;
+  syncProjectOverrides({ ...project, plugins: {} }, ide, []);
+  deleteOwnershipState(ownerKey);
   return { success: true };
 }
 
@@ -1400,6 +1465,7 @@ export function getEffectiveHubRoot(configOrPath) {
 
 /**
  * Synchronizes all configured IDEs and Project Overrides against the given hubConfig or plugin list.
+ * Automatically reconciles and unlinks any removed IDEs/projects, and updates hub communication files.
  */
 export function syncAllIdes(hubConfig, customPlugins = null) {
   if (!hubConfig) return { success: true, results: [], projectResults: [] };
@@ -1409,14 +1475,49 @@ export function syncAllIdes(hubConfig, customPlugins = null) {
   const projectResults = [];
 
   const ides = Array.isArray(hubConfig.ides) ? hubConfig.ides : [];
+  const projects = Array.isArray(hubConfig.projects) ? hubConfig.projects : [];
+
+  // 1. Reconcile deleted / removed IDEs and Projects from ownership states
+  const activeOwnerIds = new Set([
+    ...ides.filter((i) => i.enabled !== false).map((i) => `ide-${i.id || inferAgentType(i)}`),
+    ...projects.map((p) => `project-${p.id || path.basename(p.repoPath || "")}`),
+  ]);
+
+  try {
+    const allStates = listAllOwnershipStates();
+    for (const st of allStates) {
+      if (!activeOwnerIds.has(st.ownerId)) {
+        for (const link of st.links || []) {
+          removeJunction(link);
+          try {
+            if (fs.existsSync(link)) {
+              const ls = fs.lstatSync(link);
+              if (ls.isSymbolicLink()) fs.unlinkSync(link);
+              else if (isAsmOwnedDirectory(link)) fs.rmSync(link, { recursive: true, force: true });
+            }
+          } catch {}
+        }
+        for (const file of st.files || []) {
+          try {
+            if (fs.existsSync(file)) fs.unlinkSync(file);
+          } catch {}
+        }
+        deleteOwnershipState(st.ownerId);
+      }
+    }
+  } catch {}
+
+  // 2. Sync all active IDEs
   for (const ide of ides) {
-    if (ide.enabled !== false && ide.configPath) {
+    if (ide.enabled !== false && (ide.configPath || ide.componentPaths)) {
       const res = syncIdePlugins(ide, plugins);
       syncResults.push({ ide: ide.name, ideId: ide.id, ...res });
+    } else {
+      unlinkAllForIde(ide);
     }
   }
 
-  const projects = Array.isArray(hubConfig.projects) ? hubConfig.projects : [];
+  // 3. Sync all project overrides
   for (const proj of projects) {
     if (proj.repoPath) {
       const parentIde = ides.find((i) => i.id === proj.ideId) || ides[0] || null;
@@ -1424,6 +1525,11 @@ export function syncAllIdes(hubConfig, customPlugins = null) {
       projectResults.push(pRes);
     }
   }
+
+  // 4. Update cross-agent communication files in D:\Software\AI Agent Space
+  try {
+    writeHubCommunicationFiles(effectiveHub, hubConfig, plugins, { ides: syncResults, projects: projectResults });
+  } catch {}
 
   return { success: true, results: syncResults, projectResults };
 }

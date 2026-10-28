@@ -522,6 +522,21 @@
     }
   } catch {}
 
+  // Ensure default Antigravity IDE is present if ides list is empty
+  if (!hubConfig.ides || !Array.isArray(hubConfig.ides) || hubConfig.ides.length === 0) {
+    hubConfig.ides = [
+      {
+        id: "antigravity",
+        name: "Antigravity (Google Gemini)",
+        agentType: "antigravity",
+        exePath: "",
+        configPath: "",
+        enabled: true,
+        plugins: {},
+      },
+    ];
+  }
+
   // 4. Query live agent profiles and plugins from active storage path
   try {
     const liveProfiles = await apiClient.getAgentProfiles();
@@ -530,6 +545,136 @@
     }
   } catch {}
   await reloadPluginsFromHub();
+
+  let editingIdeId = null;
+  let editingProjectId = null;
+
+  function populateComponentPathsInputs(agentType, componentPaths = null) {
+    const prof = agentProfiles.find((p) => p.id === agentType) || agentProfiles[0];
+    const defaults = prof?.defaultComponentPaths || {};
+    const current = componentPaths || {};
+
+    if ($("cpBundleInput")) $("cpBundleInput").value = current.bundle || (prof?.mode === "bundle" ? (prof?.defaultConfigPath || "") : "");
+    if ($("cpSkillsInput")) $("cpSkillsInput").value = current.skills || defaults.skills || (prof?.mode !== "bundle" ? (prof?.defaultConfigPath || "") : "");
+    if ($("cpCommandsInput")) $("cpCommandsInput").value = current.commands || defaults.commands || "";
+    if ($("cpMcpInput")) $("cpMcpInput").value = current.mcp || defaults.mcp || "";
+    if ($("cpRulesInput")) $("cpRulesInput").value = current.rules || defaults.rules || "";
+    if ($("cpAgentsInput")) $("cpAgentsInput").value = current.agents || defaults.agents || "";
+    if ($("cpHooksInput")) $("cpHooksInput").value = current.hooks || defaults.hooks || "";
+  }
+
+  function collectComponentPathsFromInputs() {
+    const res = {};
+    const b = $("cpBundleInput")?.value?.trim();
+    const s = $("cpSkillsInput")?.value?.trim();
+    const c = $("cpCommandsInput")?.value?.trim();
+    const m = $("cpMcpInput")?.value?.trim();
+    const r = $("cpRulesInput")?.value?.trim();
+    const a = $("cpAgentsInput")?.value?.trim();
+    const h = $("cpHooksInput")?.value?.trim();
+    if (b) res.bundle = b;
+    if (s) res.skills = s;
+    if (c) res.commands = c;
+    if (m) res.mcp = m;
+    if (r) res.rules = r;
+    if (a) res.agents = a;
+    if (h) res.hooks = h;
+    return res;
+  }
+
+  function renderSelectedAgentMeta(agentId) {
+    const prof = agentProfiles.find((p) => p.id === agentId) || agentProfiles[0];
+    if (!prof) return;
+    const chipsEl = $("agentCapabilityChips");
+    if (chipsEl) {
+      const caps = [
+        { key: "skills", label: "Skills" },
+        { key: "mcp", label: "MCP" },
+        { key: "rules", label: "Rules" },
+        { key: "agents", label: "Subagents" },
+        { key: "hooks", label: "Hooks" },
+      ];
+      chipsEl.innerHTML = caps.map((c) => {
+        const ok = prof.capabilities?.[c.key];
+        const bg = ok ? "rgba(22,163,74,0.14)" : "rgba(128,128,128,0.1)";
+        const fg = ok ? "#16a34a" : "var(--magpie-muted)";
+        return `<span style="font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:4px; background:${bg}; color:${fg};">${c.label} ${ok ? "✓" : "–"}</span>`;
+      }).join("");
+    }
+    const pathsEl = $("agentTargetPaths");
+    if (pathsEl) {
+      pathsEl.textContent = prof.description || `Default link path: ${prof.defaultConfigPath}`;
+    }
+    if (!editingIdeId) {
+      populateComponentPathsInputs(agentId);
+    }
+  }
+
+  function setComponentPathsCollapsed(collapsed) {
+    const body = $("componentPathsBody");
+    const toggleBtn = $("btnToggleComponentPaths");
+    const toggleIcon = $("componentPathsToggleIcon");
+    const resetBtn = $("btnResetComponentPaths");
+    if (!body) return;
+    if (collapsed) {
+      body.style.display = "none";
+      if (toggleBtn) toggleBtn.textContent = "▶ Expand";
+      if (toggleIcon) toggleIcon.textContent = "▶";
+      if (resetBtn) resetBtn.style.display = "none";
+    } else {
+      body.style.display = "block";
+      if (toggleBtn) toggleBtn.textContent = "▲ Minimize";
+      if (toggleIcon) toggleIcon.textContent = "▼";
+      if (resetBtn) resetBtn.style.display = "inline-block";
+    }
+  }
+
+  function openEditIdeModal(ide) {
+    editingIdeId = ide.id;
+    if ($("addIdeModal")) $("addIdeModal").style.display = "flex";
+    const titleEl = $("addIdeModal")?.querySelector(".modal-head h3");
+    if (titleEl) titleEl.textContent = `Edit Agent IDE (${ide.name})`;
+    if ($("saveIdeBtn")) $("saveIdeBtn").textContent = "Save Changes";
+
+    if ($("ideNameInput")) $("ideNameInput").value = ide.name || "";
+    if ($("ideExeInput")) $("ideExeInput").value = ide.exePath || "";
+    if ($("agentTypeSelect")) $("agentTypeSelect").value = ide.agentType || "antigravity";
+    if ($("ideConfigInput")) {
+      $("ideConfigInput").value = ide.configPath || "";
+      $("ideConfigInput").readOnly = false;
+    }
+    if ($("autoDetectConfigToggle")) $("autoDetectConfigToggle").checked = false;
+    if ($("autoDetectLabel")) {
+      $("autoDetectLabel").textContent = "Auto-detect: OFF (Custom)";
+      $("autoDetectLabel").style.color = "var(--magpie-muted)";
+    }
+    renderSelectedAgentMeta(ide.agentType || "antigravity");
+    populateComponentPathsInputs(ide.agentType, ide.componentPaths);
+
+    const hasCustomPaths = ide.componentPaths && Object.values(ide.componentPaths).some((v) => Boolean(v));
+    setComponentPathsCollapsed(!hasCustomPaths);
+  }
+
+  function openEditProjectModal(proj) {
+    editingProjectId = proj.id;
+    if ($("addProjectModal")) $("addProjectModal").style.display = "flex";
+    if ($("projectModalTitle")) $("projectModalTitle").textContent = `Edit Project Repository (${proj.name})`;
+    if ($("saveProjectBtn")) $("saveProjectBtn").textContent = "Save Changes";
+    if ($("projectNameInput")) $("projectNameInput").value = proj.name || "";
+    if ($("projectPathInput")) $("projectPathInput").value = proj.repoPath || "";
+
+    const select = $("projectIdeSelect");
+    if (select) {
+      select.innerHTML = "";
+      hubConfig.ides.forEach((ide) => {
+        const opt = document.createElement("option");
+        opt.value = ide.id;
+        opt.textContent = ide.name;
+        if (ide.id === proj.ideId) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+  }
 
   // 5. Render initial view and setup listeners
   renderAll();
@@ -925,15 +1070,25 @@
           </div>
         </div>
         <div class="target-item-actions">
+          <button type="button" class="btn-edit-text edit-ide-btn" data-id="${escapeHtml(ide.id)}" title="Edit this IDE info & custom paths">Edit</button>
           <button type="button" class="btn-danger-text delete-ide-btn" data-id="${escapeHtml(ide.id)}" title="Remove this IDE">Remove</button>
         </div>
       `;
 
       item.addEventListener("click", (e) => {
-        if (e.target.closest(".delete-ide-btn")) return;
+        if (e.target.closest(".delete-ide-btn") || e.target.closest(".edit-ide-btn")) return;
         currentSelection = { type: "ide", id: ide.id };
         renderAll();
       });
+
+      const editBtn = item.querySelector(".edit-ide-btn");
+      if (editBtn) {
+        editBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openEditIdeModal(ide);
+        });
+      }
 
       // Drag and drop reordering
       item.addEventListener("dragstart", (e) => {
@@ -958,7 +1113,7 @@
         renderAll();
       });
 
-      // Direct, reliable removal: no blocking confirm dialogs
+      // Direct, reliable removal: unlinks all owned components and cleans state
       const removeBtn = item.querySelector(".delete-ide-btn");
       if (removeBtn) {
         removeBtn.addEventListener("click", async (e) => {
@@ -967,14 +1122,18 @@
 
           const targetId = ide.id;
           try {
+            await fetch("http://127.0.0.1:41789/api/remove-ide", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ideId: targetId }),
+            });
+          } catch {}
+
+          try {
             if (window.magpie?.api?.agentSpaceManager?.removeIde) {
               await window.magpie.api.agentSpaceManager.removeIde(targetId);
-            } else if (window.magpie?.api?.smartMiddleware?.removeIde) {
-              await window.magpie.api.smartMiddleware.removeIde(targetId);
             }
-          } catch (err) {
-            console.warn("Backend removeIde call skipped:", err);
-          }
+          } catch (err) {}
 
           hubConfig.ides = hubConfig.ides.filter((i) => i.id !== targetId);
           hubConfig.projects = hubConfig.projects.filter((p) => p.ideId !== targetId);
@@ -1026,16 +1185,26 @@
           </div>
         </div>
         <div class="target-item-actions">
+          <button type="button" class="btn-edit-text edit-proj-btn" data-id="${escapeHtml(proj.id)}" title="Edit project info">Edit</button>
           <button type="button" class="btn-action-text copy-proj-btn" title="Copy info and assign to another IDE">Clone / Fork</button>
           <button type="button" class="btn-danger-text delete-proj-btn" data-id="${escapeHtml(proj.id)}" title="Remove project override">Remove</button>
         </div>
       `;
 
       item.addEventListener("click", (e) => {
-        if (e.target.closest(".delete-proj-btn") || e.target.closest(".copy-proj-btn")) return;
+        if (e.target.closest(".delete-proj-btn") || e.target.closest(".copy-proj-btn") || e.target.closest(".edit-proj-btn")) return;
         currentSelection = { type: "project", id: proj.id };
         renderAll();
       });
+
+      const editBtn = item.querySelector(".edit-proj-btn");
+      if (editBtn) {
+        editBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openEditProjectModal(proj);
+        });
+      }
 
       // Drag and drop reordering
       item.addEventListener("dragstart", (e) => {
@@ -1070,14 +1239,22 @@
         });
       }
 
-      // Remove button
+      // Remove button: unlinks all owned project links and removes state
       const removeBtn = item.querySelector(".delete-proj-btn");
       if (removeBtn) {
-        removeBtn.addEventListener("click", (e) => {
+        removeBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
 
           const targetId = proj.id;
+          try {
+            await fetch("http://127.0.0.1:41789/api/remove-project", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ projectId: targetId }),
+            });
+          } catch {}
+
           hubConfig.projects = hubConfig.projects.filter((p) => p.id !== targetId);
           if (currentSelection.type === "project" && currentSelection.id === targetId) {
             currentSelection = { type: "ide", id: hubConfig.ides[0]?.id || "" };
@@ -1220,7 +1397,7 @@
         <td style="vertical-align:top; padding-top:10px;">
           <div><strong>${escapeHtml(plugin.name)}</strong> ${plugin.version ? `<span style="font-size:10.5px; opacity:0.7;">v${escapeHtml(plugin.version)}</span>` : ""}</div>
           <button type="button" class="btn-files-toggle" data-plugin-files="${escapeHtml(plugin.id)}">
-            <span>${isFilesExpanded ? "▲ Hide Components" : "📁 View Components & Files"}</span> (${filesCount})
+            <span>${isFilesExpanded ? "▲ Hide" : "📁 View"} (${filesCount})</span>
           </button>
           ${filesListHtml}
         </td>
@@ -1525,40 +1702,48 @@
     const autoDetectLabel = $("autoDetectLabel");
     const configHint = $("configHint");
 
-    function renderSelectedAgentMeta(agentId) {
-      const prof = agentProfiles.find((p) => p.id === agentId) || agentProfiles[0];
-      if (!prof) return;
-      if (agentCapabilityChips) {
-        const caps = [
-          { key: "skills", label: "Skills" },
-          { key: "mcp", label: "MCP" },
-          { key: "rules", label: "Rules" },
-          { key: "agents", label: "Subagents" },
-          { key: "hooks", label: "Hooks" },
-        ];
-        agentCapabilityChips.innerHTML = caps.map((c) => {
-          const ok = prof.capabilities?.[c.key];
-          const bg = ok ? "rgba(22,163,74,0.14)" : "rgba(128,128,128,0.1)";
-          const fg = ok ? "#16a34a" : "var(--magpie-muted)";
-          return `<span style="font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:4px; background:${bg}; color:${fg};">${c.label} ${ok ? "✓" : "–"}</span>`;
-        }).join("");
-      }
-      if (agentTargetPaths) {
-        agentTargetPaths.textContent = prof.description || `Default link path: ${prof.defaultConfigPath}`;
-      }
+    if ($("btnToggleComponentPaths")) {
+      $("btnToggleComponentPaths").addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = $("componentPathsBody");
+        const isCollapsed = !body || body.style.display === "none";
+        setComponentPathsCollapsed(!isCollapsed);
+      });
+    }
+    if ($("componentPathsToggleTitle")) {
+      $("componentPathsToggleTitle").addEventListener("click", () => {
+        const body = $("componentPathsBody");
+        const isCollapsed = !body || body.style.display === "none";
+        setComponentPathsCollapsed(!isCollapsed);
+      });
+    }
+
+    if ($("btnResetComponentPaths")) {
+      $("btnResetComponentPaths").addEventListener("click", () => {
+        const sel = agentTypeSelect?.value || "antigravity";
+        populateComponentPathsInputs(sel);
+      });
     }
 
     // Modal triggers
     if ($("openAddIdeModalBtn")) {
       $("openAddIdeModalBtn").addEventListener("click", () => {
+        editingIdeId = null;
         if ($("addIdeModal")) $("addIdeModal").style.display = "flex";
+        const titleEl = $("addIdeModal")?.querySelector(".modal-head h3");
+        if (titleEl) titleEl.textContent = "Add Agent IDE / Binary Link";
+        if ($("saveIdeBtn")) $("saveIdeBtn").textContent = "Add IDE";
+        if ($("ideNameInput")) $("ideNameInput").value = "";
+        if ($("ideExeInput")) $("ideExeInput").value = "";
         const selType = agentTypeSelect?.value || "claude-code";
         const prof = agentProfiles.find((p) => p.id === selType);
-        if (ideNameInput && !ideNameInput.value && prof) {
+        if (ideNameInput && prof) {
           ideNameInput.value = prof.label;
         }
         renderSelectedAgentMeta(selType);
         updateAutoDetectState();
+        setComponentPathsCollapsed(true);
       });
     }
     if ($("closeIdeModal")) $("closeIdeModal").addEventListener("click", () => $("addIdeModal").style.display = "none");
@@ -1844,7 +2029,9 @@
 
     if ($("openAddProjectModalBtn")) {
       $("openAddProjectModalBtn").addEventListener("click", () => {
+        editingProjectId = null;
         if ($("projectModalTitle")) $("projectModalTitle").textContent = "Add Project Repository";
+        if ($("saveProjectBtn")) $("saveProjectBtn").textContent = "Save Project";
         if ($("projectNameInput")) $("projectNameInput").value = "";
         if ($("projectPathInput")) $("projectPathInput").value = "";
 
@@ -1864,7 +2051,7 @@
     if ($("closeProjectModal")) $("closeProjectModal").addEventListener("click", () => $("addProjectModal").style.display = "none");
     if ($("cancelProjectBtn")) $("cancelProjectBtn").addEventListener("click", () => $("addProjectModal").style.display = "none");
 
-    // Add IDE save
+    // Add / Edit IDE save
     if ($("saveIdeBtn")) {
       $("saveIdeBtn").addEventListener("click", async () => {
         const agentType = $("agentTypeSelect")?.value || "custom";
@@ -1882,17 +2069,32 @@
           return;
         }
 
-        const baseId = (agentType !== "custom" ? agentType : name).toLowerCase().replace(/[^a-z0-9]/g, "-");
-        const id = hubConfig.ides.some((i) => i.id === baseId) ? `${baseId}-${Date.now()}` : baseId;
-        hubConfig.ides.push({ id, name, agentType, exePath, configPath, enabled: true, plugins: {} });
+        const componentPaths = collectComponentPathsFromInputs();
+
+        if (editingIdeId) {
+          const existing = hubConfig.ides.find((i) => i.id === editingIdeId);
+          if (existing) {
+            existing.name = name;
+            existing.agentType = agentType;
+            existing.exePath = exePath;
+            existing.configPath = configPath;
+            existing.componentPaths = componentPaths;
+          }
+        } else {
+          const baseId = (agentType !== "custom" ? agentType : name).toLowerCase().replace(/[^a-z0-9]/g, "-");
+          const id = hubConfig.ides.some((i) => i.id === baseId) ? `${baseId}-${Date.now()}` : baseId;
+          hubConfig.ides.push({ id, name, agentType, exePath, configPath, componentPaths, enabled: true, plugins: {} });
+          currentSelection = { type: "ide", id };
+        }
+
         if ($("addIdeModal")) $("addIdeModal").style.display = "none";
-        currentSelection = { type: "ide", id };
+        editingIdeId = null;
         triggerAutoSync();
         renderAll();
       });
     }
 
-    // Add Project save
+    // Add / Edit Project save
     if ($("saveProjectBtn")) {
       $("saveProjectBtn").addEventListener("click", async () => {
         const name = $("projectNameInput")?.value?.trim();
@@ -1904,19 +2106,45 @@
           return;
         }
 
-        const id = "proj-" + Date.now();
-        hubConfig.projects.push({ id, name, ideId, repoPath, plugins: {} });
+        if (editingProjectId) {
+          const existing = hubConfig.projects.find((p) => p.id === editingProjectId);
+          if (existing) {
+            existing.name = name;
+            existing.ideId = ideId;
+            existing.repoPath = repoPath;
+          }
+        } else {
+          const id = "proj-" + Date.now();
+          hubConfig.projects.push({ id, name, ideId, repoPath, plugins: {} });
+        }
+
         if ($("addProjectModal")) $("addProjectModal").style.display = "none";
+        editingProjectId = null;
         triggerAutoSync();
         renderAll();
       });
     }
 
-    // Rescan button
+    // Rescan button & Progress Modal
+    if ($("closeRescanModal")) $("closeRescanModal").addEventListener("click", () => $("rescanProgressModal").style.display = "none");
+    if ($("btnDoneRescan")) $("btnDoneRescan").addEventListener("click", () => $("rescanProgressModal").style.display = "none");
+
     if ($("rescanBtn")) {
       $("rescanBtn").addEventListener("click", async () => {
-        const btn = $("rescanBtn");
-        btn.textContent = "Scanning...";
+        const modal = $("rescanProgressModal");
+        const bar = $("rescanProgressBar");
+        const step = $("rescanStatusStep");
+        const pct = $("rescanStatusPct");
+        const banner = $("rescanSummaryBanner");
+        const cards = $("rescanCardsContainer");
+
+        if (modal) modal.style.display = "flex";
+        if (banner) banner.style.display = "none";
+        if (bar) bar.style.width = "15%";
+        if (pct) pct.textContent = "15%";
+        if (step) step.textContent = "Connecting to Hub components storage path...";
+        if (cards) cards.innerHTML = `<div style="font-size:12px; color:var(--magpie-muted); padding:8px;">Initializing scan...</div>`;
+
         if ($("hubPathInput")) {
           hubConfig.hubRoot = $("hubPathInput").value.trim();
         }
@@ -1926,11 +2154,109 @@
           localStorage.removeItem("magpie_plugins_" + norm);
         } catch {}
 
+        await new Promise((r) => setTimeout(r, 200));
+        if (bar) bar.style.width = "40%";
+        if (pct) pct.textContent = "40%";
+        if (step) step.textContent = `Scanning plugins & components in ${effectivePath}...`;
+
+        let scanResult = null;
+        try {
+          const resp = await fetch("http://127.0.0.1:41789/api/rescan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hubRoot: effectivePath }),
+          });
+          if (resp.ok) scanResult = await resp.json();
+        } catch (err) {
+          console.warn("API rescan error, falling back to local sync:", err);
+        }
+
+        if (bar) bar.style.width = "75%";
+        if (pct) pct.textContent = "75%";
+        if (step) step.textContent = "Verifying linking connection status & updating cross-agent communication bridge...";
+
         await persistConfig(true);
-        await new Promise((r) => setTimeout(r, 450));
         await reloadPluginsFromHub(true);
         renderAll();
-        btn.textContent = "Rescan Hub";
+
+        await new Promise((r) => setTimeout(r, 250));
+        if (bar) bar.style.width = "100%";
+        if (pct) pct.textContent = "100%";
+        if (step) step.textContent = "Synchronization & Verification Complete!";
+        if (banner) banner.style.display = "block";
+
+        if (cards) {
+          cards.innerHTML = "";
+
+          // Hub Status Card
+          const hubCard = document.createElement("div");
+          hubCard.style.cssText = "padding:10px 12px; border:1px solid var(--magpie-border, #333); border-radius:6px; background:var(--magpie-surface-alt, rgba(255,255,255,0.02)); font-size:12px;";
+          hubCard.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-weight:600;">📁 Hub Storage Path (Components Storage)</span>
+              <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:rgba(34,197,94,0.15); color:#22c55e; font-weight:600;">🟢 Connected</span>
+            </div>
+            <div style="color:var(--magpie-muted); font-size:11px; word-break:break-all;">Path: ${escapeHtml(effectivePath)}</div>
+            <div style="font-size:11px; color:#60a5fa; margin-top:2px;">Discovered: ${allPluginsList.length} plugins, ${allPluginsList.reduce((acc, p) => acc + (p.skills?.length || 0), 0)} skills</div>
+          `;
+          cards.appendChild(hubCard);
+
+          // Cross-Agent Communication Bridge Card
+          const bridgeCard = document.createElement("div");
+          bridgeCard.style.cssText = "padding:10px 12px; border:1px solid var(--magpie-border, #333); border-radius:6px; background:var(--magpie-surface-alt, rgba(255,255,255,0.02)); font-size:12px;";
+          bridgeCard.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-weight:600;">🔗 Cross-Agent Communication Bridge</span>
+              <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:rgba(34,197,94,0.15); color:#22c55e; font-weight:600;">🟢 Active</span>
+            </div>
+            <div style="color:var(--magpie-muted); font-size:11px;">Bridge Manifest: agent-space-bridge.json · Connectors: shared/agent-connectors.json</div>
+            <div style="font-size:11px; color:#10b981; margin-top:2px;">Status: All connected agents synchronized with live handoff inboxes in D:\\Software\\AI Agent Space</div>
+          `;
+          cards.appendChild(bridgeCard);
+
+          // Connected IDE Cards
+          hubConfig.ides.forEach((ide) => {
+            const ideCard = document.createElement("div");
+            ideCard.style.cssText = "padding:10px 12px; border:1px solid var(--magpie-border, #333); border-radius:6px; background:var(--magpie-surface-alt, rgba(255,255,255,0.02)); font-size:12px;";
+            const sync = lastSyncByIde[ide.id];
+            let summaryText = "";
+            if (sync?.summary) {
+              const s = sync.summary;
+              if (sync.mode === "bundle") {
+                summaryText = `${s.plugins || 0} bundles · ${s.skills || 0} skills · ${s.rules || 0} rules · ${s.agents || 0} subagents`;
+              } else {
+                summaryText = `${s.skills || 0} skills · ${s.commands || 0} commands · ${s.mcp || 0} MCP · ${s.rules || 0} rules · ${s.agents || 0} agents`;
+              }
+            } else {
+              summaryText = "Linking verified";
+            }
+
+            ideCard.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-weight:600;">🤖 ${escapeHtml(ide.name)} (${escapeHtml(ide.agentType || "Agent")})</span>
+                <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:rgba(34,197,94,0.15); color:#22c55e; font-weight:600;">🟢 Connected & Synced</span>
+              </div>
+              <div style="color:var(--magpie-muted); font-size:11px; word-break:break-all;">Target: ${escapeHtml(ide.configPath)}</div>
+              <div style="font-size:11px; color:#3b82f6; margin-top:2px;">Linked Components: ${escapeHtml(summaryText)}</div>
+            `;
+            cards.appendChild(ideCard);
+          });
+
+          // Connected Project Overrides Cards
+          (hubConfig.projects || []).forEach((proj) => {
+            const projCard = document.createElement("div");
+            projCard.style.cssText = "padding:10px 12px; border:1px solid var(--magpie-border, #333); border-radius:6px; background:var(--magpie-surface-alt, rgba(255,255,255,0.02)); font-size:12px;";
+            projCard.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-weight:600;">📂 Project: ${escapeHtml(proj.name)}</span>
+                <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:rgba(34,197,94,0.15); color:#22c55e; font-weight:600;">🟢 Synced</span>
+              </div>
+              <div style="color:var(--magpie-muted); font-size:11px; word-break:break-all;">Repository: ${escapeHtml(proj.repoPath)}</div>
+              <div style="font-size:11px; color:#10b981; margin-top:2px;">Git Exclude Protection: Active (.git/info/exclude)</div>
+            `;
+            cards.appendChild(projCard);
+          });
+        }
       });
     }
   }

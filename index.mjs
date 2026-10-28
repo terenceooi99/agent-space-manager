@@ -10,6 +10,7 @@ import {
   syncIdePlugins,
   syncAllIdes,
   unlinkAllForIde,
+  unlinkAllForProject,
   detectAgentConfigPath,
   createJunction,
   removeJunction,
@@ -99,8 +100,38 @@ export const AgentSpaceManagerPlugin = {
       // Clean associated project overrides
       cfg.projects = (cfg.projects || []).filter((p) => p.ideId !== ideId);
       saveHubConfig(cfg);
+      const eff = getEffectiveHubRoot(cfg);
+      syncAllIdes(cfg, scanPlugins(eff));
 
       return { success: true };
+    },
+    removeProject: async (projectId) => {
+      const cfg = loadHubConfig();
+      const projIdx = (cfg.projects || []).findIndex((p) => p.id === projectId);
+      if (projIdx === -1) return { success: false, error: "Project not found" };
+
+      const project = cfg.projects[projIdx];
+      const parentIde = (cfg.ides || []).find((i) => i.id === project.ideId) || null;
+      unlinkAllForProject(project, parentIde);
+
+      cfg.projects.splice(projIdx, 1);
+      saveHubConfig(cfg);
+      const eff = getEffectiveHubRoot(cfg);
+      syncAllIdes(cfg, scanPlugins(eff));
+
+      return { success: true };
+    },
+    rescan: async (customHubRoot) => {
+      const cfg = loadHubConfig();
+      if (customHubRoot && typeof customHubRoot === "string") {
+        cfg.hubRoot = customHubRoot.trim();
+        saveHubConfig(cfg);
+      }
+      const effHub = getEffectiveHubRoot(cfg);
+      const plugins = scanPlugins(effHub);
+      const categories = buildCategoriesRegistry(plugins, effHub);
+      const syncRes = syncAllIdes(cfg, plugins);
+      return { success: true, hubRoot: effHub, count: plugins.length, plugins, categories, sync: syncRes };
     },
   },
 };

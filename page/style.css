@@ -507,6 +507,23 @@ input:checked + .slider:before {
   background: #1d4ed8;
 }
 
+.btn-edit-text {
+  background: transparent;
+  color: #3b82f6;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.btn-edit-text:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
 .btn-danger-text {
   background: transparent;
   color: #ef4444;
@@ -578,6 +595,8 @@ input:checked + .slider:before {
   background: rgba(0, 0, 0, 0.5);
   align-items: center;
   justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .modal-content {
@@ -587,15 +606,21 @@ input:checked + .slider:before {
   border-radius: 10px;
   width: 500px;
   max-width: 90vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
   padding: 18px 20px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .modal-head h3 {
@@ -608,6 +633,10 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-right: 6px;
 }
 
 .modal-body label {
@@ -664,7 +693,8 @@ input:checked + .slider:before {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 14px;
+  flex-shrink: 0;
 }
 
 .input-with-button {

@@ -7,7 +7,11 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { getHomeDir } from "./agents.mjs";
+import {
+  getHomeDir,
+  resolveEffectiveAgentPaths,
+  resolveEffectiveProjectPaths,
+} from "./agents.mjs";
 
 const BLOCK_START_MD = "<!-- agent-space-manager:start -->";
 const BLOCK_END_MD = "<!-- agent-space-manager:end -->";
@@ -37,6 +41,7 @@ export function loadOwnershipState(ownerId) {
     if (fs.existsSync(file)) {
       const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
       return {
+        meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : null,
         links: Array.isArray(parsed.links) ? parsed.links : [],
         files: Array.isArray(parsed.files) ? parsed.files : [],
         jsonKeys: parsed.jsonKeys && typeof parsed.jsonKeys === "object" ? parsed.jsonKeys : {},
@@ -44,13 +49,41 @@ export function loadOwnershipState(ownerId) {
       };
     }
   } catch {}
-  return { links: [], files: [], jsonKeys: {}, blocks: [] };
+  return { meta: null, links: [], files: [], jsonKeys: {}, blocks: [] };
 }
 
 export function saveOwnershipState(ownerId, state) {
   const file = getStateFilePath(ownerId);
   ensureDir(path.dirname(file));
   fs.writeFileSync(file, JSON.stringify(state, null, 2), "utf8");
+}
+
+export function deleteOwnershipState(ownerId) {
+  const file = getStateFilePath(ownerId);
+  try {
+    if (fs.existsSync(file)) {
+      fs.unlinkSync(file);
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+export function listAllOwnershipStates() {
+  const dir = getStateDir();
+  const results = [];
+  try {
+    if (fs.existsSync(dir)) {
+      for (const name of fs.readdirSync(dir)) {
+        if (name.endsWith(".json")) {
+          const ownerId = name.slice(0, -5);
+          const state = loadOwnershipState(ownerId);
+          results.push({ ownerId, file: path.join(dir, name), ...state });
+        }
+      }
+    }
+  } catch {}
+  return results;
 }
 
 export function ensureBackupOnce(filePath) {
@@ -114,7 +147,7 @@ export function isTargetInsideHub(targetPath, activePlugins = [], hubRoot = "") 
 }
 
 /**
- * Collects all enabled skills, MCP server configs, rules, and subagents from the active plugin list.
+ * Collects all enabled skills, MCP server configs, rules, subagents, and hooks from the active plugin list.
  */
 export function collectEnabledComponents(allPlugins = [], enabledMap = {}) {
   const skills = []; // { name, sourceDir, pluginId }
@@ -124,6 +157,8 @@ export function collectEnabledComponents(allPlugins = [], enabledMap = {}) {
   const seenRules = new Set();
   const agents = []; // { name, sourceFile, pluginId }
   const seenAgents = new Set();
+  const hooks = []; // { id, def, pluginId }
+  const seenHooks = new Set();
   const conflicts = [];
 
   for (const plugin of allPlugins) {
@@ -177,26 +212,246 @@ export function collectEnabledComponents(allPlugins = [], enabledMap = {}) {
         agents.push({ name: aName, sourceFile: agentFile, pluginId: plugin.id });
       }
     }
+
+    // 5. Hooks
+    const hooksFile = path.join(plugin.path, "hooks.json");
+    if (plugin.hasHooks && fs.existsSync(hooksFile)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(hooksFile, "utf8"));
+        const list = Array.isArray(parsed) ? parsed : (parsed.hooks || []);
+        for (const h of list) {
+          const hId = typeof h === "string" ? h : (h.id || h.name);
+          if (hId && !seenHooks.has(hId)) {
+            seenHooks.add(hId);
+            hooks.push({ id: hId, def: h, pluginId: plugin.id });
+          }
+        }
+      } catch {}
+    }
   }
 
-  return { skills, mcpServers, rules, agents, conflicts };
+  return { skills, mcpServers, rules, agents, hooks, conflicts };
+}
+
+/**
+ * Checks whether a directory is managed/owned by Agent Space Manager via .asm-owned.json
+ */
+export function isAsmOwnedDirectory(dirPath) {
+  try {
+    return fs.existsSync(path.join(dirPath, ".asm-owned.json"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Materializes a single skill directory with real top-level files (especially SKILL.md)
+ * and child links for subfolders, bypassing Go os.ReadDir Windows junction issues.
+ */
+export function materializeSkillDir(sourceDir, destDir, ownerId = "asm", createJunctionFn = null) {
+  try {
+    ensureDir(destDir);
+    const markerPath = path.join(destDir, ".asm-owned.json");
+    fs.writeFileSync(
+      markerPath,
+      JSON.stringify({ owner: ownerId, source: sourceDir, type: "skill", updatedAt: Date.now() }, null, 2),
+      "utf8"
+    );
+
+    const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+    for (const ent of entries) {
+      if (ent.name === ".asm-owned.json" || ent.name === ".git") continue;
+      const srcChild = path.join(sourceDir, ent.name);
+      const destChild = path.join(destDir, ent.name);
+      if (ent.isFile()) {
+        try {
+          fs.copyFileSync(srcChild, destChild);
+        } catch {}
+      } else if (ent.isDirectory()) {
+        if (createJunctionFn) {
+          createJunctionFn(srcChild, destChild);
+        } else {
+          try {
+            ensureDir(destChild);
+          } catch {}
+        }
+      }
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Materializes a plugin bundle into a real directory containing real top-level files,
+ * real skills directory with materialized skill subfolders, and child junctions for subfolders.
+ */
+export function materializePluginBundle(sourceDir, destDir, ownerId = "asm", createJunctionFn = null) {
+  try {
+    ensureDir(destDir);
+    const markerPath = path.join(destDir, ".asm-owned.json");
+    fs.writeFileSync(
+      markerPath,
+      JSON.stringify({ owner: ownerId, source: sourceDir, type: "plugin", updatedAt: Date.now() }, null, 2),
+      "utf8"
+    );
+
+    const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+    for (const ent of entries) {
+      if (ent.name === ".asm-owned.json" || ent.name === ".git") continue;
+      const srcChild = path.join(sourceDir, ent.name);
+      const destChild = path.join(destDir, ent.name);
+
+      if (ent.isFile()) {
+        try {
+          fs.copyFileSync(srcChild, destChild);
+        } catch {}
+      } else if (ent.isDirectory()) {
+        if (ent.name === "skills") {
+          ensureDir(destChild);
+          try {
+            const subSkills = fs.readdirSync(srcChild, { withFileTypes: true });
+            for (const sub of subSkills) {
+              if (sub.isDirectory() || sub.isSymbolicLink()) {
+                const subSrc = path.join(srcChild, sub.name);
+                const subDest = path.join(destChild, sub.name);
+                materializeSkillDir(subSrc, subDest, ownerId, createJunctionFn);
+              }
+            }
+          } catch {}
+        } else if (ent.name === "rules" || ent.name === "agents") {
+          ensureDir(destChild);
+          try {
+            const subFiles = fs.readdirSync(srcChild, { withFileTypes: true });
+            for (const sf of subFiles) {
+              if (sf.isFile()) {
+                fs.copyFileSync(path.join(srcChild, sf.name), path.join(destChild, sf.name));
+              }
+            }
+          } catch {}
+        } else {
+          if (createJunctionFn) {
+            createJunctionFn(srcChild, destChild);
+          } else {
+            ensureDir(destChild);
+          }
+        }
+      }
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Syncs plugin bundles into primaryDir (e.g. ~/.gemini/config/plugins) using real-directory
+ * materialization on Windows with .asm-owned.json markers, while strictly preserving foreign symlinks and folders.
+ */
+export function syncPluginBundles(
+  primaryDir,
+  activePluginMap,
+  prevLinks = [],
+  createJunctionFn = null,
+  removeJunctionFn = null,
+  allPlugins = [],
+  ownerId = "asm"
+) {
+  ensureDir(primaryDir);
+  const bundleLinks = [];
+  const results = [];
+  const prevLinksSet = new Set((prevLinks || []).map((p) => path.resolve(p)));
+
+  // 1. Prune stale owned junctions or ASM-owned directories
+  try {
+    const existingEntries = fs.readdirSync(primaryDir);
+    for (const entryName of existingEntries) {
+      const entryPath = path.join(primaryDir, entryName);
+      const resolvedEntry = path.resolve(entryPath);
+      try {
+        const stat = fs.lstatSync(entryPath);
+        if (stat.isSymbolicLink()) {
+          let currentTarget = "";
+          try {
+            currentTarget = fs.readlinkSync(entryPath);
+          } catch {}
+
+          const isOwned = prevLinksSet.has(resolvedEntry) || isTargetInsideHub(currentTarget, allPlugins);
+          if (!isOwned) continue; // Foreign user symlink — preserve!
+
+          const activeTarget = activePluginMap.get(entryName);
+          const targetMatches =
+            activeTarget && currentTarget && path.resolve(currentTarget) === path.resolve(activeTarget);
+          if (!targetMatches) {
+            if (removeJunctionFn) removeJunctionFn(entryPath);
+            else {
+              try { fs.unlinkSync(entryPath); } catch {}
+            }
+            results.push({ plugin: entryName, action: "unlinked", success: true });
+          }
+        } else if (stat.isDirectory()) {
+          const isAsmDir = isAsmOwnedDirectory(entryPath) || prevLinksSet.has(resolvedEntry);
+          if (isAsmDir && !activePluginMap.has(entryName)) {
+            fs.rmSync(entryPath, { recursive: true, force: true });
+            results.push({ plugin: entryName, action: "unlinked", success: true });
+          }
+        }
+      } catch {}
+    }
+  } catch {}
+
+  // 2. Materialize or update active plugin bundles
+  for (const [pluginId, sourcePath] of activePluginMap.entries()) {
+    const linkPath = path.join(primaryDir, pluginId);
+    let isSym = false;
+    try {
+      const st = fs.lstatSync(linkPath);
+      isSym = st.isSymbolicLink();
+    } catch {}
+
+    if (isSym) {
+      if (removeJunctionFn) removeJunctionFn(linkPath);
+      else {
+        try { fs.unlinkSync(linkPath); } catch {}
+      }
+    }
+
+    const res = materializePluginBundle(sourcePath, linkPath, ownerId, createJunctionFn);
+    if (res.success) {
+      bundleLinks.push(path.resolve(linkPath));
+    }
+    results.push({ plugin: pluginId, action: "linked", ...res });
+  }
+
+  return { bundleLinks, results };
 }
 
 /**
  * Syncs individual skill directories (<skillsDir>/<skill-name> -> <plugin>/skills/<skill-name>)
  * while preserving user-created skills and non-owned symlinks.
+ * Materializes real directories with .asm-owned.json so Go os.ReadDir never skips skills on Windows.
  */
-export function syncFlattenedSkills(skills, skillsDir, prevLinks = [], createJunctionFn, removeJunctionFn, allPlugins = []) {
+export function syncFlattenedSkills(
+  skills,
+  skillsDir,
+  prevLinks = [],
+  createJunctionFn = null,
+  removeJunctionFn = null,
+  allPlugins = [],
+  ownerId = "asm"
+) {
   const nextLinks = [];
   const results = [];
   if (!skillsDir) return { nextLinks, results };
 
-  // If skillsDir itself is a legacy symlink/junction (e.g. ~/.gemini/config/skills -> antigravity-core/skills),
-  // remove the outer junction first so we can create a real directory of flattened skill junctions.
   try {
     const dirStat = fs.lstatSync(skillsDir);
     if (dirStat.isSymbolicLink()) {
-      removeJunctionFn(skillsDir);
+      if (removeJunctionFn) removeJunctionFn(skillsDir);
+      else {
+        try { fs.unlinkSync(skillsDir); } catch {}
+      }
     }
   } catch {}
 
@@ -207,9 +462,9 @@ export function syncFlattenedSkills(skills, skillsDir, prevLinks = [], createJun
     desiredMap.set(s.name, s.sourceDir);
   }
 
-  const prevSet = new Set(prevLinks.map((p) => path.resolve(p)));
+  const prevSet = new Set((prevLinks || []).map((p) => path.resolve(p)));
 
-  // 1. Prune previously owned links (or legacy hub junctions) in skillsDir that are no longer desired
+  // 1. Prune previously owned links or ASM-owned directories in skillsDir that are no longer desired
   try {
     const entries = fs.readdirSync(skillsDir);
     for (const entryName of entries) {
@@ -229,7 +484,16 @@ export function syncFlattenedSkills(skills, skillsDir, prevLinks = [], createJun
           const matchesDesired =
             desiredTarget && currentTarget && path.resolve(currentTarget) === path.resolve(desiredTarget);
           if (!matchesDesired) {
-            removeJunctionFn(entryPath);
+            if (removeJunctionFn) removeJunctionFn(entryPath);
+            else {
+              try { fs.unlinkSync(entryPath); } catch {}
+            }
+            results.push({ skill: entryName, action: "unlinked", success: true });
+          }
+        } else if (stat.isDirectory()) {
+          const isAsmDir = isAsmOwnedDirectory(entryPath) || prevSet.has(resolvedEntry);
+          if (isAsmDir && !desiredMap.has(entryName)) {
+            fs.rmSync(entryPath, { recursive: true, force: true });
             results.push({ skill: entryName, action: "unlinked", success: true });
           }
         }
@@ -238,16 +502,38 @@ export function syncFlattenedSkills(skills, skillsDir, prevLinks = [], createJun
   } catch {}
 
   // Also clean any prevLinks that lived in a previous skillsDir if configPath changed
-  for (const oldLink of prevLinks) {
+  for (const oldLink of prevLinks || []) {
     if (path.dirname(path.resolve(oldLink)) !== path.resolve(skillsDir)) {
-      removeJunctionFn(oldLink);
+      if (removeJunctionFn) removeJunctionFn(oldLink);
+      else {
+        try {
+          if (fs.existsSync(oldLink)) {
+            const st = fs.lstatSync(oldLink);
+            if (st.isSymbolicLink()) fs.unlinkSync(oldLink);
+            else if (isAsmOwnedDirectory(oldLink)) fs.rmSync(oldLink, { recursive: true, force: true });
+          }
+        } catch {}
+      }
     }
   }
 
-  // 2. Create or verify desired skill junctions
+  // 2. Create or verify desired skill directories
   for (const [skillName, sourceDir] of desiredMap.entries()) {
     const linkPath = path.join(skillsDir, skillName);
-    const res = createJunctionFn(sourceDir, linkPath);
+    let isSym = false;
+    try {
+      const st = fs.lstatSync(linkPath);
+      isSym = st.isSymbolicLink();
+    } catch {}
+
+    if (isSym) {
+      if (removeJunctionFn) removeJunctionFn(linkPath);
+      else {
+        try { fs.unlinkSync(linkPath); } catch {}
+      }
+    }
+
+    const res = materializeSkillDir(sourceDir, linkPath, ownerId, createJunctionFn);
     if (res.success) {
       nextLinks.push(path.resolve(linkPath));
     }
@@ -428,6 +714,16 @@ export function syncJsonMcpServers(mcpSpec, mcpServers, prevOwnedKeys = []) {
   for (const oldKey of prevSet) {
     if (!(oldKey in mcpServers)) {
       delete container[oldKey];
+    }
+  }
+
+  // When unlinking all, ensure any server pointing to AI Agent Space or hub is cleaned
+  if (desiredNames.length === 0) {
+    for (const [k, v] of Object.entries(container)) {
+      const vStr = JSON.stringify(v || "");
+      if (vStr.includes("AI Agent Space") || vStr.includes("agent-space-manager")) {
+        delete container[k];
+      }
     }
   }
 
@@ -674,4 +970,237 @@ export function ensureGitInfoExclude(repoPath, relPaths = []) {
 
 function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Syncs managed hooks into native hooks.json while preserving user-defined hooks.
+ */
+export function syncJsonHooks(hooksSpec, hooksList = [], prevOwnedKeys = []) {
+  if (!hooksSpec || !hooksSpec.file) return { ownedKeys: [] };
+  const filePath = hooksSpec.file;
+  const desiredKeys = new Set(hooksList.map((h) => (typeof h === "string" ? h : h.id || h.name)));
+  if (desiredKeys.size === 0 && (!prevOwnedKeys || prevOwnedKeys.length === 0) && !fs.existsSync(filePath)) {
+    return { ownedKeys: [] };
+  }
+
+  ensureDir(path.dirname(filePath));
+  ensureBackupOnce(filePath);
+
+  let doc = { hooks: {} };
+  if (fs.existsSync(filePath)) {
+    try {
+      doc = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      if (!doc || typeof doc !== "object") doc = { hooks: {} };
+    } catch {
+      doc = { hooks: {} };
+    }
+  }
+
+  if (Array.isArray(doc)) {
+    doc = { hooks: doc };
+  } else if (!doc.hooks) {
+    doc.hooks = {};
+  }
+
+  const prevSet = new Set(prevOwnedKeys || []);
+  if (Array.isArray(doc.hooks)) {
+    doc.hooks = doc.hooks.filter((h) => {
+      const id = typeof h === "string" ? h : h.id || h.name;
+      return !prevSet.has(id) || desiredKeys.has(id);
+    });
+    for (const h of hooksList) {
+      const id = typeof h === "string" ? h : h.id || h.name;
+      if (!doc.hooks.some((ex) => (typeof ex === "string" ? ex : ex.id || ex.name) === id)) {
+        doc.hooks.push(h.def || h);
+      }
+    }
+  } else {
+    for (const oldKey of prevSet) {
+      if (!desiredKeys.has(oldKey)) {
+        delete doc.hooks[oldKey];
+      }
+    }
+    for (const h of hooksList) {
+      const id = typeof h === "string" ? h : h.id || h.name;
+      doc.hooks[id] = h.def || h;
+    }
+  }
+
+  fs.writeFileSync(filePath, JSON.stringify(doc, null, 2), "utf8");
+  return { ownedKeys: Array.from(desiredKeys) };
+}
+
+/**
+ * Generates and maintains live cross-agent communication files in D:\Software\AI Agent Space
+ * (or effective hubRoot):
+ * 1. agent-space-bridge.json: runtime status of all connected agents & projects
+ * 2. shared/agent-connectors.json: cross-agent messaging, handoff inboxes, and discovery registry
+ * 3. skills.json, plugins.json, mcp_config.json: consolidated catalogs
+ */
+export function writeHubCommunicationFiles(hubRoot, hubConfig, allPlugins = [], syncSummary = null) {
+  if (!hubRoot) return false;
+  try {
+    ensureDir(hubRoot);
+  } catch {
+    return false;
+  }
+
+  const ides = Array.isArray(hubConfig?.ides) ? hubConfig.ides : [];
+  const projects = Array.isArray(hubConfig?.projects) ? hubConfig.projects : [];
+
+  const activeAgents = ides
+    .filter((i) => i.enabled !== false)
+    .map((ide) => {
+      const effectivePaths = resolveEffectiveAgentPaths(ide);
+      return {
+        id: ide.id,
+        name: ide.name,
+        agentType: ide.agentType,
+        exePath: ide.exePath || null,
+        configPath: ide.configPath,
+        componentPaths: ide.componentPaths || {},
+        effectivePaths,
+        status: "connected",
+      };
+    });
+
+  const activeProjects = projects.map((proj) => {
+    const parentIde = ides.find((i) => i.id === proj.ideId) || ides[0] || null;
+    const effectivePaths = resolveEffectiveProjectPaths(proj, parentIde);
+    return {
+      id: proj.id,
+      name: proj.name,
+      repoPath: proj.repoPath,
+      ideId: proj.ideId || null,
+      componentPaths: proj.componentPaths || {},
+      effectivePaths,
+      status: "connected",
+    };
+  });
+
+  const allSkills = [];
+  const seenSkills = new Set();
+  const allMcp = {};
+  const allRules = [];
+  const allAgents = [];
+  const allHooks = [];
+
+  for (const p of allPlugins) {
+    for (const s of p.skills || []) {
+      if (!seenSkills.has(s)) {
+        seenSkills.add(s);
+        allSkills.push({ name: s, pluginId: p.id, path: path.join(p.path, p.isRootSkills ? "" : "skills", s) });
+      }
+    }
+    const mcpFile = path.join(p.path, "mcp_config.json");
+    if (p.hasMcp && fs.existsSync(mcpFile)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(mcpFile, "utf8"));
+        const srvs = parsed.mcpServers || parsed.servers || {};
+        Object.assign(allMcp, srvs);
+      } catch {}
+    }
+    for (const r of p.rules || []) {
+      allRules.push({ name: r, pluginId: p.id });
+    }
+    for (const a of p.agents || []) {
+      allAgents.push({ name: a, pluginId: p.id });
+    }
+    for (const h of p.hooks || []) {
+      allHooks.push({ id: typeof h === "string" ? h : h.id, pluginId: p.id });
+    }
+  }
+
+  // 1. <hubRoot>/agent-space-bridge.json
+  const bridgePayload = {
+    version: "1.0.0",
+    bridgeProtocol: "magpie-asm-v1",
+    updatedAt: new Date().toISOString(),
+    hubRoot,
+    componentCounts: {
+      plugins: allPlugins.length,
+      skills: allSkills.length,
+      mcpServers: Object.keys(allMcp).length,
+      rules: allRules.length,
+      agents: allAgents.length,
+      hooks: allHooks.length,
+    },
+    activeAgents,
+    activeProjects,
+    smartMiddleware: hubConfig?.smartMiddleware || { enabled: true, maxTools: 96 },
+    syncSummary: syncSummary || null,
+  };
+  try {
+    fs.writeFileSync(path.join(hubRoot, "agent-space-bridge.json"), JSON.stringify(bridgePayload, null, 2), "utf8");
+  } catch {}
+
+  // 2. <hubRoot>/shared/agent-connectors.json
+  const sharedDir = path.join(hubRoot, "shared");
+  ensureDir(sharedDir);
+  const handoffDir = path.join(sharedDir, "handoff");
+  ensureDir(handoffDir);
+
+  const connectors = {};
+  for (const a of activeAgents) {
+    const aHandoff = path.join(handoffDir, a.id);
+    ensureDir(aHandoff);
+    connectors[a.id] = {
+      name: a.name,
+      agentType: a.agentType,
+      cliCommand: a.exePath || a.agentType,
+      configPath: a.configPath,
+      skillsDirectory: a.effectivePaths?.skills || a.effectivePaths?.bundle || null,
+      mcpConfigFile: a.effectivePaths?.mcp?.file || null,
+      rulesFile: a.effectivePaths?.rules?.file || a.effectivePaths?.rulesDir?.dir || null,
+      handoffInbox: aHandoff,
+      capabilities: a.effectivePaths?.capabilities || {},
+    };
+  }
+
+  try {
+    fs.writeFileSync(
+      path.join(sharedDir, "agent-connectors.json"),
+      JSON.stringify(
+        {
+          version: "1.0.0",
+          updatedAt: new Date().toISOString(),
+          hubRoot,
+          handoffRoot: handoffDir,
+          connectors,
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+  } catch {}
+
+  // 3. Consolidated root manifests
+  try {
+    fs.writeFileSync(path.join(hubRoot, "skills.json"), JSON.stringify({ skills: allSkills }, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(hubRoot, "plugins.json"),
+      JSON.stringify(
+        {
+          plugins: allPlugins.map((p) => ({
+            id: p.id,
+            name: p.name,
+            version: p.version,
+            description: p.description,
+            skillsCount: p.skills?.length || 0,
+            hasMcp: p.hasMcp,
+            hasHooks: p.hasHooks,
+          })),
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+    if (Object.keys(allMcp).length > 0) {
+      fs.writeFileSync(path.join(hubRoot, "mcp_config.json"), JSON.stringify({ mcpServers: allMcp }, null, 2), "utf8");
+    }
+  } catch {}
+
+  return true;
 }
