@@ -129,6 +129,43 @@ h2 {
   border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
+/* Component Workability Status Dot (Connected Agent Status) */
+.component-status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+  cursor: help;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.component-status-dot:hover {
+  transform: scale(1.35);
+}
+
+.component-status-dot.dot-green {
+  background-color: #22c55e;
+  box-shadow: 0 0 7px rgba(34, 197, 94, 0.55);
+}
+
+.component-status-dot.dot-red {
+  background-color: #ef4444;
+  box-shadow: 0 0 7px rgba(239, 68, 68, 0.5);
+}
+
+.desc-status-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.desc-status-cell .desc-text {
+  flex: 1;
+}
+
 /* Feature Toggle Header Widget */
 .feature-toggle-widget {
   display: inline-flex;

@@ -2343,3 +2343,147 @@ export function checkAndAutoReconnectOnStartup(customHubConfig = null, options =
     summary: diff.summary,
   };
 }
+
+/**
+ * Evaluates whether a component / plugin is workable in a given connected agent (IDE),
+ * determining the status dot color (green vs red) and detecting `@` mention or `/` slash quick actions.
+ */
+export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
+  if (!plugin) {
+    return {
+      workable: false,
+      color: "red",
+      status: "failed",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      summary: "No component provided",
+      tooltip: "🔴 Error: No component provided",
+      reason: "No component provided",
+    };
+  }
+
+  if (!ide) {
+    return {
+      workable: false,
+      color: "red",
+      status: "failed",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      summary: "No connected agent selected",
+      tooltip: "🔴 Connection failed: No connected agent selected. Click an agent on the left to inspect workability.",
+      reason: "No connected agent selected",
+    };
+  }
+
+  // 1. Agent disabled in settings
+  if (ide.enabled === false) {
+    return {
+      workable: false,
+      color: "red",
+      status: "disabled",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      summary: `Agent "${ide.name || ide.id}" is disabled`,
+      tooltip: `🔴 Connection failed: Agent "${ide.name || ide.id}" is disabled in settings`,
+      reason: `Agent "${ide.name || ide.id}" is disabled in settings`,
+    };
+  }
+
+  // 2. Agent target configuration / link path missing
+  const configPath = ide.configPath || (ide.componentPaths && (ide.componentPaths.skills || ide.componentPaths.bundle));
+  if (!configPath || String(configPath).trim() === "") {
+    return {
+      workable: false,
+      color: "red",
+      status: "failed",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      summary: `Agent "${ide.name || ide.id}" has no configuration path`,
+      tooltip: `🔴 Connection failed: Target link path for "${ide.name || ide.id}" is not configured`,
+      reason: `Target link path for "${ide.name || ide.id}" is not configured`,
+    };
+  }
+
+  // 3. Component toggled OFF for this specific agent
+  const isEnabled = ide.plugins ? ide.plugins[plugin.id] !== false : true;
+  if (!isEnabled) {
+    return {
+      workable: false,
+      color: "red",
+      status: "disabled",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      summary: `Disabled for ${ide.name || ide.id}`,
+      tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for "${ide.name || ide.id}". Turn on toggle switch to connect.`,
+      reason: `Component is toggled OFF for "${ide.name || ide.id}"`,
+    };
+  }
+
+  // 4. Sync error check if provided in options
+  if (options.lastSync && options.lastSync.success === false) {
+    const errMsg = options.lastSync.error || options.lastSync.message || "Sync error";
+    return {
+      workable: false,
+      color: "red",
+      status: "failed",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      summary: `Connection failed: ${errMsg}`,
+      tooltip: `🔴 Connection failed to "${ide.name || ide.id}": ${errMsg}`,
+      reason: errMsg,
+    };
+  }
+
+  // 5. Inspect quick action capabilities:
+  // Skills -> `/` quick action
+  const rawSkills = Array.isArray(plugin.skills) ? plugin.skills : [];
+  const slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
+  const hasSlash = slashCommands.length > 0;
+
+  // Subagents -> `@` mention quick action
+  const rawAgents = Array.isArray(plugin.agents) ? plugin.agents : [];
+  const mentions = rawAgents.map((a) => {
+    const rawName = typeof a === "string" ? a : a.name || "";
+    return `@${rawName.replace(/\.md$/i, "")}`;
+  });
+  const hasMention = mentions.length > 0;
+
+  const hasMcp = Boolean(plugin.hasMcp || (plugin.mcps && plugin.mcps.length > 0));
+  const hasRules = Boolean(plugin.rules && plugin.rules.length > 0);
+  const hasHooks = Boolean(plugin.hasHooks || (plugin.hooks && plugin.hooks.length > 0));
+
+  const hasAnyFeature = hasSlash || hasMention || hasMcp || hasRules || hasHooks || (plugin.filesCount && plugin.filesCount > 0);
+  if (!hasAnyFeature && !plugin.path) {
+    return {
+      workable: false,
+      color: "red",
+      status: "failed",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      summary: "Empty component (no skills, MCP, rules, or agents found)",
+      tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"`,
+      reason: "No workable components discovered in plugin",
+    };
+  }
+
+  // Green dot! Workable in connected agent
+  const actionParts = [];
+  if (hasSlash) actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
+  if (hasMention) actionParts.push(`Quick action: ${mentions.join(" ")}`);
+  if (hasMcp) actionParts.push(`MCP tools active`);
+  if (hasRules) actionParts.push(`Rules active`);
+  if (hasHooks) actionParts.push(`Hooks active`);
+
+  const summary = `Workable in ${ide.name || ide.id}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
+  const tooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+
+  return {
+    workable: true,
+    color: "green",
+    status: "workable",
+    quickActions: {
+      slashCommands,
+      mentions,
+      hasSlash,
+      hasMention,
+      hasMcp,
+      hasRules,
+    },
+    summary,
+    tooltip,
+    reason: "",
+  };
+}

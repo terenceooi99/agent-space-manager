@@ -25,6 +25,7 @@ import {
   checkComponentsModifications,
   checkAndAutoReconnectOnStartup,
   getComponentsStorageSnapshot,
+  evaluateComponentAgentWorkability,
 } from "./manager.mjs";
 
 if (!process.env.ASM_NO_SERVER) {
@@ -144,6 +145,9 @@ export const AgentSpaceManagerPlugin = {
     },
     getComponentsSnapshot: async (customHubRoot) => {
       return getComponentsStorageSnapshot(getEffectiveHubRoot(customHubRoot));
+    },
+    evaluateWorkability: (plugin, ide, options) => {
+      return evaluateComponentAgentWorkability(plugin, ide, options);
     },
   },
 };

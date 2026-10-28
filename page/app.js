@@ -1391,6 +1391,103 @@
     });
   }
 
+  function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
+    if (!plugin) {
+      return { workable: false, color: "red", status: "failed", summary: "No component", tooltip: "🔴 Error: No component provided" };
+    }
+    if (!ide) {
+      return { workable: false, color: "red", status: "failed", summary: "No connected agent selected", tooltip: "🔴 Connection failed: No connected agent selected. Click an agent on the left to inspect workability." };
+    }
+    if (ide.enabled === false) {
+      return { workable: false, color: "red", status: "disabled", summary: `Agent "${ide.name || ide.id}" is disabled`, tooltip: `🔴 Connection failed: Agent "${ide.name || ide.id}" is disabled in settings` };
+    }
+    const configPath = ide.configPath || (ide.componentPaths && (ide.componentPaths.skills || ide.componentPaths.bundle));
+    if (!configPath || String(configPath).trim() === "") {
+      return { workable: false, color: "red", status: "failed", summary: `Agent "${ide.name || ide.id}" has no configuration path`, tooltip: `🔴 Connection failed: Target link path for "${ide.name || ide.id}" is not configured` };
+    }
+    const isEnabled = ide.plugins ? ide.plugins[plugin.id] !== false : true;
+    if (!isEnabled) {
+      return { workable: false, color: "red", status: "disabled", summary: `Disabled for ${ide.name || ide.id}`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for "${ide.name || ide.id}". Turn on the toggle switch to connect.` };
+    }
+    if (options.lastSync && options.lastSync.success === false) {
+      const errMsg = options.lastSync.error || options.lastSync.message || "Sync error";
+      return { workable: false, color: "red", status: "failed", summary: `Connection failed: ${errMsg}`, tooltip: `🔴 Connection failed to "${ide.name || ide.id}": ${errMsg}` };
+    }
+
+    const rawSkills = Array.isArray(plugin.skills) ? plugin.skills : [];
+    const slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
+    const hasSlash = slashCommands.length > 0;
+
+    const rawAgents = Array.isArray(plugin.agents) ? plugin.agents : [];
+    const mentions = rawAgents.map((a) => {
+      const rawName = typeof a === "string" ? a : a.name || "";
+      return `@${rawName.replace(/\.md$/i, "")}`;
+    });
+    const hasMention = mentions.length > 0;
+
+    const hasMcp = Boolean(plugin.hasMcp || (plugin.mcps && plugin.mcps.length > 0));
+    const hasRules = Boolean(plugin.rules && plugin.rules.length > 0);
+    const hasHooks = Boolean(plugin.hasHooks || (plugin.hooks && plugin.hooks.length > 0));
+
+    const hasAnyFeature = hasSlash || hasMention || hasMcp || hasRules || hasHooks || (plugin.filesCount && plugin.filesCount > 0);
+    if (!hasAnyFeature && !plugin.path) {
+      return { workable: false, color: "red", status: "failed", summary: "Empty component", tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"` };
+    }
+
+    const actionParts = [];
+    if (hasSlash) actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
+    if (hasMention) actionParts.push(`Quick action: ${mentions.join(" ")}`);
+    if (hasMcp) actionParts.push("MCP tools active");
+    if (hasRules) actionParts.push("Rules active");
+    if (hasHooks) actionParts.push("Hooks active");
+
+    const summary = `Workable in ${ide.name || ide.id}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
+    const tooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+
+    return { workable: true, color: "green", status: "workable", summary, tooltip };
+  }
+
+  function evaluateComponentProjectWorkability(plugin, project, parentIde) {
+    if (!project || !project.repoPath) {
+      return { workable: false, color: "red", status: "failed", summary: "Project repository path missing", tooltip: "🔴 Connection failed: Repository path does not exist" };
+    }
+    const isEnabled = project.plugins ? project.plugins[plugin.id] !== false : (parentIde?.plugins ? parentIde.plugins[plugin.id] !== false : true);
+    if (!isEnabled) {
+      return { workable: false, color: "red", status: "disabled", summary: `Disabled for project "${project.name}"`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for project "${project.name}"` };
+    }
+    const rawSkills = Array.isArray(plugin.skills) ? plugin.skills : [];
+    const slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
+    const hasSlash = slashCommands.length > 0;
+
+    const actionParts = [];
+    if (hasSlash) actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
+    if (plugin.hasMcp) actionParts.push("MCP tools active");
+    if (plugin.rules?.length > 0) actionParts.push("Rules active");
+
+    const summary = `Workable in ${project.name}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
+    const tooltip = `🟢 Workable in Project "${project.name}": Repository linked & protected (.git/info/exclude).${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+
+    return { workable: true, color: "green", status: "workable", summary, tooltip };
+  }
+
+  function evaluateComponentWorkability(plugin) {
+    if (currentSelection.type === "ide") {
+      const selectedIde = hubConfig.ides.find((i) => i.id === currentSelection.id);
+      return evaluateComponentAgentWorkability(plugin, selectedIde, { lastSync: selectedIde ? lastSyncByIde[selectedIde.id] : null });
+    } else if (currentSelection.type === "project") {
+      const selectedProj = hubConfig.projects.find((p) => p.id === currentSelection.id);
+      const parentIde = selectedProj ? hubConfig.ides.find((i) => i.id === selectedProj.ideId) : null;
+      return evaluateComponentProjectWorkability(plugin, selectedProj, parentIde);
+    }
+    return {
+      workable: false,
+      color: "red",
+      status: "failed",
+      summary: "No target selected",
+      tooltip: "🔴 Connection failed: No connected agent selected",
+    };
+  }
+
   function renderPluginTable() {
     const tableBody = $("pluginTableBody");
     if (!tableBody) return;
@@ -1438,6 +1535,7 @@
     discoveredPlugins.forEach((plugin) => {
       const isEnabled = activeMap[plugin.id] !== false; // Default true
       const isFilesExpanded = expandedFiles.has(plugin.id);
+      const workability = evaluateComponentWorkability(plugin);
       const row = document.createElement("tr");
 
       let badges = "";
@@ -1525,7 +1623,12 @@
           ${filesListHtml}
         </td>
         <td style="vertical-align:top; padding-top:12px;">${badges || `<span style="color:var(--magpie-muted);font-size:11px;">Standard</span>`}</td>
-        <td style="vertical-align:top; padding-top:12px; color:var(--magpie-muted);">${escapeHtml(plugin.description || "-")}</td>
+        <td style="vertical-align:top; padding-top:12px; color:var(--magpie-muted);">
+          <div class="desc-status-cell">
+            <span class="component-status-dot dot-${workability.color}" title="${escapeHtml(workability.tooltip)}" aria-label="${escapeHtml(workability.summary)}"></span>
+            <span class="desc-text">${escapeHtml(plugin.description || "-")}</span>
+          </div>
+        </td>
       `;
 
       const fileToggleBtn = row.querySelector(".btn-files-toggle");
