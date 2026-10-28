@@ -88,4 +88,13 @@ Whenever a new upstream engine or external tool (e.g. `fastcrw/crw`, `CodeGraphC
 2. **Zero-Noise Latency Benchmarks**: "Test Upstream Latencies" must selectively ping and display only **installed** upstream components, silently omitting/ignoring uninstalled tools so users never see failed pings or clutter for optional tools.
 3. **Footer Version Number Invariant**: The current plugin release version must always be presented beside "Token Saver" in front of "• GitHub".
 
+## Agent Space Manager Safety & Bridging Invariants
+When modifying or extending multi-IDE adapters, synchronization pipelines, or UI layers in Agent Space Manager, adhere to the strict invariants defined in [agent-safety-invariants.md](file:///.agents/rules/agent-safety-invariants.md):
+1. **Never Kill GUI Editors**: Never issue `taskkill /F` or forceful termination against primary GUI coding environments (`antigravity.exe`, `cursor.exe`, `windsurf.exe`, `code.exe`, `opencode.exe`).
+2. **Schema & Config Sanitization**: Never write empty `{}` stubs or 0-byte JSON files into agent project or config directories; always validate required identifier fields like `"id"`.
+3. **Mandatory Rule Frontmatter**: Always ensure rules synchronized to metadata-driven agents include YAML frontmatter with `trigger: always_on` and descriptions.
+4. **WebView2 Dialog Suppression**: Never use synchronous `window.confirm()` or `window.alert()` in desktop webviews; always employ 2-step inline confirmations or custom modals.
+5. **Clean Unlinking**: Always prune empty directories and dangling junctions cleanly upon component deactivation.
+6. **Watcher Throttling**: Configuration watchers must throttle polling to >= 2000ms with debounce.
+
 <!-- RTK_TOKEN_SAVER_END -->
