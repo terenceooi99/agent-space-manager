@@ -57,75 +57,49 @@ As developers adopt multiple AI coding environments (Antigravity, Cursor, Windsu
 
 ---
 
-## Supported IDEs & Auto-Detection Matrix
+## Supported IDEs & Multi-Agent Native Adapter Matrix
 
-| Agent Client / IDE | Detected Configuration Link Directory |
-| :--- | :--- |
-| **OpenCode** | `<home>/.config/opencode/plugins` |
-| **Google Antigravity / Gemini CLI** | `<home>/.gemini/config/plugins` |
-| **Cursor AI** | `<home>/.cursor/skills` |
-| **Windsurf** | `<home>/.windsurf/skills` |
-| **Claude Code (Anthropic)** | `<home>/.claude/skills` |
-| **Roo Code / Cline** | `<appdata>/Code/User/globalStorage/rooveterinaryinc.roo-cline/skills` |
-| **VS Code Copilot** | `<home>/.vscode/skills` |
-| **Custom / Unknown Agent** | `<home>/.<agent-name>/plugins` (probed from binary or name) |
+Unlike Antigravity (which natively reads `plugins/<plugin>/plugin.json` bundles), most major AI coding agents cannot read raw plugin bundle folders directly and expect individual `<skill>/SKILL.md` directories, native JSON/TOML MCP server configurations, and Markdown rule blocks.
 
----
+**Agent Space Manager v1.2+ includes 13 built-in Agent Profiles (`agents.mjs` & `adapters.mjs`) that automatically distribute components in each agent's native format:**
 
-## Known Critical Issues & AI Handover Guide
-
-> [!WARNING]
-> **Active Problem**: When the user changes **Components Storage Path** to a non-existent, invalid, or misspelled directory (e.g., `D:\Software\AI Agnt Space`), the UI still continues to show discovered components, and/or fails to automatically unlink them from Antigravity/connected IDEs.
-
-### Expected Behavior
-1. **Valid Path (e.g. `E:\Software\AI Agent Space`)**: Discovers all components in `E:\...`, displays them in the UI, and points junctions in connected IDEs (such as `~/.gemini/config/plugins`) to `E:\...`.
-2. **Invalid / Empty Path (e.g. `D:\Software\AI Agnt Space` or non-existent folder)**:
-   - Must discover **0** components.
-   - UI metrics and tables must display 0 / empty state immediately.
-   - **Crucial**: All linked components in the connected IDE (e.g. `~/.gemini/config/plugins`, `skills`, `skills.json`) must be unlinked/removed automatically so the IDE has zero components visible.
-3. **Deactivated Component**: Toggling off a component in the UI must immediately unlink and remove that component's junction from the connected IDE.
+| Agent Profile (`agentType`) | Mode | Skills Target | MCP Servers Target | Rules / Instructions Target | Subagents Target |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Antigravity (`antigravity`)** | `bundle` | `~/.gemini/config/plugins/<id>` | Inside bundle (`mcp_config.json`) | Inside bundle (`rules/*.md`) | Inside bundle (`agents/*.md`) |
+| **Claude Code (`claude-code`)** | `convert` | `~/.claude/skills/<skill>` | `~/.claude.json` (`mcpServers`) | `~/.claude/CLAUDE.md` (`@path` block) | `~/.claude/agents/*.md` |
+| **Codex CLI (`codex`)** | `convert` | `~/.codex/skills/<skill>` | `~/.codex/config.toml` (`[mcp_servers.*]`) | `~/.codex/AGENTS.md` (managed block) | — |
+| **OpenCode (`opencode`)** | `convert` | `~/.config/opencode/skills/<skill>` | `~/.config/opencode/opencode.json` (`mcp`) | `~/.config/opencode/AGENTS.md` | `~/.config/opencode/agents/*.md` |
+| **VS Code / Copilot (`vscode-copilot`)** | `convert` | `~/.copilot/skills/<skill>` | `<AppData>/Code/User/mcp.json` (`servers`) | `Code/User/prompts/*.instructions.md` | `Code/User/prompts/*.agent.md` |
+| **Cursor AI (`cursor`)** | `convert` | `~/.cursor/skills/<skill>` | `~/.cursor/mcp.json` (`mcpServers`) | Workspace `.cursor/rules` | — |
+| **Windsurf (`windsurf`)** | `convert` | `~/.codeium/windsurf/skills/<skill>` | `~/.codeium/windsurf/mcp_config.json` | `~/.codeium/windsurf/memories/global_rules.md` | — |
+| **Gemini CLI (`gemini-cli`)** | `convert` | `~/.gemini/skills/<skill>` | `~/.gemini/settings.json` (`mcpServers`) | `~/.gemini/GEMINI.md` | — |
+| **Cline (`cline`)** | `convert` | `~/.cline/skills/<skill>` | `globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` | `~/Documents/Cline/Rules/*.md` | — |
+| **Roo Code (`roo-code`)** | `convert` | `~/.roo/skills/<skill>` | `globalStorage/rooveterinaryinc.roo-cline/settings/mcp_settings.json` | `~/.roo/rules/*.md` | — |
+| **Kiro (`kiro`)** | `convert` | `~/.kiro/skills/<skill>` | `~/.kiro/settings/mcp.json` | `~/.kiro/steering/*.md` | — |
+| **Universal (`agents-universal`)** | `convert` | `~/.agents/skills/<skill>` | — | — | — |
+| **Custom (`custom`)** | `convert` | `<custom-dir>/<skill>` | — | — | — |
 
 ---
 
-### Technical Breakdown of Where to Inspect
+## Non-Destructive Ownership Manifest & Backup Guarantee
 
-#### 1. UI Data Fetching & Cache Leakage (`page/app.js`)
-* **File**: `page/app.js` -> `apiClient.getPlugins(path)`
-* **Issue**:
-  - `page/app.js` has multiple fallback layers:
-    1. `magpieApi.getPlugins(targetPath)` (IPC bridge)
-    2. `fetch(http://127.0.0.1:41789/api/plugins?path=...)` (REST server)
-    3. `globalThis.__PLUGINS_CACHE__` (injected script `page/plugins-cache.js`)
-    4. `page/plugins-cache.json`
-    5. `localStorage`
-  - If Magpie runs in WebView2 and local `fetch` fails, or if `magpieApi.getPlugins` returns `[]`, any loose fallback check (like missing exact path match against `__PLUGINS_CACHE__.path`) causes stale components from `D:\Software\AI Agent Space` to be returned.
-  - Check `reloadPluginsFromHub()` and `computeEffectiveHubPath()`: Ensure `hubConfig.hubRoot` does not fall back to `DEFAULT_HUB_ROOT` when an explicit path was typed by the user, even if that path does not exist.
+- **Ownership State Tracking (`~/.agent-space-manager/state/<id>.json`)**: Tracks every junction, copied file, JSON key, and Markdown/TOML block created by Agent Space Manager.
+- **Zero Collateral Deletion**:
+  - `createJunction` refuses to delete any real, user-owned directory or file at a link path.
+  - `syncIdePlugins` only prunes junctions, MCP keys, and rule blocks that are recorded in its ownership manifest (or legacy junctions pointing inside the Hub), leaving user-created symlinks and hand-crafted MCP servers untouched.
+  - Before modifying any existing user configuration file (`~/.claude.json`, `~/.codex/config.toml`, `opencode.json`, `mcp.json`, `CLAUDE.md`, `AGENTS.md`), a `.asm-bak` backup is created automatically.
+- **Granular Project Repository Overrides**: Project overrides sync directly into the repository's native agent folder (e.g., `<repo>/.claude/skills`, `<repo>/.cursor/skills`, `<repo>/.agents/skills`) and automatically append managed paths to `<repo>/.git/info/exclude` so links are never accidentally committed.
 
-#### 2. Backend Scanning & Default Fallback (`manager.mjs`)
-* **File**: `manager.mjs` -> `scanPlugins(hubRoot)`
-* **Issue**:
-  - If `hubRoot` does not exist (`fs.existsSync(hubRoot) === false`), it must return `[]` immediately without falling back to `DEFAULT_HUB_ROOT`.
-  - Check `getEffectiveHubRoot(configOrPath)`:
-    ```javascript
-    export function getEffectiveHubRoot(configOrPath) {
-      if (typeof configOrPath === "object" && configOrPath.hubRoot && configOrPath.hubRoot.trim() !== "") {
-        return configOrPath.hubRoot.trim(); // Do not fall back to DEFAULT_HUB_ROOT if set!
-      }
-      // ...
-    }
-    ```
+---
 
-#### 3. IDE Junction Clean-up & Antigravity Ghost Skills (`manager.mjs`)
-* **File**: `manager.mjs` -> `syncIdePlugins(ide, allPlugins)`
-* **Issue**:
-  - For Antigravity (`~/.gemini/config/`), components are loaded from two places:
-    1. `~/.gemini/config/plugins/*` (Junctions managed by `syncIdePlugins`)
-    2. `~/.gemini/config/skills.json` and `~/.gemini/config/skills` junction.
-  - If `allPlugins` is empty (`[]`):
-    - All junctions in `~/.gemini/config/plugins` must be deleted (`removeJunction`).
-    - `~/.gemini/config/skills.json` must be emptied (`{"entries":[]}`) or deleted.
-    - `~/.gemini/config/skills` junction must be removed.
-  - Otherwise, Antigravity keeps loading stale skills from the old `skills.json` regardless of what happens in `plugins/`.
+## Automated Test Suite
+
+Run the full sandboxed test suite (22 tests across 10 suites covering every feature in an isolated temp `HOME`):
+
+```bash
+npm test
+npm run test:report
+```
 
 ---
 

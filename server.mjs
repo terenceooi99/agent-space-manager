@@ -3,9 +3,10 @@
 // Allows Magpie WebView2 page to query filesystem, manage junctions, and resolve shortcuts.
 
 import http from "node:http";
-import url from "node:url";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   loadHubConfig,
@@ -19,29 +20,50 @@ import {
   browseFileSystem,
   getEffectiveHubRoot,
   buildCategoriesRegistry,
-  DEFAULT_HUB_ROOT,
+  resolveHubRoot,
+  listAgentProfilesForUi,
+  inferAgentType,
 } from "./manager.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MAGPIE_PLUGINS_JSON = path.join(os.homedir(), ".config", "magpie", "plugins.json");
+const SIBLING_DIRS = [
+  __dirname,
+  "D:\\Software\\Magpie\\agent-space-manager",
+  "D:\\Software\\Magpie\\smart-middleware",
+];
 
 export const API_PORT = 41789;
 let activeServer = null;
+let magpieWatchInterval = null;
+let lastMagpieStateSig = "";
 
-function setCorsHeaders(req, res) {
-  const origin = req?.headers?.origin || "*";
-  res.setHeader("Access-Control-Allow-Origin", origin);
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-  res.setHeader("Access-Control-Allow-Private-Network", "true");
-  res.setHeader("Access-Control-Max-Age", "86400");
+function isAllowedOrigin(origin) {
+  if (!origin || origin === "null") return true;
+  if (origin.startsWith("file://") || origin.startsWith("magpie://") || origin.startsWith("app://")) return true;
+  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(origin)) return true;
+  return false;
 }
 
-function updatePluginsCache(hubRoot, plugins, categories = null) {
+function setCorsHeaders(req, res) {
+  const origin = req?.headers?.origin;
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Access-Control-Allow-Private-Network", "true");
+    res.setHeader("Access-Control-Max-Age", "86400");
+    return true;
+  }
+  return false;
+}
+
+export function updatePluginsCache(hubRoot, plugins, categories = null) {
   try {
     const cats = categories || buildCategoriesRegistry(plugins, hubRoot);
     const payload = JSON.stringify(
       {
-        path: hubRoot,
+        path: String(hubRoot || ""),
         count: plugins.length,
         updatedAt: Date.now(),
         plugins,
@@ -51,43 +73,144 @@ function updatePluginsCache(hubRoot, plugins, categories = null) {
       2
     );
 
-    const cacheFile = path.join(__dirname, "page", "plugins-cache.json");
-    fs.writeFileSync(cacheFile, payload, "utf8");
-    const jsCacheFile = path.join(__dirname, "page", "plugins-cache.js");
-    fs.writeFileSync(jsCacheFile, `window.__PLUGINS_CACHE__ = ${payload};`, "utf8");
+    const targetDirs = new Set();
+    if (process.env.ASM_CACHE_DIR) {
+      targetDirs.add(process.env.ASM_CACHE_DIR);
+    } else {
+      for (const base of SIBLING_DIRS) {
+        const pDir = path.join(base, "page");
+        if (fs.existsSync(pDir)) targetDirs.add(pDir);
+      }
+    }
+
+    for (const cacheDir of targetDirs) {
+      try {
+        const cacheFile = path.join(cacheDir, "plugins-cache.json");
+        fs.writeFileSync(cacheFile, payload, "utf8");
+        const mainJsCache = path.join(cacheDir, "plugins-cache.js");
+        fs.writeFileSync(mainJsCache, `window.__PLUGINS_CACHE__ = ${payload};\n`, "utf8");
+      } catch {}
+    }
   } catch (err) {
     console.warn("Failed to write plugins-cache.json:", err);
   }
 }
 
-export function startApiServer(port = API_PORT) {
-  if (activeServer) return activeServer;
-
-  // Immediately refresh plugin cache on startup from live filesystem
+export function syncFromMagpiePluginsJson(force = false) {
   try {
-    const hubRoot = DEFAULT_HUB_ROOT;
-    const plugins = scanPlugins(hubRoot);
-    const categories = buildCategoriesRegistry(plugins, hubRoot);
-    updatePluginsCache(hubRoot, plugins, categories);
-  } catch {}
+    if (!fs.existsSync(MAGPIE_PLUGINS_JSON)) return false;
+    const raw = fs.readFileSync(MAGPIE_PLUGINS_JSON, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed?.plugins)) return false;
+
+    const entry = parsed.plugins.find((p) => {
+      const spec = String(p?.spec || "").toLowerCase();
+      return spec.includes("agent-space-manager") || spec.includes("smart-middleware");
+    });
+    if (!entry || !entry.options) return false;
+
+    const opts = entry.options;
+    const sig = JSON.stringify({
+      toolsRoot: opts.toolsRoot,
+      hubConfig: opts.hubConfig,
+      rescanNonce: opts.rescanNonce,
+      smartMiddlewareEnabled: opts.smartMiddlewareEnabled,
+      maxTools: opts.maxTools,
+    });
+    if (!force && sig === lastMagpieStateSig) return false;
+    lastMagpieStateSig = sig;
+
+    const cfg = opts.hubConfig && typeof opts.hubConfig === "object"
+      ? { ...loadHubConfig(), ...opts.hubConfig }
+      : loadHubConfig();
+
+    if (opts.toolsRoot !== undefined && (!opts.hubConfig || opts.hubConfig.hubRoot === undefined)) {
+      cfg.hubRoot = String(opts.toolsRoot || "").trim();
+    }
+    if (opts.smartMiddlewareEnabled !== undefined) {
+      cfg.smartMiddleware = { ...(cfg.smartMiddleware || {}), enabled: Boolean(opts.smartMiddlewareEnabled) };
+    }
+    if (opts.maxTools !== undefined && Number.isInteger(opts.maxTools)) {
+      cfg.smartMiddleware = { ...(cfg.smartMiddleware || {}), maxTools: opts.maxTools };
+    }
+
+    saveHubConfig(cfg);
+    const effPath = getEffectiveHubRoot(cfg);
+    const plugins = scanPlugins(effPath);
+    const categories = buildCategoriesRegistry(plugins, effPath);
+    updatePluginsCache(effPath, plugins, categories);
+    syncAllIdes(cfg, plugins);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+function startMagpieConfigWatcher() {
+  if (magpieWatchInterval || process.env.ASM_NO_SERVER) return;
+  syncFromMagpiePluginsJson(true);
+  magpieWatchInterval = setInterval(() => {
+    syncFromMagpiePluginsJson(false);
+  }, 350);
+  if (typeof magpieWatchInterval.unref === "function") {
+    magpieWatchInterval.unref();
+  }
+}
+
+export function ensureBackgroundDaemon() {
+  if (process.env.ASM_NO_SERVER || process.env.ASM_DAEMON_CHILD === "1") return;
+  const req = http.get(`http://127.0.0.1:${API_PORT}/api/status`, { timeout: 600 }, (res) => {
+    res.resume();
+  });
+  req.on("error", () => {
+    try {
+      const serverScript = path.join(__dirname, "server.mjs");
+      const child = spawn(process.execPath, [serverScript, "--daemon"], {
+        cwd: __dirname,
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+        env: { ...process.env, ASM_DAEMON_CHILD: "1" },
+      });
+      child.unref();
+    } catch {}
+  });
+}
+
+export function startApiServer(port = API_PORT) {
+  if (activeServer && port === API_PORT) return activeServer;
 
   const server = http.createServer(async (req, res) => {
-    setCorsHeaders(req, res);
+    const originAllowed = setCorsHeaders(req, res);
 
     if (req.method === "OPTIONS") {
-      res.writeHead(200);
+      res.writeHead(originAllowed ? 200 : 403);
       res.end();
       return;
     }
 
-    const parsedUrl = url.parse(req.url, true);
+    // Block cross-origin mutating requests from untrusted external websites
+    if (!originAllowed && req.method !== "GET") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, error: "Forbidden origin" }));
+      return;
+    }
+
+    const parsedUrl = new URL(req.url || "/", `http://127.0.0.1:${port}`);
     const pathname = parsedUrl.pathname;
-    const query = parsedUrl.query;
+    const query = Object.fromEntries(parsedUrl.searchParams.entries());
 
     try {
       if (pathname === "/api/status") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "ok", port, timestamp: Date.now() }));
+        res.end(JSON.stringify({ status: "ok", port: server.address()?.port || port, timestamp: Date.now() }));
+        return;
+      }
+
+      if (pathname === "/api/agents" && req.method === "GET") {
+        const agents = listAgentProfilesForUi();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, agents }));
         return;
       }
 
@@ -100,7 +223,7 @@ export function startApiServer(port = API_PORT) {
 
       if (pathname === "/api/plugins" && req.method === "GET") {
         const rawPath = query.path !== undefined ? String(query.path).trim() : "";
-        const reqPath = rawPath || DEFAULT_HUB_ROOT;
+        const reqPath = rawPath || resolveHubRoot();
         const plugins = scanPlugins(reqPath);
         const categories = buildCategoriesRegistry(plugins, reqPath);
         updatePluginsCache(reqPath, plugins, categories);
@@ -129,9 +252,10 @@ export function startApiServer(port = API_PORT) {
       if (pathname === "/api/detect-config" && req.method === "GET") {
         const name = query.name ? String(query.name).trim() : "";
         const exePath = query.exePath ? String(query.exePath).trim() : "";
+        const agentType = inferAgentType(name, exePath);
         const detected = detectAgentConfigPath(name, exePath);
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, configPath: detected }));
+        res.end(JSON.stringify({ success: true, agentType, configPath: detected }));
         return;
       }
 
@@ -198,14 +322,19 @@ export function startApiServer(port = API_PORT) {
   });
 
   server.listen(port, "127.0.0.1", () => {
-    console.log(`Agent Space Manager API Server listening on http://127.0.0.1:${port}`);
+    const actualPort = server.address()?.port || port;
+    if (!process.env.ASM_NO_SERVER) {
+      console.log(`Agent Space Manager API Server listening on http://127.0.0.1:${actualPort}`);
+    }
   });
 
-  activeServer = server;
+  if (port === API_PORT) {
+    activeServer = server;
+    startMagpieConfigWatcher();
+  }
   return server;
 }
 
-// Auto-start when executed directly
 if (process.argv[1] && process.argv[1].endsWith("server.mjs")) {
   startApiServer();
 }

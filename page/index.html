@@ -6,8 +6,8 @@
   <title>Agent Space Manager</title>
   <link rel="stylesheet" href="style.css">
   <script src="_magpie/bridge.js"></script>
-  <script src="plugins-cache.js?v=1.1.2" defer></script>
-  <script src="app.js?v=1.1.2" defer></script>
+  <script src="plugins-cache.js?v=1.2.1" defer></script>
+  <script src="app.js?v=1.2.1" defer></script>
 </head>
 <body>
   <!-- Top Bar matching Magpie's standard layout -->
@@ -36,16 +36,16 @@
         <button type="button" class="btn-sm" id="btnToggleComponentsDetails" style="font-weight:600; font-size:11.5px; cursor:pointer;" title="Expand/Collapse categorized list of all Plugins, MCPs, Hooks, Skills, Agents, and Rules">
           <span id="expandIcon">▼</span> <span id="expandLabel">Expand Components List</span>
         </button>
-        <span class="hub-path-badge" id="hubPathBadge">1st IDE Linked</span>
+        <span class="hub-path-badge" id="hubPathBadge">Default Hub</span>
       </div>
     </div>
     <div class="hub-path-input-row">
-      <input type="text" id="hubPathInput" class="hub-path-input" placeholder="Leave blank to auto-use 1st connected IDE's link directory">
+      <input type="text" id="hubPathInput" class="hub-path-input" placeholder="Leave blank for default Hub (D:\Software\AI Agent Space)">
       <input type="file" id="hubFolderPicker" webkitdirectory directory style="display:none">
       <button type="button" class="btn-sm" id="btnPickHubFolder" title="Browse for Components Storage Folder">📁 Browse...</button>
-      <button type="button" class="btn-sm" id="btnBrowseHubPath" title="Reset storage path to the 1st connected IDE's Configuration Link Directory">Reset to 1st IDE</button>
+      <button type="button" class="btn-sm" id="btnBrowseHubPath" title="Reset storage path to default Hub root">Reset Default</button>
     </div>
-    <p class="field-hint" id="hubPathHint">If blank or reset, automatically points to the 1st connected IDE's Configuration Link Directory.</p>
+    <p class="field-hint" id="hubPathHint">If blank or reset, automatically uses the central Hub root directory.</p>
 
     <!-- Expandable Comprehensive Registry Viewer -->
     <div id="componentsExpandPanel" class="components-expand-panel" style="display:none; margin-top:14px; border-top:1px solid var(--magpie-line, rgba(128,128,128,0.2)); padding-top:12px;">
@@ -198,8 +198,36 @@
         </div>
 
         <label>
-          IDE Name
-          <input type="text" id="ideNameInput" placeholder="Cursor AI, Windsurf, Claude Code, VS Code Copilot">
+          Major Agent / IDE Profile
+          <select id="agentTypeSelect">
+            <optgroup label="Native Plugin Bundle Agent (Reads plugin.json directly)">
+              <option value="antigravity">Antigravity (Google)</option>
+            </optgroup>
+            <optgroup label="Converted to Agent's Native Format (Skills / MCP / Rules / Subagents)">
+              <option value="claude-code">Claude Code (Anthropic)</option>
+              <option value="codex">Codex CLI (OpenAI)</option>
+              <option value="opencode">OpenCode</option>
+              <option value="vscode-copilot">VS Code / GitHub Copilot</option>
+              <option value="cursor">Cursor AI</option>
+              <option value="windsurf">Windsurf (Codeium)</option>
+              <option value="gemini-cli">Gemini CLI (Standalone)</option>
+              <option value="cline">Cline (VS Code Extension)</option>
+              <option value="roo-code">Roo Code</option>
+              <option value="kiro">Kiro (AWS)</option>
+              <option value="agents-universal">Universal Agent Skills (~/.agents/skills)</option>
+            </optgroup>
+            <optgroup label="Custom">
+              <option value="custom">Custom Agent / Directory</option>
+            </optgroup>
+          </select>
+        </label>
+
+        <div id="agentCapabilityChips" class="agent-cap-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:-4px; margin-bottom:4px;"></div>
+        <div id="agentTargetPaths" class="agent-target-paths" style="font-size:11px; color:var(--magpie-muted); padding:6px 8px; border-radius:6px; background:var(--magpie-surface, rgba(128,128,128,0.06)); margin-bottom:4px;"></div>
+
+        <label>
+          Display Name
+          <input type="text" id="ideNameInput" placeholder="Claude Code, Codex CLI, Cursor AI, OpenCode...">
         </label>
         
         <label>

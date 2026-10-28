@@ -6,16 +6,31 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { loadHubConfig } from "./manager.mjs";
-import { startApiServer } from "./server.mjs";
-
-try {
-  startApiServer();
-} catch (e) {}
+import { ensureBackgroundDaemon, startApiServer } from "./server.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ERROR_LOG_PATH = path.join(__dirname, "error.log");
 const LAST_ERROR_PATH = path.join(__dirname, "LAST_ERROR.json");
 const STATUS_PATH = path.join(__dirname, "STATUS.md");
+
+if (!process.env.ASM_NO_SERVER) {
+  try {
+    startApiServer();
+    ensureBackgroundDaemon();
+  } catch {}
+}
+
+let cachedConfig = null;
+let cachedConfigAt = 0;
+
+function getCachedHubConfig() {
+  const now = Date.now();
+  if (!cachedConfig || now - cachedConfigAt > 2000) {
+    cachedConfig = loadHubConfig();
+    cachedConfigAt = now;
+  }
+  return cachedConfig;
+}
 
 function recordFailure(error, contextInfo = {}) {
   const timestamp = new Date().toISOString();
@@ -46,16 +61,16 @@ function recordFailure(error, contextInfo = {}) {
   }
 }
 
+const CORE_TOOL_REGEX = /^(read_file|write_file|edit_file|run_command|execute_command|bash|terminal|search_web|web_search|get_context|fetch)/i;
+
 export function onRequest(body, ctx) {
   if (!body) return;
 
-  // Check feature toggle from Magpie options or hub-config.json
-  const hubConfig = loadHubConfig();
+  const hubConfig = getCachedHubConfig();
   const isEnabled = ctx?.options?.smartMiddlewareEnabled !== undefined
     ? Boolean(ctx.options.smartMiddlewareEnabled)
     : Boolean(hubConfig?.smartMiddleware?.enabled ?? true);
 
-  // If feature is turned OFF in manager, pass through completely unmodified
   if (!isEnabled) {
     if (ctx && typeof ctx.report === "function") {
       ctx.report("bypassed", body?.tools?.length || 0);
@@ -79,9 +94,11 @@ export function onRequest(body, ctx) {
       : (hubConfig?.smartMiddleware?.maxTools || 96);
 
     const messages = Array.isArray(body.messages) ? body.messages : [];
+    const userMessages = messages.filter((m) => !m.role || m.role === "user");
+    const recentMsgs = (userMessages.length > 0 ? userMessages : messages).slice(-3);
+
     let userText = "";
-    for (let i = messages.length - 1; i >= 0 && i >= messages.length - 3; i--) {
-      const msg = messages[i];
+    for (const msg of recentMsgs) {
       if (typeof msg.content === "string") {
         userText += " " + msg.content.toLowerCase();
       } else if (Array.isArray(msg.content)) {
@@ -93,25 +110,32 @@ export function onRequest(body, ctx) {
       }
     }
 
-    const isPureChat = /^\s*(hi|hello|hey|yo|ping|thanks|thank you|what can you do|who are you)\s*[\.\?!]*$/i.test(userText.trim());
-    if (isPureChat && body.tools.length > 20) {
-      return { ...body, tools: body.tools.slice(0, 10) };
+    const coreTools = [];
+    const nonCoreTools = [];
+    for (const t of body.tools) {
+      const fn = t.function || t;
+      const name = String(fn.name || "");
+      if (CORE_TOOL_REGEX.test(name)) {
+        coreTools.push(t);
+      } else {
+        nonCoreTools.push(t);
+      }
     }
 
-    const matchedTools = [];
+    const isPureChat = /^\s*(hi|hello|hey|yo|ping|thanks|thank you|what can you do|who are you)\s*[\.\?!]*$/i.test(userText.trim());
+    if (isPureChat && body.tools.length > 15) {
+      const chatTools = [...coreTools, ...nonCoreTools].slice(0, Math.min(15, maxSafeTools));
+      return { ...body, tools: chatTools };
+    }
+
+    const matchedTools = [...coreTools];
     const fallbackTools = [];
 
-    for (const t of body.tools) {
+    for (const t of nonCoreTools) {
       const fn = t.function || t;
       const name = String(fn.name || "").toLowerCase();
 
-      const isCoreTool = /^(read_file|write_file|edit_file|run_command|execute_command|bash|terminal|search_web|web_search|get_context|fetch)/i.test(name);
-      if (isCoreTool) {
-        matchedTools.push(t);
-        continue;
-      }
-
-      const nameTokens = name.split(/[^a-z0-9]+/i).filter(tok => tok.length > 2);
+      const nameTokens = name.split(/[^a-z0-9]+/i).filter((tok) => tok.length > 2);
       let isMatch = false;
 
       for (const tok of nameTokens) {
@@ -122,7 +146,7 @@ export function onRequest(body, ctx) {
       }
 
       if (!isMatch) {
-        if (name.includes("rea") || name.includes("binary") || name.includes("disasm") || name.includes("decompile") || name.includes("gdb") || name.includes("frida") || name.includes("rizin")) {
+        if (/(^|[_-])(re|reverse|binary|disasm|decompile|gdb|frida|rizin)([_-]|$)/i.test(name)) {
           if (/(reverse|binary|disassembl|decompile|pe|elf|macho|dll|exe|instruction|register|gdb|frida|rizin|assembly|opcode|demangle|symbols)/i.test(userText)) {
             isMatch = true;
           }
@@ -152,13 +176,7 @@ export function onRequest(body, ctx) {
       }
     }
 
-    let finalTools = matchedTools;
-    if (finalTools.length === 0) {
-      finalTools = body.tools.slice(0, maxSafeTools);
-    } else if (finalTools.length > maxSafeTools) {
-      finalTools = finalTools.slice(0, maxSafeTools);
-    }
-
+    const finalTools = [...matchedTools, ...fallbackTools].slice(0, maxSafeTools);
     return { ...body, tools: finalTools };
   } catch (err) {
     recordFailure(err, { model: body.model, toolCount: initialToolCount });

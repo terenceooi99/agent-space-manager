@@ -215,12 +215,36 @@
 
   const API_BASE = "http://127.0.0.1:41789";
 
-  const apiClient = {
-    async getPlugins(path) {
-      const targetPath = (path || "").trim();
-      const norm = targetPath.toLowerCase().replace(/\\/g, "/");
+  function normalizePathForCompare(p) {
+    return String(p || "").trim().toLowerCase().replace(/\\/g, "/").replace(/\/+$/, "");
+  }
 
-      // 1. Magpie host IPC bridge (runs directly in Magpie WebView2 without local network ports)
+  function reloadPluginsCacheScript() {
+    return new Promise((resolve) => {
+      try {
+        const s = document.createElement("script");
+        s.src = `plugins-cache.js?t=${Date.now()}`;
+        s.onload = () => {
+          s.remove();
+          resolve(true);
+        };
+        s.onerror = () => {
+          s.remove();
+          resolve(false);
+        };
+        document.head.appendChild(s);
+      } catch {
+        resolve(false);
+      }
+    });
+  }
+
+  const apiClient = {
+    async getPlugins(path, forceReloadScript = false) {
+      const targetPath = (path || "").trim();
+      const norm = normalizePathForCompare(targetPath);
+
+      // 1. Magpie host IPC bridge (if available)
       try {
         const magpieApi = getMagpieApi();
         if (typeof magpieApi?.getPlugins === "function") {
@@ -233,13 +257,11 @@
             return mPlugins;
           }
         }
-      } catch (err) {
-        console.warn("magpie IPC getPlugins error:", err);
-      }
+      } catch {}
 
-      // 2. Local API server dynamically with cache-busting timestamp (live filesystem scan)
+      // 2. Local API server dynamically with cache-busting timestamp (when running outside CSP connect-src 'none')
       try {
-        const res = await fetch(`${API_BASE}/api/plugins?path=${encodeURIComponent(targetPath)}&t=${Date.now()}`, { signal: AbortSignal.timeout(5000) });
+        const res = await fetch(`${API_BASE}/api/plugins?path=${encodeURIComponent(targetPath)}&t=${Date.now()}`, { signal: AbortSignal.timeout(1200) });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.plugins)) {
@@ -253,16 +275,23 @@
             return data.plugins;
           }
         }
-      } catch (err) {
-        console.warn("apiClient.getPlugins API fetch error:", err);
+      } catch {}
+
+      // 3. Dynamically reload plugins-cache.js via <script> tag (allowed by Magpie iframe CSP script-src 'self'!)
+      const currentCacheNorm = normalizePathForCompare(globalThis.__PLUGINS_CACHE__?.path);
+      if (forceReloadScript || currentCacheNorm !== norm) {
+        await reloadPluginsCacheScript();
       }
 
-      // 3. Synchronous in-memory / script-injected cache (__PLUGINS_CACHE__) strictly if path matches!
+      // 4. Synchronous in-memory / script-injected cache (__PLUGINS_CACHE__) strictly if path matches!
       if (globalThis.__PLUGINS_CACHE__ && Array.isArray(globalThis.__PLUGINS_CACHE__.plugins)) {
-        const cachePathNorm = (globalThis.__PLUGINS_CACHE__.path || "").trim().toLowerCase().replace(/\\/g, "/");
+        const cachePathNorm = normalizePathForCompare(globalThis.__PLUGINS_CACHE__.path);
         if (cachePathNorm === norm) {
           const cached = globalThis.__PLUGINS_CACHE__.plugins;
           cached.forEach(ensurePluginFiles);
+          try {
+            localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(cached));
+          } catch {}
           if (globalThis.__PLUGINS_CACHE__.categories) {
             discoveredCategories = globalThis.__PLUGINS_CACHE__.categories;
           }
@@ -270,12 +299,12 @@
         }
       }
 
-      // 4. Same-origin static cache file strictly if path matches!
+      // 5. Same-origin static cache file strictly if path matches!
       try {
-        const cRes = await fetch(`./plugins-cache.json?t=${Date.now()}`, { signal: AbortSignal.timeout(1500) });
+        const cRes = await fetch(`./plugins-cache.json?t=${Date.now()}`, { signal: AbortSignal.timeout(1000) });
         if (cRes.ok) {
           const cData = await cRes.json();
-          const jsonPathNorm = (cData?.path || "").trim().toLowerCase().replace(/\\/g, "/");
+          const jsonPathNorm = normalizePathForCompare(cData?.path);
           if (jsonPathNorm === norm && Array.isArray(cData.plugins)) {
             cData.plugins.forEach(ensurePluginFiles);
             if (cData.categories) {
@@ -284,9 +313,9 @@
             return cData.plugins;
           }
         }
-      } catch (err) {}
+      } catch {}
 
-      // 5. LocalStorage cached plugins strictly for this exact path
+      // 6. LocalStorage cached plugins strictly for this exact path
       try {
         const local = localStorage.getItem("magpie_plugins_" + norm);
         if (local !== null && local !== undefined) {
@@ -389,7 +418,44 @@
       } catch {}
       return null;
     },
+
+    async getAgentProfiles() {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.getAgentProfiles === "function") {
+          const list = await magpieApi.getAgentProfiles();
+          if (Array.isArray(list) && list.length > 0) return list;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/agents`, { signal: AbortSignal.timeout(2000) });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.agents)) return data.agents;
+        }
+      } catch {}
+      return null;
+    },
   };
+
+  const FALLBACK_AGENT_PROFILES = [
+    { id: "antigravity", label: "Antigravity (Google)", mode: "bundle", description: "Native plugin bundle support (~/.gemini/config/plugins)", capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true }, defaultConfigPath: "~/.gemini/config/plugins" },
+    { id: "claude-code", label: "Claude Code (Anthropic)", mode: "convert", description: "Skills in ~/.claude/skills, MCP in ~/.claude.json, Rules in ~/.claude/CLAUDE.md, Subagents in ~/.claude/agents", capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false }, defaultConfigPath: "~/.claude/skills" },
+    { id: "codex", label: "Codex CLI (OpenAI)", mode: "convert", description: "Skills in ~/.codex/skills, MCP in ~/.codex/config.toml, Rules in ~/.codex/AGENTS.md", capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: false }, defaultConfigPath: "~/.codex/skills" },
+    { id: "opencode", label: "OpenCode", mode: "convert", description: "Skills in ~/.config/opencode/skills, MCP in opencode.json, Rules in AGENTS.md, Subagents in agents/", capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false }, defaultConfigPath: "~/.config/opencode/skills" },
+    { id: "vscode-copilot", label: "VS Code / GitHub Copilot", mode: "convert", description: "Skills in ~/.copilot/skills, MCP in Code/User/mcp.json, Instructions & Agents in Code/User/prompts", capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false }, defaultConfigPath: "~/.copilot/skills" },
+    { id: "cursor", label: "Cursor AI", mode: "convert", description: "Skills in ~/.cursor/skills, MCP in ~/.cursor/mcp.json", capabilities: { skills: true, mcp: true, rules: false, agents: false, hooks: false }, defaultConfigPath: "~/.cursor/skills" },
+    { id: "windsurf", label: "Windsurf (Codeium)", mode: "convert", description: "Skills in ~/.codeium/windsurf/skills, MCP in mcp_config.json, Rules in memories/global_rules.md", capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: false }, defaultConfigPath: "~/.codeium/windsurf/skills" },
+    { id: "gemini-cli", label: "Gemini CLI (Standalone)", mode: "convert", description: "Skills in ~/.gemini/skills, MCP in ~/.gemini/settings.json, Rules in ~/.gemini/GEMINI.md", capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: false }, defaultConfigPath: "~/.gemini/skills" },
+    { id: "cline", label: "Cline (VS Code Extension)", mode: "convert", description: "Skills in ~/.cline/skills, MCP in cline_mcp_settings.json, Rules in ~/Documents/Cline/Rules", capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: false }, defaultConfigPath: "~/.cline/skills" },
+    { id: "roo-code", label: "Roo Code", mode: "convert", description: "Skills in ~/.roo/skills, MCP in rooveterinaryinc.roo-cline mcp_settings.json, Rules in ~/.roo/rules", capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: false }, defaultConfigPath: "~/.roo/skills" },
+    { id: "kiro", label: "Kiro (AWS)", mode: "convert", description: "Skills in ~/.kiro/skills, MCP in ~/.kiro/settings/mcp.json, Steering rules in ~/.kiro/steering", capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: false }, defaultConfigPath: "~/.kiro/skills" },
+    { id: "agents-universal", label: "Universal Agent Skills (~/.agents/skills)", mode: "convert", description: "Shared ~/.agents/skills directory read by OpenCode, Copilot, Codex, and Antigravity", capabilities: { skills: true, mcp: false, rules: false, agents: false, hooks: false }, defaultConfigPath: "~/.agents/skills" },
+    { id: "custom", label: "Custom Agent / Directory", mode: "convert", description: "User-specified target directory", capabilities: { skills: true, mcp: false, rules: false, agents: false, hooks: false }, defaultConfigPath: "~/.agent/skills" },
+  ];
+
+  let agentProfiles = [...FALLBACK_AGENT_PROFILES];
+  let lastSyncByIde = {};
 
   let hubConfig = { ...DEFAULTS };
   let discoveredPlugins = [];
@@ -456,18 +522,24 @@
     }
   } catch {}
 
-  // 4. Query live plugins from active storage path
+  // 4. Query live agent profiles and plugins from active storage path
+  try {
+    const liveProfiles = await apiClient.getAgentProfiles();
+    if (Array.isArray(liveProfiles) && liveProfiles.length > 0) {
+      agentProfiles = liveProfiles;
+    }
+  } catch {}
   await reloadPluginsFromHub();
 
   // 5. Render initial view and setup listeners
   renderAll();
   setupEventListeners();
 
-  async function reloadPluginsFromHub() {
+  async function reloadPluginsFromHub(forceReloadScript = false) {
     const effective = computeEffectiveHubPath();
     const targetPath = effective.path;
     discoveredCategories = { plugins: [], mcps: [], hooks: [], skills: [], agents: [], rules: [] };
-    const plugins = await apiClient.getPlugins(targetPath);
+    const plugins = await apiClient.getPlugins(targetPath, forceReloadScript);
     discoveredPlugins = Array.isArray(plugins) ? plugins : [];
     if (discoveredPlugins.length === 0) {
       discoveredCategories = { plugins: [], mcps: [], hooks: [], skills: [], agents: [], rules: [] };
@@ -484,14 +556,8 @@
   }
 
   function computeEffectiveHubPath() {
-    // If user provided a custom path, use it
     if (hubConfig.hubRoot && hubConfig.hubRoot.trim() !== "") {
       return { path: hubConfig.hubRoot.trim(), isAuto: false };
-    }
-    // If blank, auto-point to 1st connected IDE's config link directory
-    const firstIdePath = getFirstIdeConfigPath();
-    if (firstIdePath) {
-      return { path: firstIdePath, isAuto: true };
     }
     return { path: "D:\\Software\\AI Agent Space", isAuto: true };
   }
@@ -759,7 +825,7 @@
       if (document.activeElement !== $("hubPathInput")) {
         $("hubPathInput").value = hubConfig.hubRoot || "";
       }
-      $("hubPathInput").placeholder = `Auto (1st IDE): ${effectiveHub.path}`;
+      $("hubPathInput").placeholder = `Default Hub: ${effectiveHub.path}`;
     }
     if ($("hubPathBadge")) {
       if (hubConfig.hubRoot && hubConfig.hubRoot.trim() !== "") {
@@ -767,11 +833,11 @@
           $("hubPathBadge").textContent = "Invalid / 0 Components";
           $("hubPathBadge").className = "hub-path-badge disabled";
         } else {
-          $("hubPathBadge").textContent = "Manual Path";
+          $("hubPathBadge").textContent = "Custom Path";
           $("hubPathBadge").className = "hub-path-badge";
         }
       } else {
-        $("hubPathBadge").textContent = `1st IDE Linked (${hubConfig.ides[0]?.name || "None"})`;
+        $("hubPathBadge").textContent = "Default Hub";
         $("hubPathBadge").className = "hub-path-badge auto";
       }
     }
@@ -781,7 +847,7 @@
           ? `⚠️ Directory not found or contains 0 components: ${effectiveHub.path}`
           : `Active components storage: ${effectiveHub.path}`;
       } else {
-        $("hubPathHint").textContent = `Path is blank or reset. Automatically pointing to 1st connected IDE: ${effectiveHub.path}`;
+        $("hubPathHint").textContent = `Using central Hub root: ${effectiveHub.path}`;
       }
     }
 
@@ -821,16 +887,41 @@
       item.dataset.index = index;
       item.dataset.type = "ide";
 
+      const prof = agentProfiles.find((p) => p.id === ide.agentType) ||
+                   agentProfiles.find((p) => ide.id?.includes(p.id) || ide.name?.toLowerCase().includes(p.id)) ||
+                   agentProfiles[0];
+      const modeBadge = prof?.mode === "bundle"
+        ? `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(16,185,129,0.15); color:#10b981; margin-left:6px;">Bundle</span>`
+        : `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(59,130,246,0.15); color:#3b82f6; margin-left:6px;">Native Adapter</span>`;
+
+      const syncInfo = lastSyncByIde[ide.id];
+      let syncSubtitle = "";
+      if (syncInfo?.summary) {
+        const s = syncInfo.summary;
+        if (syncInfo.mode === "bundle") {
+          syncSubtitle = `<div style="font-size:10px; color:#10b981; margin-top:2px;">Synced: ${s.plugins || 0} plugin bundles</div>`;
+        } else {
+          const parts = [];
+          if (s.skills !== undefined) parts.push(`${s.skills} skills`);
+          if (s.mcp) parts.push(`${s.mcp} MCP`);
+          if (s.rules) parts.push(`${s.rules} rules`);
+          if (s.agents) parts.push(`${s.agents} agents`);
+          if (s.conflicts) parts.push(`${s.conflicts} conflicts`);
+          syncSubtitle = `<div style="font-size:10px; color:#3b82f6; margin-top:2px;">Synced: ${parts.join(" · ") || "0 items"}</div>`;
+        }
+      }
+
       item.innerHTML = `
         <div style="display:flex; align-items:center; flex:1; min-width:0;">
-          <span class="drag-handle" title="Drag to reorder (1st is default storage)">⋮⋮</span>
+          <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
           <div style="flex:1; min-width:0;">
             <div class="target-title">
               <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;"></span>
               ${escapeHtml(ide.name)}
-              ${index === 0 ? '<span style="font-size:10px;color:#16a34a;margin-left:4px;">(1st IDE)</span>' : ''}
+              ${modeBadge}
             </div>
             <div class="target-path">${escapeHtml(truncate(ide.configPath, 42))}</div>
+            ${syncSubtitle}
           </div>
         </div>
         <div class="target-item-actions">
@@ -1195,50 +1286,26 @@
   }
 
   // Dynamically detect accurate Configuration Link Directory across any user or platform
-  async function detectDefaultConfigPath(name, exePath) {
+  async function detectDefaultConfigPath(nameOrAgentType, exePath) {
     try {
-      const detected = await apiClient.detectConfigPath(name, exePath);
+      const detected = await apiClient.detectConfigPath(nameOrAgentType, exePath);
       if (detected) return detected;
     } catch {}
 
-    const combined = `${name || ""} ${exePath || ""}`.toLowerCase();
-    
-    let userHome = "~";
-    if (exePath && (exePath.includes(":\\Users\\") || exePath.includes(":\\users\\"))) {
-      const match = exePath.match(/^[a-zA-Z]:\\Users\\[^\\]+/i);
-      if (match) userHome = match[0];
-    } else if (exePath && exePath.startsWith("/Users/")) {
-      const match = exePath.match(/^\/Users\/[^\/]+/);
-      if (match) userHome = match[0];
-    } else if (exePath && exePath.startsWith("/home/")) {
-      const match = exePath.match(/^\/home\/[^\/]+/);
-      if (match) userHome = match[0];
+    const prof = agentProfiles.find((p) => p.id === nameOrAgentType || p.label.toLowerCase() === String(nameOrAgentType || "").toLowerCase());
+    if (prof && prof.defaultConfigPath) {
+      return prof.defaultConfigPath;
     }
 
-    if (combined.includes("opencode")) {
-      return `${userHome}\\.config\\opencode\\plugins`;
-    }
-    if (combined.includes("antigravity") || combined.includes("gemini")) {
-      return `${userHome}\\.gemini\\config\\plugins`;
-    }
-    if (combined.includes("cursor")) {
-      return `${userHome}\\.cursor\\skills`;
-    }
-    if (combined.includes("windsurf")) {
-      return `${userHome}\\.windsurf\\skills`;
-    }
-    if (combined.includes("claude")) {
-      return `${userHome}\\.claude\\skills`;
-    }
-    if (combined.includes("cline") || combined.includes("roo")) {
-      return `${userHome}\\AppData\\Roaming\\Code\\User\\globalStorage\\rooveterinaryinc.roo-cline\\skills`;
-    }
-    if (combined.includes("vscode") || combined.includes("copilot") || /\bcode\b/.test(combined) || combined.endsWith("code.exe")) {
-      return `${userHome}\\.vscode\\skills`;
+    const combined = `${nameOrAgentType || ""} ${exePath || ""}`.toLowerCase();
+    for (const p of agentProfiles) {
+      if (combined.includes(p.id) || combined.includes(p.label.toLowerCase().split(" ")[0])) {
+        return p.defaultConfigPath;
+      }
     }
 
-    const clean = name ? name.toLowerCase().replace(/[^a-z0-9_-]/g, "") : "agent";
-    return `${userHome}\\.${clean}\\plugins`;
+    const clean = nameOrAgentType ? String(nameOrAgentType).toLowerCase().replace(/[^a-z0-9_-]/g, "") : "agent";
+    return `~/.${clean}/skills`;
   }
 
   function inferClientName(baseName) {
@@ -1448,16 +1515,9 @@
       });
     }
 
-    // Modal triggers
-    if ($("openAddIdeModalBtn")) {
-      $("openAddIdeModalBtn").addEventListener("click", () => {
-        if ($("addIdeModal")) $("addIdeModal").style.display = "flex";
-        updateAutoDetectState();
-      });
-    }
-    if ($("closeIdeModal")) $("closeIdeModal").addEventListener("click", () => $("addIdeModal").style.display = "none");
-    if ($("cancelIdeBtn")) $("cancelIdeBtn").addEventListener("click", () => $("addIdeModal").style.display = "none");
-
+    const agentTypeSelect = $("agentTypeSelect");
+    const agentCapabilityChips = $("agentCapabilityChips");
+    const agentTargetPaths = $("agentTargetPaths");
     const autoDetectToggle = $("autoDetectConfigToggle");
     const ideConfigInput = $("ideConfigInput");
     const ideExeInput = $("ideExeInput");
@@ -1465,9 +1525,50 @@
     const autoDetectLabel = $("autoDetectLabel");
     const configHint = $("configHint");
 
+    function renderSelectedAgentMeta(agentId) {
+      const prof = agentProfiles.find((p) => p.id === agentId) || agentProfiles[0];
+      if (!prof) return;
+      if (agentCapabilityChips) {
+        const caps = [
+          { key: "skills", label: "Skills" },
+          { key: "mcp", label: "MCP" },
+          { key: "rules", label: "Rules" },
+          { key: "agents", label: "Subagents" },
+          { key: "hooks", label: "Hooks" },
+        ];
+        agentCapabilityChips.innerHTML = caps.map((c) => {
+          const ok = prof.capabilities?.[c.key];
+          const bg = ok ? "rgba(22,163,74,0.14)" : "rgba(128,128,128,0.1)";
+          const fg = ok ? "#16a34a" : "var(--magpie-muted)";
+          return `<span style="font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:4px; background:${bg}; color:${fg};">${c.label} ${ok ? "✓" : "–"}</span>`;
+        }).join("");
+      }
+      if (agentTargetPaths) {
+        agentTargetPaths.textContent = prof.description || `Default link path: ${prof.defaultConfigPath}`;
+      }
+    }
+
+    // Modal triggers
+    if ($("openAddIdeModalBtn")) {
+      $("openAddIdeModalBtn").addEventListener("click", () => {
+        if ($("addIdeModal")) $("addIdeModal").style.display = "flex";
+        const selType = agentTypeSelect?.value || "claude-code";
+        const prof = agentProfiles.find((p) => p.id === selType);
+        if (ideNameInput && !ideNameInput.value && prof) {
+          ideNameInput.value = prof.label;
+        }
+        renderSelectedAgentMeta(selType);
+        updateAutoDetectState();
+      });
+    }
+    if ($("closeIdeModal")) $("closeIdeModal").addEventListener("click", () => $("addIdeModal").style.display = "none");
+    if ($("cancelIdeBtn")) $("cancelIdeBtn").addEventListener("click", () => $("addIdeModal").style.display = "none");
+
     async function updateAutoDetectState() {
       if (!autoDetectToggle || !ideConfigInput) return;
-      const isAuto = autoDetectToggle.checked;
+      const selectedType = agentTypeSelect?.value || "antigravity";
+      const isCustom = selectedType === "custom";
+      const isAuto = isCustom ? false : autoDetectToggle.checked;
       ideConfigInput.readOnly = isAuto;
       if (autoDetectLabel) {
         autoDetectLabel.textContent = isAuto ? "Auto-detect: ON" : "Auto-detect: OFF";
@@ -1475,12 +1576,30 @@
       }
       if (configHint) {
         configHint.textContent = isAuto
-          ? "Automatically computed from binary/IDE name. Turn off to type custom path."
-          : "Manual input active. Enter full path where plugins/skills should be linked.";
+          ? "Automatically resolved for selected Agent Profile. Turn off to type custom path."
+          : "Manual input active. Enter full path where skills/plugins should be linked.";
       }
       if (isAuto) {
-        ideConfigInput.value = await detectDefaultConfigPath(ideNameInput?.value, ideExeInput?.value);
+        const lookupKey = selectedType !== "custom" ? selectedType : (ideNameInput?.value || "agent");
+        ideConfigInput.value = await detectDefaultConfigPath(lookupKey, ideExeInput?.value);
       }
+    }
+
+    if (agentTypeSelect) {
+      agentTypeSelect.addEventListener("change", async () => {
+        const sel = agentTypeSelect.value;
+        const prof = agentProfiles.find((p) => p.id === sel);
+        if (prof && ideNameInput) {
+          ideNameInput.value = prof.label;
+        }
+        if (sel === "custom" && autoDetectToggle) {
+          autoDetectToggle.checked = false;
+        } else if (autoDetectToggle) {
+          autoDetectToggle.checked = true;
+        }
+        renderSelectedAgentMeta(sel);
+        await updateAutoDetectState();
+      });
     }
 
     if (autoDetectToggle) {
@@ -1538,33 +1657,15 @@
         if (result && result.success && result.realPath && (result.realPath.includes("\\") || result.realPath.includes("/"))) {
           if (ideExeInput) ideExeInput.value = result.realPath;
           if (ideNameInput) ideNameInput.value = result.name;
+          if (result.agentType && agentTypeSelect) {
+            agentTypeSelect.value = result.agentType;
+            renderSelectedAgentMeta(result.agentType);
+          }
           if (ideConfigInput) ideConfigInput.value = result.configPath;
         } else {
-          // Client-side smart knowledge for known agents
           const rawBase = raw.split(/[/\\]/).pop();
-          const baseName = rawBase.toLowerCase();
-          const userProf = "C:\\Users\\teren";
-          let guessedPath = "";
-          let guessedName = inferClientName(rawBase);
-
-          if (baseName.includes("opencode")) {
-            guessedPath = `${userProf}\\AppData\\Local\\Programs\\ai.opencode.desktop\\OpenCode.exe`;
-            guessedName = "OpenCode";
-          } else if (baseName === "code" || baseName.includes("vscode")) {
-            guessedPath = `${userProf}\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe`;
-            guessedName = "VS Code";
-          } else if (baseName.includes("cursor")) {
-            guessedPath = `${userProf}\\AppData\\Local\\Programs\\cursor\\Cursor.exe`;
-            guessedName = "Cursor";
-          } else if (baseName.includes("windsurf")) {
-            guessedPath = `${userProf}\\AppData\\Local\\Programs\\Windsurf\\Windsurf.exe`;
-            guessedName = "Windsurf";
-          } else if (baseName.includes("agy") || baseName.includes("antigravity")) {
-            guessedPath = `${userProf}\\.gemini\\bin\\agy.cmd`;
-            guessedName = "Antigravity";
-          }
-
-          if (ideExeInput) ideExeInput.value = guessedPath || raw;
+          const guessedName = inferClientName(rawBase);
+          if (ideExeInput) ideExeInput.value = raw;
           if (ideNameInput) ideNameInput.value = guessedName;
           await updateAutoDetectState();
         }
@@ -1582,22 +1683,18 @@
         const res = await apiClient.resolveDroppedTarget(rawPath, "ide");
         if (res && res.success && res.realPath) {
           if (ideExeInput) ideExeInput.value = res.realPath;
-          if (ideNameInput && (!ideNameInput.value || ideNameInput.value === "Agent")) {
-            ideNameInput.value = res.name;
+          if (ideNameInput) ideNameInput.value = res.name;
+          if (res.agentType && agentTypeSelect) {
+            agentTypeSelect.value = res.agentType;
+            renderSelectedAgentMeta(res.agentType);
           }
           if (autoDetectToggle?.checked && ideConfigInput) {
             ideConfigInput.value = res.configPath;
           }
         } else {
-          const baseName = file.name.toLowerCase();
-          if (baseName.includes("opencode")) {
-            if (ideExeInput) ideExeInput.value = "C:\\Users\\teren\\AppData\\Local\\Programs\\ai.opencode.desktop\\OpenCode.exe";
-            if (ideNameInput) ideNameInput.value = "OpenCode";
-            if (ideConfigInput) ideConfigInput.value = "C:\\Users\\teren\\.config\\opencode\\plugins";
-          } else {
-            if (ideExeInput) ideExeInput.value = rawPath;
-            if (ideNameInput) ideNameInput.value = inferClientName(file.name);
-          }
+          if (ideExeInput) ideExeInput.value = rawPath;
+          if (ideNameInput) ideNameInput.value = inferClientName(file.name);
+          await updateAutoDetectState();
         }
         ideExePicker.value = "";
       });
@@ -1770,22 +1867,26 @@
     // Add IDE save
     if ($("saveIdeBtn")) {
       $("saveIdeBtn").addEventListener("click", async () => {
-        const name = $("ideNameInput")?.value?.trim();
+        const agentType = $("agentTypeSelect")?.value || "custom";
+        const prof = agentProfiles.find((p) => p.id === agentType);
+        const name = $("ideNameInput")?.value?.trim() || prof?.label || "Agent";
         const exePath = $("ideExeInput")?.value?.trim() || "";
         let configPath = $("ideConfigInput")?.value?.trim();
 
         if (autoDetectToggle?.checked || !configPath) {
-          configPath = await detectDefaultConfigPath(name, exePath);
+          configPath = await detectDefaultConfigPath(agentType !== "custom" ? agentType : name, exePath);
         }
 
         if (!name || !configPath) {
-          alert("Please provide an IDE name.");
+          alert("Please provide an Agent/IDE name and configuration path.");
           return;
         }
 
-        const id = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
-        hubConfig.ides.push({ id, name, exePath, configPath, enabled: true, plugins: {} });
+        const baseId = (agentType !== "custom" ? agentType : name).toLowerCase().replace(/[^a-z0-9]/g, "-");
+        const id = hubConfig.ides.some((i) => i.id === baseId) ? `${baseId}-${Date.now()}` : baseId;
+        hubConfig.ides.push({ id, name, agentType, exePath, configPath, enabled: true, plugins: {} });
         if ($("addIdeModal")) $("addIdeModal").style.display = "none";
+        currentSelection = { type: "ide", id };
         triggerAutoSync();
         renderAll();
       });
@@ -1814,11 +1915,53 @@
     // Rescan button
     if ($("rescanBtn")) {
       $("rescanBtn").addEventListener("click", async () => {
-        $("rescanBtn").textContent = "Scanning...";
-        await reloadPluginsFromHub();
+        const btn = $("rescanBtn");
+        btn.textContent = "Scanning...";
+        if ($("hubPathInput")) {
+          hubConfig.hubRoot = $("hubPathInput").value.trim();
+        }
+        const effectivePath = computeEffectiveHubPath().path;
+        const norm = normalizePathForCompare(effectivePath);
+        try {
+          localStorage.removeItem("magpie_plugins_" + norm);
+        } catch {}
+
+        await persistConfig(true);
+        await new Promise((r) => setTimeout(r, 450));
+        await reloadPluginsFromHub(true);
         renderAll();
-        $("rescanBtn").textContent = "Rescan Hub";
+        btn.textContent = "Rescan Hub";
       });
+    }
+  }
+
+  let lastMagpieSetAt = 0;
+  let magpieSetTimer = null;
+
+  async function pushOptionsToMagpie(forceRescanNonce = false) {
+    if (!globalThis.magpie?.options?.set) return;
+    const now = Date.now();
+    const waitMs = Math.max(0, 1080 - (now - lastMagpieSetAt));
+    if (waitMs > 0) {
+      await new Promise((r) => {
+        clearTimeout(magpieSetTimer);
+        magpieSetTimer = setTimeout(r, waitMs);
+      });
+    }
+    try {
+      lastMagpieSetAt = Date.now();
+      const payload = {
+        smartMiddlewareEnabled: hubConfig.smartMiddleware?.enabled !== false,
+        maxTools: Number(hubConfig.smartMiddleware?.maxTools) || 96,
+        toolsRoot: hubConfig.hubRoot !== undefined ? hubConfig.hubRoot : computeEffectiveHubPath().path,
+        hubConfig,
+      };
+      if (forceRescanNonce) {
+        payload.rescanNonce = Date.now();
+      }
+      await globalThis.magpie.options.set(payload);
+    } catch (err) {
+      console.warn("Failed to persist options to Magpie:", err);
     }
   }
 
@@ -1837,37 +1980,41 @@
         indicator.textContent = "Synced";
         indicator.className = "sync-indicator";
       }
-    }, 400);
+    }, 450);
   }
 
-  async function persistConfig() {
+  async function persistConfig(forceRescan = false) {
     try {
       localStorage.setItem("magpie_agent_space_config", JSON.stringify(hubConfig));
     } catch {}
 
-    // Call local API server to save config, sync junctions, and get dynamic plugins
+    // 1. Try direct API server first (works in browser / unrestricted WebView)
     const saveRes = await apiClient.saveConfig(hubConfig);
-    if (saveRes && Array.isArray(saveRes.plugins)) {
-      discoveredPlugins = saveRes.plugins;
-      if (saveRes.categories) {
-        discoveredCategories = saveRes.categories;
-      } else {
-        discoveredCategories = buildClientCategoriesRegistry(discoveredPlugins);
+    if (saveRes) {
+      if (saveRes.sync?.results && Array.isArray(saveRes.sync.results)) {
+        for (const r of saveRes.sync.results) {
+          if (r.ideId) lastSyncByIde[r.ideId] = r;
+        }
       }
-      renderAll();
+      if (Array.isArray(saveRes.plugins)) {
+        discoveredPlugins = saveRes.plugins;
+        if (saveRes.categories) {
+          discoveredCategories = saveRes.categories;
+        } else {
+          discoveredCategories = buildClientCategoriesRegistry(discoveredPlugins);
+        }
+        renderAll();
+      }
     }
 
-    try {
-      if (globalThis.magpie?.options?.set) {
-        await globalThis.magpie.options.set({
-          smartMiddlewareEnabled: hubConfig.smartMiddleware?.enabled !== false,
-          maxTools: Number(hubConfig.smartMiddleware?.maxTools) || 96,
-          toolsRoot: hubConfig.hubRoot || computeEffectiveHubPath().path,
-          hubConfig,
-        });
-      }
-    } catch (err) {
-      console.warn("Failed to persist options to Magpie:", err);
+    // 2. Persist to Magpie options (triggers background daemon plugins.json watcher inside CSP-sandboxed iframe)
+    await pushOptionsToMagpie(forceRescan);
+
+    // 3. If direct saveRes wasn't reachable (CSP sandbox), wait briefly for daemon to write plugins-cache.js and reload it
+    if (!saveRes) {
+      await new Promise((r) => setTimeout(r, 450));
+      await reloadPluginsFromHub(true);
+      renderAll();
     }
   }
 

@@ -6,12 +6,34 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { execSync, execFileSync, execFile } from "child_process";
+import {
+  AGENT_PROFILES,
+  inferAgentType,
+  listAgentProfilesForUi,
+  getHomeDir,
+  getAppDataDir,
+  expandHomePath,
+} from "./agents.mjs";
+import {
+  loadOwnershipState,
+  saveOwnershipState,
+  isTargetInsideHub,
+  collectEnabledComponents,
+  syncFlattenedSkills,
+  syncSkillSlashCommands,
+  syncJsonMcpServers,
+  syncTomlMcpServers,
+  syncMarkdownRulesBlock,
+  syncOwnedFiles,
+  ensureGitInfoExclude,
+} from "./adapters.mjs";
+
+export { AGENT_PROFILES, inferAgentType, listAgentProfilesForUi, expandHomePath };
 
 /**
  * Resolves the Hub root dynamically:
  * 1. Environment variables AGENT_TOOLS_ROOT or AI_WORKSPACE_DIR
- * 2. If running on D:\Software\AI Agent Space, use that
- * 3. Fallback to ~/AI-Agent-Space
+ * 2. Fallback to ~/AI-Agent-Space (or D:\Software\AI Agent Space if present on host)
  */
 export function resolveHubRoot() {
   if (process.env.AGENT_TOOLS_ROOT && fs.existsSync(process.env.AGENT_TOOLS_ROOT)) {
@@ -20,10 +42,15 @@ export function resolveHubRoot() {
   if (process.env.AI_WORKSPACE_DIR && fs.existsSync(process.env.AI_WORKSPACE_DIR)) {
     return path.resolve(process.env.AI_WORKSPACE_DIR);
   }
-  if (fs.existsSync("D:\\Software\\AI Agent Space")) {
+  const home = getHomeDir();
+  const homeHub = path.join(home, "AI-Agent-Space");
+  if (fs.existsSync(homeHub)) {
+    return homeHub;
+  }
+  if (!process.env.ASM_HOME_OVERRIDE && fs.existsSync("D:\\Software\\AI Agent Space")) {
     return "D:\\Software\\AI Agent Space";
   }
-  return path.join(os.homedir(), "AI-Agent-Space");
+  return homeHub;
 }
 
 export const DEFAULT_HUB_ROOT = resolveHubRoot();
@@ -33,158 +60,43 @@ export const DEFAULT_CONFIG_FILE = path.join(DEFAULT_HUB_ROOT, "hub-config.json"
  * Ensures a directory exists synchronously
  */
 export function ensureDir(dirPath) {
-  if (!fs.existsSync(dirPath)) {
+  if (dirPath && !fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 }
 
 /**
- * Dynamically detects the accurate configuration / plugin link directory
+ * Dynamically detects the accurate configuration / plugin / skill link directory
  * for any given Agent IDE or binary across Windows, macOS, and Linux.
- * 
- * Works completely dynamically without hardcoding user profile names.
- * Probes the actual filesystem and CLI configuration tools.
+ * Delegates to the canonical AGENT_PROFILES registry.
  */
 export function detectAgentConfigPath(name = "", exePath = "") {
-  const home = os.homedir();
-  const appData = process.env.APPDATA || path.join(home, "AppData", "Roaming");
-  const localAppData = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
-  const isWin = process.platform === "win32";
-  const isMac = process.platform === "darwin";
+  const home = getHomeDir();
+  const appData = getAppDataDir(home);
+  const agentType = inferAgentType(name, exePath);
 
-  const token = `${name || ""} ${exePath || ""}`.toLowerCase();
-
-  // 1. OpenCode Detection
-  if (token.includes("opencode")) {
-    // If user provided a binary path or cli exists, try querying opencode debug paths directly
-    if (exePath && fs.existsSync(exePath)) {
-      try {
-        let cliExe = exePath;
-        if (exePath.endsWith("OpenCode.exe") || exePath.endsWith("OpenCode")) {
-          const siblingCli = path.join(path.dirname(exePath), "resources", "opencode-cli.exe");
-          if (fs.existsSync(siblingCli)) cliExe = siblingCli;
-        }
-        const out = execSync(`"${cliExe}" debug paths 2>nul`, { encoding: "utf8" });
-        for (const line of out.split("\n")) {
-          if (line.trim().startsWith("config")) {
-            const parts = line.trim().split(/\s+/);
-            if (parts[1]) {
-              return path.join(parts.slice(1).join(" "), "plugins");
-            }
+  if (agentType === "opencode" && exePath && fs.existsSync(exePath)) {
+    try {
+      let cliExe = exePath;
+      if (exePath.endsWith("OpenCode.exe") || exePath.endsWith("OpenCode")) {
+        const siblingCli = path.join(path.dirname(exePath), "resources", "opencode-cli.exe");
+        if (fs.existsSync(siblingCli)) cliExe = siblingCli;
+      }
+      const out = execSync(`"${cliExe}" debug paths 2>nul`, { encoding: "utf8" });
+      for (const line of out.split("\n")) {
+        if (line.trim().startsWith("config")) {
+          const parts = line.trim().split(/\s+/);
+          if (parts[1]) {
+            return path.join(parts.slice(1).join(" "), "skills");
           }
         }
-      } catch {}
-    }
-
-    // Standard OpenCode XDG candidate paths
-    const opencodeCandidates = [
-      path.join(home, ".config", "opencode", "plugins"),
-      path.join(home, ".config", "opencode"),
-      path.join(appData, "opencode", "plugins"),
-      path.join(home, ".opencode", "plugins"),
-    ];
-    for (const cand of opencodeCandidates) {
-      if (fs.existsSync(cand)) return cand.endsWith("plugins") ? cand : path.join(cand, "plugins");
-    }
-    return path.join(home, ".config", "opencode", "plugins");
+      }
+    } catch {}
   }
 
-  // 2. Google Antigravity / Gemini CLI
-  if (token.includes("antigravity") || token.includes("gemini")) {
-    const antigravityCandidates = [
-      path.join(home, ".gemini", "config", "plugins"),
-      path.join(home, ".gemini", "config", "skills"),
-      path.join(home, ".antigravity", "config", "plugins"),
-    ];
-    for (const cand of antigravityCandidates) {
-      if (fs.existsSync(cand)) return cand;
-    }
-    return path.join(home, ".gemini", "config", "plugins");
-  }
-
-  // 3. Cursor AI
-  if (token.includes("cursor")) {
-    const cursorCandidates = [
-      path.join(home, ".cursor", "skills"),
-      path.join(home, ".cursor", "rules"),
-      isWin ? path.join(appData, "Cursor", "skills") : null,
-      isMac ? path.join(home, "Library", "Application Support", "Cursor", "skills") : null,
-    ].filter(Boolean);
-    for (const cand of cursorCandidates) {
-      if (fs.existsSync(cand)) return cand;
-    }
-    return path.join(home, ".cursor", "skills");
-  }
-
-  // 4. Windsurf
-  if (token.includes("windsurf")) {
-    const windsurfCandidates = [
-      path.join(home, ".windsurf", "skills"),
-      path.join(home, ".codeium", "windsurf", "skills"),
-      isWin ? path.join(appData, "Windsurf", "skills") : null,
-    ].filter(Boolean);
-    for (const cand of windsurfCandidates) {
-      if (fs.existsSync(cand)) return cand;
-    }
-    return path.join(home, ".windsurf", "skills");
-  }
-
-  // 5. Claude Code / Anthropic
-  if (token.includes("claude")) {
-    const claudeCandidates = [
-      path.join(home, ".claude", "skills"),
-      path.join(home, ".claude", "plugins"),
-      isMac ? path.join(home, "Library", "Application Support", "Claude", "skills") : null,
-    ].filter(Boolean);
-    for (const cand of claudeCandidates) {
-      if (fs.existsSync(cand)) return cand;
-    }
-    return path.join(home, ".claude", "skills");
-  }
-
-  // 6. Roo Code / Cline
-  if (token.includes("cline") || token.includes("roo")) {
-    const rooCandidates = [
-      isWin ? path.join(appData, "Code", "User", "globalStorage", "rooveterinaryinc.roo-cline", "skills") : null,
-      isMac ? path.join(home, "Library", "Application Support", "Code", "User", "globalStorage", "rooveterinaryinc.roo-cline", "skills") : null,
-      path.join(home, ".cline", "skills"),
-    ].filter(Boolean);
-    for (const cand of rooCandidates) {
-      if (fs.existsSync(cand)) return cand;
-    }
-    if (rooCandidates[0]) return rooCandidates[0];
-  }
-
-  // 7. VS Code / Copilot
-  if (token.includes("vscode") || token.includes("copilot") || /\bcode\b/.test(token) || token.endsWith("code.exe")) {
-    const vscodeCandidates = [
-      path.join(home, ".vscode", "skills"),
-      path.join(home, ".vscode", "agent-plugins"),
-      path.join(home, ".vscode", "extensions", "skills"),
-    ];
-    for (const cand of vscodeCandidates) {
-      if (fs.existsSync(cand)) return cand;
-    }
-    return path.join(home, ".vscode", "skills");
-  }
-
-  // 8. General Dynamic Probe based on executable path or name
-  if (exePath && fs.existsSync(exePath)) {
-    const parentDir = path.dirname(exePath);
-    // Check if there is an adjacent or sub 'plugins' or 'skills' directory
-    if (fs.existsSync(path.join(parentDir, "plugins"))) return path.join(parentDir, "plugins");
-    if (fs.existsSync(path.join(parentDir, "skills"))) return path.join(parentDir, "skills");
-  }
-
-  // Fallback to dotfolder in user home
-  const cleanName = name ? name.toLowerCase().replace(/[^a-z0-9_-]/g, "") : "agent";
-  const userDotDir = path.join(home, `.${cleanName}`);
-  if (fs.existsSync(userDotDir)) {
-    if (fs.existsSync(path.join(userDotDir, "plugins"))) return path.join(userDotDir, "plugins");
-    return path.join(userDotDir, "skills");
-  }
-
-  return path.join(home, `.${cleanName}`, "plugins");
+  const profile = AGENT_PROFILES[agentType] || AGENT_PROFILES.custom;
+  const resolved = profile.resolvePaths(home, appData, name);
+  return resolved.primary;
 }
 
 /**
@@ -197,11 +109,16 @@ export function inferNameFromExe(filePath) {
   const lower = base.toLowerCase();
 
   if (lower === "opencode" || lower.startsWith("opencode")) return "OpenCode";
+  if (lower === "codex" || lower.startsWith("codex")) return "Codex CLI";
   if (lower === "code" || lower === "vscode" || lower === "visualstudiocode") return "VS Code";
   if (lower === "cursor") return "Cursor";
   if (lower === "windsurf") return "Windsurf";
   if (lower === "agy" || lower.includes("antigravity")) return "Antigravity";
-  if (lower === "claude") return "Claude";
+  if (lower === "gemini" || lower === "gemini-cli") return "Gemini CLI";
+  if (lower === "claude") return "Claude Code";
+  if (lower === "cline") return "Cline";
+  if (lower === "roo" || lower === "roo-code") return "Roo Code";
+  if (lower === "kiro") return "Kiro";
   if (lower === "vscodium" || lower === "codium") return "VSCodium";
   if (lower === "zed") return "Zed";
 
@@ -228,14 +145,13 @@ export function resolveShortcutTarget(lnkPath) {
  */
 export function findFileOnSystem(fileName) {
   if (!fileName) return null;
-  const userProfile = process.env.USERPROFILE || os.homedir();
+  const userProfile = getHomeDir();
   const localAppData = process.env.LOCALAPPDATA || path.join(userProfile, "AppData", "Local");
-  const appData = process.env.APPDATA || path.join(userProfile, "AppData", "Roaming");
+  const appData = getAppDataDir(userProfile);
 
   const cleanName = path.basename(fileName).trim().replace(/^["']|["']$/g, "");
   const baseNoExt = cleanName.replace(/\.(exe|lnk|cmd|bat)$/i, "").toLowerCase();
 
-  // 1. Direct candidate matching for major known agents
   if (baseNoExt.includes("opencode")) {
     const candidates = [
       path.join(localAppData, "Programs", "ai.opencode.desktop", "OpenCode.exe"),
@@ -279,7 +195,6 @@ export function findFileOnSystem(fileName) {
     if (fs.existsSync(c)) return c;
   }
 
-  // 2. Search common dirs, ensuring only files (not directories) are returned
   const searchNames = [cleanName];
   if (!cleanName.includes(".")) {
     searchNames.push(`${cleanName}.exe`, `${cleanName}.lnk`);
@@ -306,7 +221,6 @@ export function findFileOnSystem(fileName) {
     }
   }
 
-  // 3. Deep search in LocalAppData/Programs, Start Menu, Desktop
   const deepDirs = [
     path.join(localAppData, "Programs"),
     path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs"),
@@ -340,7 +254,6 @@ export function findFileOnSystem(fileName) {
     } catch {}
   }
 
-  // 4. Try 'where.exe'
   try {
     const out = execFileSync("where.exe", [cleanName], { encoding: "utf8" }).trim();
     const firstLine = out.split("\n")[0]?.trim();
@@ -359,24 +272,21 @@ export function findFileOnSystem(fileName) {
 export function findFolderOnSystem(folderName) {
   if (!folderName) return null;
   const clean = path.basename(folderName).trim().replace(/^["']|["']$/g, "").toLowerCase();
-  const userProfile = process.env.USERPROFILE || os.homedir();
+  const userProfile = getHomeDir();
+  const hubParent = path.dirname(resolveHubRoot());
 
   const searchRoots = [
-    "D:\\Software",
-    "D:\\Software\\Garmin SDK",
-    "D:\\Projects",
-    "D:\\",
+    hubParent,
+    path.join(userProfile, "Projects"),
+    path.join(userProfile, "source", "repos"),
     path.join(userProfile, "Desktop"),
     path.join(userProfile, "OneDrive", "Desktop"),
     path.join(userProfile, "Downloads"),
-    path.join(userProfile, "source", "repos"),
-    path.join(userProfile, "Projects"),
-  ];
+  ].filter(Boolean);
 
   for (const root of searchRoots) {
     if (!fs.existsSync(root)) continue;
 
-    // Direct check
     const direct = path.join(root, folderName);
     try {
       if (fs.existsSync(direct) && fs.statSync(direct).isDirectory()) {
@@ -384,7 +294,6 @@ export function findFolderOnSystem(folderName) {
       }
     } catch {}
 
-    // Breadth-first search up to depth 3
     try {
       const queue = [{ dir: root, depth: 1 }];
       while (queue.length > 0) {
@@ -433,12 +342,14 @@ export function resolveDroppedTarget(rawNameOrPath, mode = "ide") {
     }
 
     const name = inferNameFromExe(realExe);
+    const agentType = inferAgentType(name, realExe);
     const configPath = detectAgentConfigPath(name, realExe);
 
     return {
       success: true,
       realPath: realExe,
       name,
+      agentType,
       configPath,
       isShortcut: found.toLowerCase().endsWith(".lnk"),
     };
@@ -469,7 +380,6 @@ export function resolveDroppedTarget(rawNameOrPath, mode = "ide") {
 
 /**
  * Opens native Windows file or folder dialog asynchronously and resolves the chosen target.
- * Never blocks the Node event loop and guarantees foreground display.
  */
 export function browseFileSystem(type = "file") {
   if (process.platform !== "win32") {
@@ -529,12 +439,14 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
           realExe = resolveShortcutTarget(cleaned);
         }
         const name = inferNameFromExe(realExe);
+        const agentType = inferAgentType(name, realExe);
         const configPath = detectAgentConfigPath(name, realExe);
 
         return resolve({
           cancelled: false,
           realPath: realExe,
           name,
+          agentType,
           configPath,
         });
       }
@@ -543,21 +455,65 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
 }
 
 /**
+ * Normalizes and migrates an IDE configuration entry so `agentType` is always populated
+ * and leading `~` / `$HOME` / `%USERPROFILE%` paths are expanded to real OS paths.
+ */
+export function normalizeIdeEntry(ide) {
+  if (!ide || typeof ide !== "object") return ide;
+  const agentType = inferAgentType(ide);
+  const rawConfigPath = ide.configPath || detectAgentConfigPath(agentType, ide.exePath || "");
+  let configPath = expandHomePath(rawConfigPath);
+
+  if (agentType === "antigravity" && configPath) {
+    const base = path.basename(configPath).toLowerCase();
+    const parentBase = path.basename(path.dirname(configPath)).toLowerCase();
+    if (base === "config" && parentBase === ".gemini") {
+      configPath = path.join(configPath, "plugins");
+    } else if (base === ".gemini") {
+      configPath = path.join(configPath, "config", "plugins");
+    }
+  } else if (agentType === "opencode" && configPath) {
+    const base = path.basename(configPath).toLowerCase();
+    if (base === "opencode") {
+      configPath = path.join(configPath, "skills");
+    }
+  }
+
+  const exePath = ide.exePath ? expandHomePath(ide.exePath) : ide.exePath || "";
+  return {
+    ...ide,
+    agentType,
+    exePath,
+    configPath,
+    enabled: ide.enabled !== false,
+    plugins: ide.plugins && typeof ide.plugins === "object" ? ide.plugins : {},
+  };
+}
+
+/**
  * Loads hub configuration or returns default structure
  */
-export function loadHubConfig(configFile = DEFAULT_CONFIG_FILE) {
+export function loadHubConfig(configFile = null) {
+  const effectiveFile = configFile || path.join(resolveHubRoot(), "hub-config.json");
   try {
-    if (fs.existsSync(configFile)) {
-      const data = fs.readFileSync(configFile, "utf8");
-      return JSON.parse(data);
+    if (fs.existsSync(effectiveFile)) {
+      const data = fs.readFileSync(effectiveFile, "utf8");
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed.ides)) {
+        parsed.ides = parsed.ides.map(normalizeIdeEntry);
+      }
+      if (!Array.isArray(parsed.projects)) {
+        parsed.projects = [];
+      }
+      return parsed;
     }
   } catch (err) {
     console.error("Failed to read hub-config.json:", err);
   }
 
-  const defaultHome = os.homedir();
+  const defaultHome = getHomeDir();
   return {
-    hubRoot: DEFAULT_HUB_ROOT,
+    hubRoot: resolveHubRoot(),
     smartMiddleware: {
       enabled: true,
       maxTools: 96,
@@ -568,6 +524,7 @@ export function loadHubConfig(configFile = DEFAULT_CONFIG_FILE) {
       {
         id: "antigravity",
         name: "Antigravity (Google Gemini)",
+        agentType: "antigravity",
         exePath: path.join(defaultHome, ".gemini", "bin", process.platform === "win32" ? "agy.cmd" : "agy"),
         configPath: detectAgentConfigPath("antigravity"),
         enabled: true,
@@ -581,9 +538,13 @@ export function loadHubConfig(configFile = DEFAULT_CONFIG_FILE) {
 /**
  * Saves hub configuration to file (UTF-8 without BOM)
  */
-export function saveHubConfig(config, configFile = DEFAULT_CONFIG_FILE) {
-  ensureDir(path.dirname(configFile));
-  fs.writeFileSync(configFile, JSON.stringify(config, null, 2), "utf8");
+export function saveHubConfig(config, configFile = null) {
+  const effectiveFile = configFile || path.join(resolveHubRoot(), "hub-config.json");
+  if (config && Array.isArray(config.ides)) {
+    config.ides = config.ides.map(normalizeIdeEntry);
+  }
+  ensureDir(path.dirname(effectiveFile));
+  fs.writeFileSync(effectiveFile, JSON.stringify(config, null, 2), "utf8");
 }
 
 /**
@@ -651,7 +612,7 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
       hasHooks: p.hasHooks,
     });
 
-    for (const s of (p.skills || [])) {
+    for (const s of p.skills || []) {
       if (!seenSkills.has(s)) {
         seenSkills.add(s);
         categories.skills.push({
@@ -663,7 +624,7 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
       }
     }
 
-    for (const m of (p.mcps || [])) {
+    for (const m of p.mcps || []) {
       if (!seenMcps.has(m)) {
         seenMcps.add(m);
         categories.mcps.push({
@@ -688,7 +649,7 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
       }
     }
 
-    for (const a of (p.agents || [])) {
+    for (const a of p.agents || []) {
       if (!seenAgents.has(a)) {
         seenAgents.add(a);
         categories.agents.push({
@@ -700,7 +661,7 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
       }
     }
 
-    for (const r of (p.rules || [])) {
+    for (const r of p.rules || []) {
       if (!seenRules.has(r)) {
         seenRules.add(r);
         categories.rules.push({
@@ -713,7 +674,6 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
     }
   }
 
-  // Also check if hubRoot has standalone agents or rules
   if (hubRoot && fs.existsSync(hubRoot)) {
     const rootAgentsDir = path.join(hubRoot, "agents");
     if (fs.existsSync(rootAgentsDir)) {
@@ -756,9 +716,9 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
 /**
  * Scans plugins directory for all standard plugin packages and root standalone components.
  */
-export function scanPlugins(hubRoot = DEFAULT_HUB_ROOT) {
+export function scanPlugins(hubRoot = resolveHubRoot()) {
   if (!hubRoot || typeof hubRoot !== "string") return [];
-  const cleanHub = hubRoot.trim();
+  const cleanHub = expandHomePath(hubRoot.trim());
   if (!cleanHub || !fs.existsSync(cleanHub)) return [];
 
   let pluginsDir = path.join(cleanHub, "plugins");
@@ -781,7 +741,7 @@ export function scanPlugins(hubRoot = DEFAULT_HUB_ROOT) {
           }
         });
         if (hasManifest) {
-          pluginsDir = hubRoot;
+          pluginsDir = cleanHub;
         } else {
           return [];
         }
@@ -814,11 +774,10 @@ export function scanPlugins(hubRoot = DEFAULT_HUB_ROOT) {
     if (fs.existsSync(manifestPath)) {
       try {
         manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-      } catch (e) {
+      } catch {
         manifest.description = "Invalid plugin.json";
       }
     } else {
-      // Check if it's a plugin folder with standard components
       const hasSkills = fs.existsSync(path.join(pluginDir, "skills"));
       const hasRules = fs.existsSync(path.join(pluginDir, "rules"));
       const hasMcp = fs.existsSync(path.join(pluginDir, "mcp_config.json"));
@@ -900,45 +859,51 @@ export function scanPlugins(hubRoot = DEFAULT_HUB_ROOT) {
     });
   }
 
-  // Also discover standalone root skills/ if present (e.g. D:\Software\AI Agent Space\skills)
-  const rootSkillsDir = path.join(hubRoot, "skills");
-  if (fs.existsSync(rootSkillsDir)) {
-    try {
-      const rootSkills = [];
-      for (const se of fs.readdirSync(rootSkillsDir, { withFileTypes: true })) {
-        let isDir = false;
-        try {
-          isDir = se.isDirectory() || (se.isSymbolicLink() && fs.statSync(path.join(rootSkillsDir, se.name)).isDirectory());
-        } catch {}
-        if (isDir) rootSkills.push(se.name);
-      }
-      if (rootSkills.length > 0) {
-        const rootSkillFiles = listFilesRecursiveRel(rootSkillsDir, rootSkillsDir);
-        plugins.push({
-          id: "workspace-skills",
-          name: "Workspace Skills (Root Hub)",
-          version: "1.0.0",
-          description: `Standalone skills collection (${rootSkills.length} skills) located in root skills/ folder`,
-          path: rootSkillsDir,
-          isRootSkills: true,
-          hasMcp: false,
-          hasHooks: false,
-          mcps: [],
-          hooks: [],
-          skills: rootSkills,
-          rules: [],
-          agents: [],
-          files: rootSkillFiles,
-        });
-      }
-    } catch {}
+  // Also discover standalone root skills/ if present (e.g. <hubRoot>/skills),
+  // excluding duplicates that already belong to a discovered plugin in <hubRoot>/plugins/*.
+  if (pluginsDir !== cleanHub) {
+    const rootSkillsDir = path.join(cleanHub, "skills");
+    if (fs.existsSync(rootSkillsDir)) {
+      try {
+        const pluginSkillSet = new Set(plugins.flatMap((p) => p.skills || []));
+        const rootSkills = [];
+        for (const se of fs.readdirSync(rootSkillsDir, { withFileTypes: true })) {
+          if (pluginSkillSet.has(se.name)) continue;
+          let isDir = false;
+          try {
+            isDir = se.isDirectory() || (se.isSymbolicLink() && fs.statSync(path.join(rootSkillsDir, se.name)).isDirectory());
+          } catch {}
+          if (isDir) rootSkills.push(se.name);
+        }
+        if (rootSkills.length > 0) {
+          const rootSkillFiles = listFilesRecursiveRel(rootSkillsDir, rootSkillsDir);
+          plugins.push({
+            id: "workspace-skills",
+            name: "Workspace Skills (Root Hub)",
+            version: "1.0.0",
+            description: `Standalone skills collection (${rootSkills.length} skills) located in root skills/ folder`,
+            path: rootSkillsDir,
+            isRootSkills: true,
+            hasMcp: false,
+            hasHooks: false,
+            mcps: [],
+            hooks: [],
+            skills: rootSkills,
+            rules: [],
+            agents: [],
+            files: rootSkillFiles,
+          });
+        }
+      } catch {}
+    }
   }
 
   return plugins;
 }
 
 /**
- * Helper to safely create a directory junction (Windows) or symlink (macOS/Linux)
+ * Safely creates a directory junction (Windows) or symlink (macOS/Linux).
+ * Refuses to delete any real, user-owned directory or file at `linkPath`.
  */
 export function createJunction(sourcePath, linkPath) {
   try {
@@ -960,10 +925,12 @@ export function createJunction(sourcePath, linkPath) {
           }
         } catch {}
         removeJunction(linkPath);
-      } else if (stats.isDirectory()) {
-        fs.rmSync(linkPath, { recursive: true, force: true });
-      } else if (stats.isFile()) {
-        fs.unlinkSync(linkPath);
+      } else {
+        // Real directory or file exists at linkPath — NEVER delete user-owned data!
+        return {
+          success: false,
+          error: `Conflict: user-owned directory or file already exists at ${linkPath}`,
+        };
       }
     } catch {
       // linkPath doesn't exist yet, proceed
@@ -982,8 +949,8 @@ export function createJunction(sourcePath, linkPath) {
 }
 
 /**
- * Safely removes a directory junction or symlink without touching target files.
- * Handles stale / broken junctions where fs.existsSync returns false.
+ * Safely removes a directory junction or symlink without touching target files
+ * and without deleting real directories.
  */
 export function removeJunction(linkPath) {
   try {
@@ -1009,12 +976,11 @@ export function removeJunction(linkPath) {
         fs.unlinkSync(linkPath);
         return { success: true };
       }
-    } else if (stats.isDirectory()) {
-      fs.rmSync(linkPath, { recursive: true, force: true });
-      return { success: true };
-    } else if (stats.isFile()) {
-      fs.unlinkSync(linkPath);
-      return { success: true };
+    } else {
+      return {
+        success: false,
+        error: `Refusing to remove non-symlink path: ${linkPath}`,
+      };
     }
   } catch (err) {
     return { success: false, error: err.message };
@@ -1023,157 +989,441 @@ export function removeJunction(linkPath) {
 }
 
 /**
- * Syncs links for an IDE based on enabled plugins.
- * Actively removes any obsolete junctions pointing to previous/other hub paths or disabled plugins.
+ * Helper to filter previously owned files belonging to a specific target directory and optional file suffix.
+ */
+function filterOwnedFilesForSpec(allFiles = [], spec) {
+  if (!spec) return [];
+  const dir = path.resolve(typeof spec === "string" ? spec : spec.dir);
+  const suffix = typeof spec === "object" && spec.suffix ? spec.suffix.toLowerCase() : null;
+  return (allFiles || []).filter((f) => {
+    const res = path.resolve(f);
+    if (path.dirname(res) !== dir) return false;
+    if (!suffix) return true;
+    const lower = res.toLowerCase();
+    if (suffix === ".md") {
+      return (
+        lower.endsWith(".md") &&
+        !lower.endsWith(".prompt.md") &&
+        !lower.endsWith(".instructions.md") &&
+        !lower.endsWith(".agent.md")
+      );
+    }
+    return lower.endsWith(suffix);
+  });
+}
+
+/**
+ * Syncs components for an IDE based on its Agent Profile (`bundle` vs `convert` mode)
+ * and persists the ownership manifest so only tool-owned items are ever pruned.
  */
 export function syncIdePlugins(ide, allPlugins = []) {
-  if (!ide.configPath) {
+  if (!ide) return { success: false, message: "No IDE provided" };
+  const normalized = normalizeIdeEntry(ide);
+  const agentType = normalized.agentType;
+  const profile = AGENT_PROFILES[agentType] || AGENT_PROFILES.custom;
+  const home = getHomeDir();
+  const appData = getAppDataDir(home);
+  const paths = profile.resolvePaths(home, appData, normalized.name);
+  const primaryDir = expandHomePath(normalized.configPath || paths.primary);
+
+  if (!primaryDir) {
     return { success: false, message: "No config path specified" };
   }
 
-  ensureDir(ide.configPath);
+  const ownerKey = `ide-${normalized.id || agentType}`;
+  const prevState = loadOwnershipState(ownerKey);
 
-  const activePluginMap = new Map();
-  for (const plugin of allPlugins) {
-    const isEnabled = ide.plugins ? ide.plugins[plugin.id] !== false : true;
-    if (isEnabled && plugin.path && fs.existsSync(plugin.path)) {
-      activePluginMap.set(plugin.id, plugin.path);
+  // Mode 1: Bundle Agent (Antigravity)
+  if (profile.mode === "bundle") {
+    ensureDir(primaryDir);
+
+    const activePluginMap = new Map();
+    for (const plugin of allPlugins) {
+      const isEnabled = normalized.plugins ? normalized.plugins[plugin.id] !== false : true;
+      if (isEnabled && plugin.path && fs.existsSync(plugin.path) && !plugin.isRootSkills) {
+        activePluginMap.set(plugin.id, plugin.path);
+      }
     }
-  }
 
-  const results = [];
+    const prevLinksSet = new Set((prevState.links || []).map((p) => path.resolve(p)));
+    const bundleLinks = [];
+    const results = [];
 
-  // 1. Clean up existing junctions in ide.configPath that are NOT in activePluginMap or point to wrong target
-  try {
-    const existingEntries = fs.readdirSync(ide.configPath);
-    for (const entryName of existingEntries) {
-      const entryPath = path.join(ide.configPath, entryName);
-      try {
-        const stat = fs.lstatSync(entryPath);
-        if (stat.isSymbolicLink()) {
-          const activeTarget = activePluginMap.get(entryName);
-          let targetMatches = false;
-          if (activeTarget) {
+    // 1. Prune only owned (or hub-pointing) junctions in primaryDir
+    try {
+      const existingEntries = fs.readdirSync(primaryDir);
+      for (const entryName of existingEntries) {
+        const entryPath = path.join(primaryDir, entryName);
+        const resolvedEntry = path.resolve(entryPath);
+        try {
+          const stat = fs.lstatSync(entryPath);
+          if (stat.isSymbolicLink()) {
+            let currentTarget = "";
             try {
-              const currentTarget = fs.readlinkSync(entryPath);
-              if (path.resolve(currentTarget) === path.resolve(activeTarget)) {
-                targetMatches = true;
+              currentTarget = fs.readlinkSync(entryPath);
+            } catch {}
+
+            const isOwned = prevLinksSet.has(resolvedEntry) || isTargetInsideHub(currentTarget, allPlugins);
+            if (!isOwned) continue; // Preserve foreign user-created symlinks
+
+            const activeTarget = activePluginMap.get(entryName);
+            const targetMatches =
+              activeTarget && currentTarget && path.resolve(currentTarget) === path.resolve(activeTarget);
+
+            if (!targetMatches) {
+              const rem = removeJunction(entryPath);
+              results.push({ plugin: entryName, action: "unlinked", ...rem });
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // 2. Create or verify all active plugin bundle links
+    for (const [pluginId, sourcePath] of activePluginMap.entries()) {
+      const linkPath = path.join(primaryDir, pluginId);
+      const res = createJunction(sourcePath, linkPath);
+      if (res.success) {
+        bundleLinks.push(path.resolve(linkPath));
+      }
+      results.push({ plugin: pluginId, action: "linked", ...res });
+    }
+
+    // 3. Antigravity ~/.gemini/config harmonization:
+    //    - Link ALL enabled skills into ~/.gemini/config/skills/<skill-name> so `/` slash commands work for all plugins & root skills
+    //    - Sync enabled rules into ~/.gemini/config/rules/ and subagents into ~/.gemini/config/agents/ for `@` mentions
+    //    - Clean any stray hub junctions directly under ~/.gemini/config/
+    //    - Harmonize skills.json without wiping user's non-hub entries
+    const isGeminiIde = agentType === "antigravity" || primaryDir.toLowerCase().includes(".gemini");
+    let skillLinks = [];
+    let nextFiles = [];
+    const components = collectEnabledComponents(allPlugins, normalized.plugins);
+
+    if (isGeminiIde) {
+      const geminiConfigDir = path.dirname(primaryDir);
+      const geminiSkillsDir = path.join(geminiConfigDir, "skills");
+      const geminiRulesSpec = { dir: path.join(geminiConfigDir, "rules"), suffix: ".md" };
+      const geminiAgentsSpec = { dir: path.join(geminiConfigDir, "agents"), suffix: ".md" };
+      const geminiSkillsJson = path.join(geminiConfigDir, "skills.json");
+
+      // Clean any stray plugin junctions that were mistakenly created directly in geminiConfigDir
+      try {
+        if (fs.existsSync(geminiConfigDir)) {
+          for (const entryName of fs.readdirSync(geminiConfigDir)) {
+            if (entryName === "plugins" || entryName === "skills" || entryName === "rules" || entryName === "agents") {
+              continue;
+            }
+            const entryPath = path.join(geminiConfigDir, entryName);
+            try {
+              const st = fs.lstatSync(entryPath);
+              if (st.isSymbolicLink()) {
+                const tgt = fs.readlinkSync(entryPath);
+                if (prevLinksSet.has(path.resolve(entryPath)) || isTargetInsideHub(tgt, allPlugins)) {
+                  removeJunction(entryPath);
+                }
               }
             } catch {}
           }
-
-          if (!targetMatches) {
-            const rem = removeJunction(entryPath);
-            results.push({ plugin: entryName, action: "unlinked", ...rem });
-          }
         }
       } catch {}
+
+      // Clean any prevState.links from old/changed configPath directories (e.g. unexpanded `~` directories)
+      const prevSkillLinks = (prevState.links || []).filter(
+        (l) => path.dirname(path.resolve(l)) === path.resolve(geminiSkillsDir)
+      );
+      for (const oldLink of prevState.links || []) {
+        const oldParent = path.dirname(path.resolve(oldLink));
+        if (oldParent !== path.resolve(primaryDir) && oldParent !== path.resolve(geminiSkillsDir)) {
+          removeJunction(oldLink);
+        }
+      }
+
+      // Sync flattened skills into ~/.gemini/config/skills/<skill-name>
+      const skillSync = syncFlattenedSkills(
+        components.skills,
+        geminiSkillsDir,
+        prevSkillLinks,
+        createJunction,
+        removeJunction,
+        allPlugins
+      );
+      skillLinks = skillSync.nextLinks;
+
+      // Sync rules & subagents into ~/.gemini/config/rules and ~/.gemini/config/agents
+      const prevRuleFiles = filterOwnedFilesForSpec(prevState.files, geminiRulesSpec);
+      const prevAgentFiles = filterOwnedFilesForSpec(prevState.files, geminiAgentsSpec);
+      const rFiles = syncOwnedFiles(components.rules, geminiRulesSpec, prevRuleFiles);
+      const aFiles = syncOwnedFiles(components.agents, geminiAgentsSpec, prevAgentFiles);
+      nextFiles.push(...rFiles.nextFiles, ...aFiles.nextFiles);
+
+      if (fs.existsSync(geminiSkillsJson)) {
+        try {
+          const parsed = JSON.parse(fs.readFileSync(geminiSkillsJson, "utf8"));
+          if (parsed && Array.isArray(parsed.entries)) {
+            const filtered = parsed.entries.filter((entry) => {
+              const entryPath = typeof entry === "string" ? entry : entry?.path;
+              return !isTargetInsideHub(entryPath, allPlugins);
+            });
+            fs.writeFileSync(geminiSkillsJson, JSON.stringify({ ...parsed, entries: filtered }, null, 2), "utf8");
+          }
+        } catch {}
+      }
     }
-  } catch (err) {
-    console.warn(`Error scanning existing links in ${ide.configPath}:`, err);
+
+    const allOwnedLinks = [...bundleLinks, ...skillLinks];
+    saveOwnershipState(ownerKey, { links: allOwnedLinks, files: nextFiles, jsonKeys: {}, blocks: [] });
+    return {
+      success: true,
+      agentType,
+      mode: "bundle",
+      summary: {
+        plugins: bundleLinks.length,
+        skills: skillLinks.length,
+        rules: components.rules.length,
+        agents: components.agents.length,
+      },
+      results,
+    };
   }
 
-  // 2. Create or verify all active plugins
-  for (const [pluginId, sourcePath] of activePluginMap.entries()) {
-    const linkPath = path.join(ide.configPath, pluginId);
-    const res = createJunction(sourcePath, linkPath);
-    results.push({ plugin: pluginId, action: "linked", ...res });
+  // Mode 2: Native-Format Converted Agent (Claude Code, Codex, OpenCode, Copilot, Cursor, Windsurf, Gemini CLI, Cline, Roo, Kiro, Universal, Custom)
+  const components = collectEnabledComponents(allPlugins, normalized.plugins);
+  const skillsTargetDir = primaryDir;
+
+  // 1. Link flattened skills (<skillsTargetDir>/<skill-name>/SKILL.md)
+  const skillSync = syncFlattenedSkills(
+    components.skills,
+    skillsTargetDir,
+    prevState.links || [],
+    createJunction,
+    removeJunction,
+    allPlugins
+  );
+
+  // 2. Sync `/` quick-action slash command files (commands/, global_workflows/, prompts/, etc.)
+  let nextFiles = [];
+  let commandsSyncedCount = 0;
+  if (paths.commandsDir) {
+    const prevCmdFiles = filterOwnedFilesForSpec(prevState.files, paths.commandsDir);
+    const cmdRes = syncSkillSlashCommands(components.skills, paths.commandsDir, prevCmdFiles);
+    nextFiles.push(...cmdRes.nextFiles);
+    commandsSyncedCount = cmdRes.nextFiles.length;
   }
 
-  // 3. Antigravity & Gemini config harmonization
-  const isGeminiIde = ide.id === "antigravity" || (ide.configPath && ide.configPath.toLowerCase().includes(".gemini"));
-  if (isGeminiIde) {
-    const geminiConfigDir = path.dirname(ide.configPath);
-    const geminiSkillsLink = path.join(geminiConfigDir, "skills");
-    const geminiSkillsJson = path.join(geminiConfigDir, "skills.json");
+  // 3. Sync MCP Servers into native JSON or TOML config
+  const nextJsonKeys = {};
+  const nextBlocks = [];
+  let mcpSyncedCount = 0;
 
-    // Harmonize ~/.gemini/config/skills junction with active antigravity-core plugin
-    const coreTarget = activePluginMap.get("antigravity-core");
-    const coreSkillsDir = coreTarget ? path.join(coreTarget, "skills") : null;
-    if (coreSkillsDir && fs.existsSync(coreSkillsDir)) {
-      createJunction(coreSkillsDir, geminiSkillsLink);
+  if (paths.mcp) {
+    if (paths.mcp.format === "toml-block") {
+      const hadBlock = (prevState.blocks || []).includes(paths.mcp.file);
+      const tomlRes = syncTomlMcpServers(paths.mcp.file, components.mcpServers, hadBlock);
+      if (tomlRes.hasBlock) {
+        nextBlocks.push(paths.mcp.file);
+        mcpSyncedCount = Object.keys(components.mcpServers).length;
+      }
     } else {
-      removeJunction(geminiSkillsLink);
-    }
-
-    // Harmonize ~/.gemini/config/skills.json so stale/hardcoded paths don't bypass deactivation
-    if (fs.existsSync(geminiSkillsJson)) {
-      try {
-        fs.writeFileSync(geminiSkillsJson, JSON.stringify({ entries: [] }, null, 2), "utf8");
-      } catch {}
+      const prevKeys = (prevState.jsonKeys && prevState.jsonKeys[paths.mcp.file]) || [];
+      const jsonRes = syncJsonMcpServers(paths.mcp, components.mcpServers, prevKeys);
+      if (jsonRes.ownedKeys.length > 0) {
+        nextJsonKeys[paths.mcp.file] = jsonRes.ownedKeys;
+      }
+      mcpSyncedCount = jsonRes.ownedKeys.length;
     }
   }
 
-  return { success: true, results };
+  // 4. Sync Rules (either Markdown block in CLAUDE.md/AGENTS.md/GEMINI.md or file copies in rulesDir)
+  let rulesSyncedCount = 0;
+  if (paths.rules) {
+    const hadBlock = (prevState.blocks || []).includes(paths.rules.file);
+    const mdRes = syncMarkdownRulesBlock(paths.rules, components.rules, hadBlock);
+    if (mdRes.hasBlock) {
+      nextBlocks.push(paths.rules.file);
+      rulesSyncedCount = components.rules.length;
+    }
+  }
+
+  if (paths.rulesDir) {
+    const prevRuleFiles = filterOwnedFilesForSpec(prevState.files, paths.rulesDir);
+    const rFiles = syncOwnedFiles(components.rules, paths.rulesDir, prevRuleFiles);
+    nextFiles.push(...rFiles.nextFiles);
+    rulesSyncedCount = rFiles.nextFiles.length;
+  }
+
+  // 5. Sync Subagents (`@` mentions in ~/.claude/agents, ~/.config/opencode/agents, Cursor agents, or VS Code prompts)
+  let agentsSyncedCount = 0;
+  const agentTargetSpec = paths.agents || paths.agentsDir;
+  if (agentTargetSpec) {
+    const prevAgentFiles = filterOwnedFilesForSpec(prevState.files, agentTargetSpec);
+    const aFiles = syncOwnedFiles(components.agents, agentTargetSpec, prevAgentFiles);
+    nextFiles.push(...aFiles.nextFiles);
+    agentsSyncedCount = aFiles.nextFiles.length;
+  }
+
+  saveOwnershipState(ownerKey, {
+    links: skillSync.nextLinks,
+    files: nextFiles,
+    jsonKeys: nextJsonKeys,
+    blocks: nextBlocks,
+  });
+
+  return {
+    success: true,
+    agentType,
+    mode: "convert",
+    summary: {
+      skills: skillSync.nextLinks.length,
+      commands: commandsSyncedCount,
+      mcp: mcpSyncedCount,
+      rules: rulesSyncedCount,
+      agents: agentsSyncedCount,
+      conflicts: components.conflicts.length,
+    },
+    conflicts: components.conflicts,
+    results: skillSync.results,
+  };
 }
 
 /**
- * Sever all junctions and links for a given IDE when removed
+ * Syncs project-level plugin overrides into a repository workspace and adds entries to `.git/info/exclude`.
+ */
+export function syncProjectOverrides(project, ide, allPlugins = []) {
+  const repoPath = project?.repoPath ? expandHomePath(project.repoPath) : "";
+  if (!project || !repoPath || !fs.existsSync(repoPath)) {
+    return { success: false, message: "Project repository path does not exist" };
+  }
+
+  const agentType = inferAgentType(ide || project.ideId || "antigravity");
+  const profile = AGENT_PROFILES[agentType] || AGENT_PROFILES.custom;
+  const projPaths = profile.resolveProjectPaths
+    ? profile.resolveProjectPaths(repoPath)
+    : { skills: path.join(repoPath, ".agents", "skills"), excludeRel: [".agents/skills"] };
+
+  // Merge IDE global plugin map with project-specific override map
+  const mergedPluginMap = {
+    ...(ide?.plugins || {}),
+    ...(project.plugins || {}),
+  };
+
+  const ownerKey = `project-${project.id || path.basename(repoPath)}`;
+  const prevState = loadOwnershipState(ownerKey);
+  const components = collectEnabledComponents(allPlugins, mergedPluginMap);
+
+  const skillSync = syncFlattenedSkills(
+    components.skills,
+    projPaths.skills,
+    prevState.links || [],
+    createJunction,
+    removeJunction,
+    allPlugins
+  );
+
+  const nextJsonKeys = {};
+  const nextBlocks = [];
+  if (projPaths.mcp) {
+    if (projPaths.mcp.format === "toml-block") {
+      const hadBlock = (prevState.blocks || []).includes(projPaths.mcp.file);
+      const tomlRes = syncTomlMcpServers(projPaths.mcp.file, components.mcpServers, hadBlock);
+      if (tomlRes.hasBlock) nextBlocks.push(projPaths.mcp.file);
+    } else {
+      const prevKeys = (prevState.jsonKeys && prevState.jsonKeys[projPaths.mcp.file]) || [];
+      const jsonRes = syncJsonMcpServers(projPaths.mcp, components.mcpServers, prevKeys);
+      if (jsonRes.ownedKeys.length > 0) nextJsonKeys[projPaths.mcp.file] = jsonRes.ownedKeys;
+    }
+  }
+
+  if (projPaths.rules) {
+    const hadBlock = (prevState.blocks || []).includes(projPaths.rules.file);
+    const mdRes = syncMarkdownRulesBlock(projPaths.rules, components.rules, hadBlock);
+    if (mdRes.hasBlock) nextBlocks.push(projPaths.rules.file);
+  }
+
+  let nextFiles = [];
+  if (projPaths.commandsDir) {
+    const prevCmdFiles = filterOwnedFilesForSpec(prevState.files, projPaths.commandsDir);
+    const cmdRes = syncSkillSlashCommands(components.skills, projPaths.commandsDir, prevCmdFiles);
+    nextFiles.push(...cmdRes.nextFiles);
+  }
+  if (projPaths.agents) {
+    const prevAgentFiles = filterOwnedFilesForSpec(prevState.files, projPaths.agents);
+    const aFiles = syncOwnedFiles(components.agents, projPaths.agents, prevAgentFiles);
+    nextFiles.push(...aFiles.nextFiles);
+  }
+
+  if (projPaths.excludeRel) {
+    ensureGitInfoExclude(repoPath, projPaths.excludeRel);
+  }
+
+  saveOwnershipState(ownerKey, {
+    links: skillSync.nextLinks,
+    files: nextFiles,
+    jsonKeys: nextJsonKeys,
+    blocks: nextBlocks,
+  });
+
+  return {
+    success: true,
+    project: project.name,
+    agentType,
+    skillsLinked: skillSync.nextLinks.length,
+    results: skillSync.results,
+  };
+}
+
+/**
+ * Severs all owned junctions, MCP keys, rule blocks, and copied files for a given IDE when removed.
  */
 export function unlinkAllForIde(ide) {
-  if (!ide.configPath || !fs.existsSync(ide.configPath)) {
-    return { success: true };
-  }
-
-  try {
-    const existingEntries = fs.readdirSync(ide.configPath);
-    for (const entryName of existingEntries) {
-      const entryPath = path.join(ide.configPath, entryName);
-      try {
-        const stat = fs.lstatSync(entryPath);
-        if (stat.isSymbolicLink()) {
-          removeJunction(entryPath);
-        }
-      } catch {}
-    }
-  } catch {}
-
-  const isGeminiIde = ide.id === "antigravity" || (ide.configPath && ide.configPath.toLowerCase().includes(".gemini"));
-  if (isGeminiIde) {
-    const geminiConfigDir = path.dirname(ide.configPath);
-    removeJunction(path.join(geminiConfigDir, "skills"));
-    const geminiSkillsJson = path.join(geminiConfigDir, "skills.json");
-    if (fs.existsSync(geminiSkillsJson)) {
-      try {
-        fs.writeFileSync(geminiSkillsJson, JSON.stringify({ entries: [] }, null, 2), "utf8");
-      } catch {}
-    }
-  }
-
+  if (!ide) return { success: true };
+  // Running syncIdePlugins with an empty plugin list cleanly prunes all owned links, MCP keys, blocks, and files!
+  syncIdePlugins(ide, []);
   return { success: true };
 }
 
+/**
+ * Resolves the effective Hub root path from a config object or path string.
+ * When blank, always returns the default Hub root (never loops into 1st IDE's configPath).
+ */
 export function getEffectiveHubRoot(configOrPath) {
   if (typeof configOrPath === "string") {
-    if (configOrPath && configOrPath.trim() !== "") return configOrPath.trim();
-    return DEFAULT_HUB_ROOT;
+    if (configOrPath && configOrPath.trim() !== "") return expandHomePath(configOrPath.trim());
+    return resolveHubRoot();
   }
   if (configOrPath && typeof configOrPath === "object") {
     if (configOrPath.hubRoot && configOrPath.hubRoot.trim() !== "") {
-      return configOrPath.hubRoot.trim();
-    }
-    if (configOrPath.ides && configOrPath.ides.length > 0 && configOrPath.ides[0].configPath) {
-      return configOrPath.ides[0].configPath;
+      return expandHomePath(configOrPath.hubRoot.trim());
     }
   }
-  return DEFAULT_HUB_ROOT;
+  return resolveHubRoot();
 }
 
 /**
- * Synchronizes all configured IDEs against the given hubConfig or plugin list.
+ * Synchronizes all configured IDEs and Project Overrides against the given hubConfig or plugin list.
  */
 export function syncAllIdes(hubConfig, customPlugins = null) {
-  if (!hubConfig?.ides || !Array.isArray(hubConfig.ides)) return { success: true, results: [] };
+  if (!hubConfig) return { success: true, results: [], projectResults: [] };
   const effectiveHub = getEffectiveHubRoot(hubConfig);
   const plugins = customPlugins !== null ? customPlugins : scanPlugins(effectiveHub);
   const syncResults = [];
+  const projectResults = [];
 
-  for (const ide of hubConfig.ides) {
+  const ides = Array.isArray(hubConfig.ides) ? hubConfig.ides : [];
+  for (const ide of ides) {
     if (ide.enabled !== false && ide.configPath) {
       const res = syncIdePlugins(ide, plugins);
-      syncResults.push({ ide: ide.name, ...res });
+      syncResults.push({ ide: ide.name, ideId: ide.id, ...res });
     }
   }
 
-  return { success: true, results: syncResults };
+  const projects = Array.isArray(hubConfig.projects) ? hubConfig.projects : [];
+  for (const proj of projects) {
+    if (proj.repoPath) {
+      const parentIde = ides.find((i) => i.id === proj.ideId) || ides[0] || null;
+      const pRes = syncProjectOverrides(proj, parentIde, plugins);
+      projectResults.push(pRes);
+    }
+  }
+
+  return { success: true, results: syncResults, projectResults };
 }
