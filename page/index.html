@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Space Manager</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="_magpie/bridge.js"></script>
+  <script src="plugins-cache.js?v=1.1.2" defer></script>
+  <script src="app.js?v=1.1.2" defer></script>
+</head>
+<body>
+  <!-- Top Bar matching Magpie's standard layout -->
+  <header class="top-bar">
+    <div>
+      <h1>Agent Space Manager</h1>
+      <p class="subtitle" id="main-subtitle">Universal Multi-IDE & Project Skill Orchestrator</p>
+    </div>
+    <div class="top-actions">
+      <div class="feature-toggle-widget">
+        <label class="switch">
+          <input type="checkbox" id="smartMiddlewareToggle" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label" id="middlewareStatusLabel">Smart Middleware: Active</span>
+      </div>
+      <span class="sync-indicator" id="syncIndicator">Synced</span>
+    </div>
+  </header>
+
+  <!-- Central Hub / Components Storage Path Card -->
+  <section class="hub-path-card">
+    <div class="hub-path-header">
+      <span class="hub-path-title">Components Storage Path (Where all skills, MCPs, and plugins are saved)</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="btn-sm" id="btnToggleComponentsDetails" style="font-weight:600; font-size:11.5px; cursor:pointer;" title="Expand/Collapse categorized list of all Plugins, MCPs, Hooks, Skills, Agents, and Rules">
+          <span id="expandIcon">▼</span> <span id="expandLabel">Expand Components List</span>
+        </button>
+        <span class="hub-path-badge" id="hubPathBadge">1st IDE Linked</span>
+      </div>
+    </div>
+    <div class="hub-path-input-row">
+      <input type="text" id="hubPathInput" class="hub-path-input" placeholder="Leave blank to auto-use 1st connected IDE's link directory">
+      <input type="file" id="hubFolderPicker" webkitdirectory directory style="display:none">
+      <button type="button" class="btn-sm" id="btnPickHubFolder" title="Browse for Components Storage Folder">📁 Browse...</button>
+      <button type="button" class="btn-sm" id="btnBrowseHubPath" title="Reset storage path to the 1st connected IDE's Configuration Link Directory">Reset to 1st IDE</button>
+    </div>
+    <p class="field-hint" id="hubPathHint">If blank or reset, automatically points to the 1st connected IDE's Configuration Link Directory.</p>
+
+    <!-- Expandable Comprehensive Registry Viewer -->
+    <div id="componentsExpandPanel" class="components-expand-panel" style="display:none; margin-top:14px; border-top:1px solid var(--magpie-line, rgba(128,128,128,0.2)); padding-top:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-weight:600; font-size:12.5px;">Discovered Components Registry (<span id="cat-cnt-total">0</span> total)</span>
+        <span style="font-size:11px; color:var(--magpie-muted, #71717a);">Filter and inspect all discovered components</span>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="category-tabs" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        <button type="button" class="cat-tab active" data-cat="all">All (<span id="cat-cnt-all">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="plugins">🧩 Plugins (<span id="cat-cnt-plugins">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="mcps">⚡ MCPs (<span id="cat-cnt-mcps">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="hooks">🪝 Hooks (<span id="cat-cnt-hooks">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="skills">🎯 Skills (<span id="cat-cnt-skills">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="agents">🤖 Agents (<span id="cat-cnt-agents">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="rules">📜 Rules (<span id="cat-cnt-rules">0</span>)</button>
+      </div>
+
+      <!-- Search bar inside category expander -->
+      <div style="margin-bottom:10px; display:flex; gap:8px;">
+        <input type="text" id="catSearchInput" placeholder="Filter components by name, skill, MCP, or file..." style="flex:1; font-size:12px; padding:6px 10px; border-radius:6px; background:var(--magpie-surface, rgba(128,128,128,0.06)); border:1px solid var(--magpie-border, rgba(128,128,128,0.25)); color:inherit;">
+      </div>
+
+      <!-- Categorized Items List View Container -->
+      <div id="categoryItemsContainer" class="category-items-container" style="max-height:280px; overflow-y:auto; border:1px solid var(--magpie-border, rgba(128,128,128,0.2)); border-radius:6px; padding:6px 10px; background:var(--magpie-surface, rgba(128,128,128,0.04)); font-size:12px;">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Metrics Tiles -->
+  <section class="tiles">
+    <!-- Tile 1: 7-line Discovered Components summary -->
+    <div class="tile tile-breakdown">
+      <div class="k title-heading">Discovered Components</div>
+      <div class="sub-lines">
+        <div class="sub-line"><span>Plugins:</span> <strong id="cnt-plugins">0</strong></div>
+        <div class="sub-line"><span>MCPs:</span> <strong id="cnt-mcps">0</strong></div>
+        <div class="sub-line"><span>Hooks:</span> <strong id="cnt-hooks">0</strong></div>
+        <div class="sub-line"><span>Skills:</span> <strong id="cnt-skills">0</strong></div>
+        <div class="sub-line"><span>Agents:</span> <strong id="cnt-agents">0</strong></div>
+        <div class="sub-line"><span>Rules:</span> <strong id="cnt-rules">0</strong></div>
+      </div>
+    </div>
+    
+    <!-- Tile 2: Connected IDEs -->
+    <div class="tile">
+      <span class="k">Connected IDEs</span>
+      <span class="v" id="ideCount">-</span>
+      <span class="s">Drag & drop to reorder</span>
+    </div>
+    
+    <!-- Tile 3: Registered Projects -->
+    <div class="tile">
+      <span class="k">Registered Projects</span>
+      <span class="v" id="projectCount">-</span>
+      <span class="s">Drag & drop to reorder</span>
+    </div>
+    
+    <!-- Tile 4: Gateway Tool Optimization (Adjustable Cap with "Default" button) -->
+    <div class="tile tile-cap-control">
+      <div class="cap-header">
+        <span class="k">Gateway Tool Optimization</span>
+        <button type="button" class="btn-reset-cap" id="btnResetCap" title="Reset tool cap to default (96)">Default</button>
+      </div>
+      <div class="cap-row">
+        <span class="v" id="gatewayStatus">Active</span>
+        <div class="cap-input-wrap">
+          <label for="maxToolsInput" class="cap-label">Cap:</label>
+          <input type="number" id="maxToolsInput" class="cap-input" min="10" max="256" step="1" value="96">
+        </div>
+      </div>
+      <span class="s" id="capSubtitle">Capping at 96 safe tools for Smart Middleware</span>
+    </div>
+  </section>
+
+  <!-- Two Column Main Layout -->
+  <div class="grid-two">
+    <!-- Left Column: IDEs and Projects -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Connected IDEs & Agents</h2>
+        <button type="button" class="btn-sm" id="openAddIdeModalBtn">+ Add IDE</button>
+      </div>
+      <p class="hint">Drag rows to reorder. 1st IDE serves as the default storage fallback.</p>
+      
+      <div class="target-list" id="ideList">
+        <!-- Dynamically rendered (draggable) -->
+      </div>
+
+      <div class="card-head" style="margin-top: 24px;">
+        <h2>Project Repositories</h2>
+        <button type="button" class="btn-sm" id="openAddProjectModalBtn">+ Add Project</button>
+      </div>
+      <p class="hint">Drag to reorder. Click "Clone / Fork" to copy info and quickly associate to another IDE.</p>
+
+      <div class="target-list" id="projectList">
+        <!-- Dynamically rendered (draggable) -->
+      </div>
+    </div>
+
+    <!-- Right Column: Component Matrix -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Components & Plugins</h2>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-sm" id="btnToggleAllFiles" title="Expand or collapse file tree for all plugins">📁 Expand All Files</button>
+          <button type="button" class="btn-sm" id="rescanBtn">Rescan Hub</button>
+        </div>
+      </div>
+      <p class="hint">Auto-syncs whenever any toggle is changed. Click "Files" on any row to view complete file structure.</p>
+
+      <div class="active-target-bar">
+        <span id="activeContextText">Target: <strong>Antigravity (Global)</strong></span>
+        <span id="activeContextBadge" style="font-size:11px; color:var(--magpie-muted);">Global Platform</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="plugin-table">
+          <thead>
+            <tr>
+              <th style="width: 44px;">Active</th>
+              <th>Plugin / Component</th>
+              <th>Features &amp; Files</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="pluginTableBody">
+            <!-- Dynamically rendered -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add IDE Modal with Drop Zone -->
+  <div class="modal" id="addIdeModal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>Add Agent IDE / Binary Link</h3>
+        <button type="button" class="btn-danger-text" id="closeIdeModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Drop Zone for IDE / exe / shortcut / folder -->
+        <div class="drop-zone" id="ideDropZone">
+          <div class="drop-icon">📁</div>
+          <div class="drop-text">Drag & drop your Agent IDE executable (.exe), shortcut, or config folder here</div>
+          <div class="drop-subtext">Automatically detects name, binary path, and plugin link directory</div>
+        </div>
+
+        <label>
+          IDE Name
+          <input type="text" id="ideNameInput" placeholder="Cursor AI, Windsurf, Claude Code, VS Code Copilot">
+        </label>
+        
+        <label>
+          Agent Binary Path (optional)
+          <div class="input-with-button">
+            <input type="text" id="ideExeInput" placeholder="e.g. C:\Users\username\AppData\Local\Programs\cursor\cursor.exe">
+            <input type="file" id="ideExePicker" accept=".exe,.lnk" style="display:none">
+            <button type="button" class="btn-browse" id="btnBrowseIdeExe" title="Browse for executable or shortcut">📁 Browse...</button>
+          </div>
+        </label>
+        
+        <div>
+          <div class="label-with-switch">
+            <span>Configuration Link Directory (Where plugins should be linked)</span>
+            <div class="auto-detect-toggle">
+              <label class="switch switch-mini">
+                <input type="checkbox" id="autoDetectConfigToggle" checked>
+                <span class="slider"></span>
+              </label>
+              <span class="mini-label" id="autoDetectLabel">Auto-detect: ON</span>
+            </div>
+          </div>
+          <input type="text" id="ideConfigInput" placeholder="C:\Users\username\.cursor\skills" readonly>
+          <p class="field-hint" id="configHint">Auto-detects path based on binary/IDE name. Turn off switch to type custom path.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-sm" id="cancelIdeBtn">Cancel</button>
+        <button type="button" class="btn-sm btn-primary" id="saveIdeBtn">Add IDE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Clone Project Modal with Drop Zone -->
+  <div class="modal" id="addProjectModal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3 id="projectModalTitle">Add Project Repository</h3>
+        <button type="button" class="btn-danger-text" id="closeProjectModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Drop Zone for Project Folder -->
+        <div class="drop-zone" id="projectDropZone">
+          <div class="drop-icon">📂</div>
+          <div class="drop-text">Drag & drop your Project Repository folder here</div>
+          <div class="drop-subtext">Auto-fills project name and absolute repository path</div>
+        </div>
+
+        <label>
+          Project Name
+          <input type="text" id="projectNameInput" placeholder="My Flutter App">
+        </label>
+        <label>
+          Associated IDE
+          <select id="projectIdeSelect">
+            <!-- Populated dynamically -->
+          </select>
+        </label>
+        <label>
+          Repository Path
+          <div class="input-with-button">
+            <input type="text" id="projectPathInput" placeholder="D:\Software\Projects\MyFlutterApp">
+            <input type="file" id="projectFolderPicker" webkitdirectory directory style="display:none">
+            <button type="button" class="btn-browse" id="btnBrowseProjectPath" title="Browse for project folder">📁 Browse...</button>
+          </div>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-sm" id="cancelProjectBtn">Cancel</button>
+        <button type="button" class="btn-sm btn-primary" id="saveProjectBtn">Save Project</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

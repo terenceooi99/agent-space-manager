@@ -1,0 +1,7148 @@
+window.__PLUGINS_CACHE__ = {
+  "path": "D:\\\\Software\\\\AI Agent Space",
+  "count": 24,
+  "updatedAt": 1793161796372,
+  "plugins": [
+    {
+      "id": "android-cli-plugin",
+      "name": "android-cli-plugin",
+      "version": "1.0.16625370",
+      "description": "Core tools and knowledge required to develop for Android.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "compose-preview",
+        "device-hub",
+        "references"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "logo.png",
+          "relPath": "assets/logo.png",
+          "size": 34424
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 667
+        },
+        {
+          "name": "README.md",
+          "relPath": "README.md",
+          "size": 5801
+        },
+        {
+          "name": "sidecar.json",
+          "relPath": "sidecars/compose-preview/sidecar.json",
+          "size": 588
+        },
+        {
+          "name": "sidecar.json",
+          "relPath": "sidecars/device-hub/sidecar.json",
+          "size": 648
+        },
+        {
+          "name": "launch.mjs",
+          "relPath": "sidecars/launch.mjs",
+          "size": 11234
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/compose-preview/SKILL.md",
+          "size": 13164
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/device-hub/SKILL.md",
+          "size": 8012
+        },
+        {
+          "name": "interact.md",
+          "relPath": "skills/references/interact.md",
+          "size": 4768
+        },
+        {
+          "name": "journeys.md",
+          "relPath": "skills/references/journeys.md",
+          "size": 4766
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/SKILL.md",
+          "size": 24922
+        }
+      ]
+    },
+    {
+      "id": "antigravity-core",
+      "name": "antigravity-core",
+      "version": "1.0.0",
+      "description": "Core Antigravity system skills, customizations, and SDK orchestration",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "agent-self-verification",
+        "agy-customizations",
+        "antigravity_guide",
+        "automation",
+        "generative_ui",
+        "migrate-workflows",
+        "permissioned-github",
+        "plugin",
+        "run-workflow",
+        "tool-management-rules",
+        "ui-plugin-navigation"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 176
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/agent-self-verification/SKILL.md",
+          "size": 5351
+        },
+        {
+          "name": "update_check_state.json",
+          "relPath": "skills/agent-self-verification/update_check_state.json",
+          "size": 195
+        },
+        {
+          "name": "hooks.md",
+          "relPath": "skills/agy-customizations/docs/hooks.md",
+          "size": 13129
+        },
+        {
+          "name": "json_configs.md",
+          "relPath": "skills/agy-customizations/docs/json_configs.md",
+          "size": 4904
+        },
+        {
+          "name": "mcp_servers.md",
+          "relPath": "skills/agy-customizations/docs/mcp_servers.md",
+          "size": 3378
+        },
+        {
+          "name": "plugins.md",
+          "relPath": "skills/agy-customizations/docs/plugins.md",
+          "size": 4347
+        },
+        {
+          "name": "rules.md",
+          "relPath": "skills/agy-customizations/docs/rules.md",
+          "size": 1757
+        },
+        {
+          "name": "skills.md",
+          "relPath": "skills/agy-customizations/docs/skills.md",
+          "size": 2650
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/agy-customizations/SKILL.md",
+          "size": 5683
+        },
+        {
+          "name": "app.md",
+          "relPath": "skills/antigravity_guide/references/app.md",
+          "size": 3852
+        },
+        {
+          "name": "cli.md",
+          "relPath": "skills/antigravity_guide/references/cli.md",
+          "size": 1686
+        },
+        {
+          "name": "ide.md",
+          "relPath": "skills/antigravity_guide/references/ide.md",
+          "size": 4540
+        },
+        {
+          "name": "sdk.md",
+          "relPath": "skills/antigravity_guide/references/sdk.md",
+          "size": 3130
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/antigravity_guide/SKILL.md",
+          "size": 3242
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/automation/SKILL.md",
+          "size": 10467
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/generative_ui/SKILL.md",
+          "size": 6042
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/migrate-workflows/SKILL.md",
+          "size": 6257
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/permissioned-github/SKILL.md",
+          "size": 8511
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/plugin/SKILL.md",
+          "size": 14925
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/run-workflow/SKILL.md",
+          "size": 10533
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/tool-management-rules/SKILL.md",
+          "size": 5035
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-plugin-navigation/SKILL.md",
+          "size": 3798
+        }
+      ]
+    },
+    {
+      "id": "antislop",
+      "name": "antislop",
+      "version": "1.0.0",
+      "description": "Rules and filters to eliminate generic AI-generated slop in code, copy, and UI",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\antislop",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "antislop",
+        "antislop-code",
+        "antislop-copywriting",
+        "antislop-human",
+        "antislop-layoutmobile",
+        "antislop-ui"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 239
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/antislop/SKILL.md",
+          "size": 58025
+        },
+        {
+          "name": "VERSION",
+          "relPath": "skills/antislop/VERSION",
+          "size": 7
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/antislop-code/SKILL.md",
+          "size": 9141
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/antislop-copywriting/SKILL.md",
+          "size": 25616
+        },
+        {
+          "name": "contrast-check.py",
+          "relPath": "skills/antislop-human/contrast-check.py",
+          "size": 5589
+        },
+        {
+          "name": "contrast-mcp.py",
+          "relPath": "skills/antislop-human/contrast-mcp.py",
+          "size": 3628
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/antislop-human/SKILL.md",
+          "size": 11248
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/antislop-layoutmobile/SKILL.md",
+          "size": 16575
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/antislop-ui/SKILL.md",
+          "size": 27041
+        }
+      ]
+    },
+    {
+      "id": "awesome-gamedev",
+      "name": "awesome-gamedev",
+      "version": "1.0.0",
+      "description": "Game-dev skill suite and master dispatcher across 10 engines (Godot, Unity, Unreal, etc.)",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\awesome-gamedev",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "awesome-gamedev-agent-skills"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 276
+        },
+        {
+          "name": "marketplace.json",
+          "relPath": "skills/awesome-gamedev-agent-skills/.claude-plugin/marketplace.json",
+          "size": 9399
+        },
+        {
+          "name": "CONTRIBUTING.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/CONTRIBUTING.md",
+          "size": 5470
+        },
+        {
+          "name": "awesome-gamedev-agent-skills-banner.png",
+          "relPath": "skills/awesome-gamedev-agent-skills/docs/assets/awesome-gamedev-agent-skills-banner.png",
+          "size": 1917415
+        },
+        {
+          "name": "COMPATIBILITY.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/docs/COMPATIBILITY.md",
+          "size": 7824
+        },
+        {
+          "name": "INSTALLATION.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/docs/INSTALLATION.md",
+          "size": 8487
+        },
+        {
+          "name": "SKILL-FORMAT.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/docs/SKILL-FORMAT.md",
+          "size": 5863
+        },
+        {
+          "name": "VERSION-SUPPORT.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/docs/VERSION-SUPPORT.md",
+          "size": 2854
+        },
+        {
+          "name": "LICENSE",
+          "relPath": "skills/awesome-gamedev-agent-skills/LICENSE",
+          "size": 11596
+        },
+        {
+          "name": "NOTICE",
+          "relPath": "skills/awesome-gamedev-agent-skills/NOTICE",
+          "size": 898
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/README.md",
+          "size": 20384
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/awesome-gamedev-agent-skills/router/agents/openai.yaml",
+          "size": 225
+        },
+        {
+          "name": "engine-detection.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/router/references/engine-detection.md",
+          "size": 4949
+        },
+        {
+          "name": "routing-table.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/router/references/routing-table.md",
+          "size": 12585
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/router/SKILL.md",
+          "size": 15602
+        },
+        {
+          "name": "check-site.py",
+          "relPath": "skills/awesome-gamedev-agent-skills/scripts/check-site.py",
+          "size": 2802
+        },
+        {
+          "name": "generate-site.py",
+          "relPath": "skills/awesome-gamedev-agent-skills/scripts/generate-site.py",
+          "size": 21272
+        },
+        {
+          "name": "validate-skills.py",
+          "relPath": "skills/awesome-gamedev-agent-skills/scripts/validate-skills.py",
+          "size": 14173
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/SKILL.md",
+          "size": 15870
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/disciplines/README.md",
+          "size": 727
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/genres/README.md",
+          "size": 501
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/godot/README.md",
+          "size": 435
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/other-engines/README.md",
+          "size": 451
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/README.md",
+          "size": 1107
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/unity/README.md",
+          "size": 434
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/unreal/README.md",
+          "size": 397
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/web-engines/README.md",
+          "size": 425
+        },
+        {
+          "name": "README.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/skills/workflows/README.md",
+          "size": 491
+        },
+        {
+          "name": "SKILL.template.md",
+          "relPath": "skills/awesome-gamedev-agent-skills/templates/SKILL.template.md",
+          "size": 1639
+        },
+        {
+          "name": "test_asset_tools.py",
+          "relPath": "skills/awesome-gamedev-agent-skills/tests/test_asset_tools.py",
+          "size": 3012
+        },
+        {
+          "name": "test_validate_skills.py",
+          "relPath": "skills/awesome-gamedev-agent-skills/tests/test_validate_skills.py",
+          "size": 6758
+        }
+      ]
+    },
+    {
+      "id": "chrome-devtools-plugin",
+      "name": "chrome-devtools-plugin",
+      "version": "1.10.1",
+      "description": "Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "a11y-debugging",
+        "chrome-devtools",
+        "cookie-debugging",
+        "debug-optimize-lcp",
+        "memory-leak-debugging",
+        "troubleshooting"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 662
+        },
+        {
+          "name": "a11y-snippets.md",
+          "relPath": "skills/a11y-debugging/references/a11y-snippets.md",
+          "size": 2788
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/a11y-debugging/SKILL.md",
+          "size": 6124
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/chrome-devtools/SKILL.md",
+          "size": 4588
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/cookie-debugging/SKILL.md",
+          "size": 10231
+        },
+        {
+          "name": "elements-and-size.md",
+          "relPath": "skills/debug-optimize-lcp/references/elements-and-size.md",
+          "size": 1326
+        },
+        {
+          "name": "lcp-breakdown.md",
+          "relPath": "skills/debug-optimize-lcp/references/lcp-breakdown.md",
+          "size": 2525
+        },
+        {
+          "name": "lcp-snippets.md",
+          "relPath": "skills/debug-optimize-lcp/references/lcp-snippets.md",
+          "size": 2436
+        },
+        {
+          "name": "optimization-strategies.md",
+          "relPath": "skills/debug-optimize-lcp/references/optimization-strategies.md",
+          "size": 2154
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/debug-optimize-lcp/SKILL.md",
+          "size": 6844
+        },
+        {
+          "name": "common-leaks.md",
+          "relPath": "skills/memory-leak-debugging/references/common-leaks.md",
+          "size": 1813
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/memory-leak-debugging/SKILL.md",
+          "size": 4584
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/troubleshooting/SKILL.md",
+          "size": 7268
+        }
+      ]
+    },
+    {
+      "id": "clonewebsite",
+      "name": "clonewebsite",
+      "version": "1.0.0",
+      "description": "Rebuild existing web pages as working local code matching real content, layout, and animations",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\clonewebsite",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "clonewebsite"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 197
+        },
+        {
+          "name": "framer-and-motion.md",
+          "relPath": "skills/clonewebsite/references/framer-and-motion.md",
+          "size": 3223
+        },
+        {
+          "name": "inspection-guide.md",
+          "relPath": "skills/clonewebsite/references/inspection-guide.md",
+          "size": 3055
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/clonewebsite/SKILL.md",
+          "size": 6883
+        }
+      ]
+    },
+    {
+      "id": "codegraph",
+      "name": "codegraph",
+      "version": "1.0.0",
+      "description": "CodeGraphContext AST semantic property graph and hierarchy query engine",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\codegraph",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "codegraph-index",
+        "codegraph-query"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 172
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/codegraph-index/SKILL.md",
+          "size": 1090
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/codegraph-query/SKILL.md",
+          "size": 1715
+        }
+      ]
+    },
+    {
+      "id": "data-agent-kit-plugin",
+      "name": "data-agent-kit-plugin",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 126
+        }
+      ]
+    },
+    {
+      "id": "ecc-council",
+      "name": "ecc-council",
+      "version": "1.0.0",
+      "description": "Multi-perspective reasoning council, agent evaluation, snapshot context keeper, and compacting tools",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\ecc-council",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "ecc-agent-evaluator",
+        "ecc-ck",
+        "ecc-council",
+        "ecc-strategic-compact"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 195
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ecc-agent-evaluator/SKILL.md",
+          "size": 660
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ecc-ck/SKILL.md",
+          "size": 785
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ecc-council/SKILL.md",
+          "size": 914
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ecc-strategic-compact/SKILL.md",
+          "size": 968
+        }
+      ]
+    },
+    {
+      "id": "fastcrw",
+      "name": "fastcrw",
+      "version": "1.0.0",
+      "description": "High-performance fastCRW web crawler and markdown extraction tool with MCP server",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\fastcrw",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "fastcrw"
+      ],
+      "hooks": [],
+      "skills": [
+        "crw-search"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "crw-mcp.exe",
+          "relPath": "bin/crw-mcp.exe",
+          "size": 26555392
+        },
+        {
+          "name": "crw.exe",
+          "relPath": "bin/crw.exe",
+          "size": 37282816
+        },
+        {
+          "name": "config.default.toml",
+          "relPath": "config.default.toml",
+          "size": 18510
+        },
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 151
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 171
+        },
+        {
+          "name": "server.json",
+          "relPath": "server.json",
+          "size": 741
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/crw-search/SKILL.md",
+          "size": 1319
+        }
+      ]
+    },
+    {
+      "id": "flutter",
+      "name": "flutter",
+      "version": "1.0.6",
+      "description": "Official plugin for Dart and Flutter that installs Flutter/Dart Skills, Rules, Custom Agents, and Dart MCP server for building natively compiled, visually stunning applications for mobile, web, desktop, and embedded devices from a single codebase",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\flutter",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "dart-mcp-server"
+      ],
+      "hooks": [],
+      "skills": [
+        "dart-add-unit-test",
+        "dart-build-cli-app",
+        "dart-collect-coverage",
+        "dart-fix-runtime-errors",
+        "dart-generate-test-mocks",
+        "dart-migrate-to-checks-package",
+        "dart-resolve-package-conflicts",
+        "dart-run-static-analysis",
+        "dart-setup-ffi-assets",
+        "dart-use-doc-examples",
+        "dart-use-ffigen",
+        "dart-use-path-package",
+        "dart-use-pattern-matching",
+        "dart-use-primary-constructors",
+        "dart-write-documentation",
+        "flutter-add-integration-test",
+        "flutter-add-widget-preview",
+        "flutter-add-widget-test",
+        "flutter-apply-architecture-best-practices",
+        "flutter-build-responsive-layout",
+        "flutter-fix-layout-issues",
+        "flutter-implement-json-serialization",
+        "flutter-setup-declarative-routing",
+        "flutter-setup-localization",
+        "flutter-use-http-package"
+      ],
+      "rules": [
+        "flutter-hot-reload.md"
+      ],
+      "agents": [
+        "a11y_agent.md"
+      ],
+      "files": [
+        {
+          "name": "a11y_agent.md",
+          "relPath": "agents/a11y_agent.md",
+          "size": 9179
+        },
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 180
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 1105
+        },
+        {
+          "name": "README.md",
+          "relPath": "README.md",
+          "size": 660
+        },
+        {
+          "name": "flutter-hot-reload.md",
+          "relPath": "rules/flutter-hot-reload.md",
+          "size": 1217
+        },
+        {
+          "name": "flutter-hot-reload.mdc",
+          "relPath": "rules/flutter-hot-reload.mdc",
+          "size": 1222
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-add-unit-test/SKILL.md",
+          "size": 4870
+        },
+        {
+          "name": "multi_command_runner.dart",
+          "relPath": "skills/dart-build-cli-app/examples/multi_command_runner.dart",
+          "size": 2508
+        },
+        {
+          "name": "single_command_tool.dart",
+          "relPath": "skills/dart-build-cli-app/examples/single_command_tool.dart",
+          "size": 2365
+        },
+        {
+          "name": "aot_sdk_discovery.md",
+          "relPath": "skills/dart-build-cli-app/references/aot_sdk_discovery.md",
+          "size": 3981
+        },
+        {
+          "name": "signals_and_terminal.md",
+          "relPath": "skills/dart-build-cli-app/references/signals_and_terminal.md",
+          "size": 4144
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-build-cli-app/SKILL.md",
+          "size": 13988
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-collect-coverage/SKILL.md",
+          "size": 5054
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-fix-runtime-errors/SKILL.md",
+          "size": 6418
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-generate-test-mocks/SKILL.md",
+          "size": 6500
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-migrate-to-checks-package/SKILL.md",
+          "size": 19485
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-resolve-package-conflicts/SKILL.md",
+          "size": 5428
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-run-static-analysis/SKILL.md",
+          "size": 5194
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-setup-ffi-assets/SKILL.md",
+          "size": 19060
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-use-doc-examples/SKILL.md",
+          "size": 5504
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-use-ffigen/SKILL.md",
+          "size": 11797
+        },
+        {
+          "name": "cross_platform_paths.dart",
+          "relPath": "skills/dart-use-path-package/examples/cross_platform_paths.dart",
+          "size": 1859
+        },
+        {
+          "name": "file_system_context.dart",
+          "relPath": "skills/dart-use-path-package/examples/file_system_context.dart",
+          "size": 1035
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-use-path-package/SKILL.md",
+          "size": 11439
+        },
+        {
+          "name": "json_patterns.dart",
+          "relPath": "skills/dart-use-pattern-matching/examples/json_patterns.dart",
+          "size": 2642
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-use-pattern-matching/SKILL.md",
+          "size": 13893
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-use-primary-constructors/SKILL.md",
+          "size": 11522
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dart-write-documentation/SKILL.md",
+          "size": 6887
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-add-integration-test/SKILL.md",
+          "size": 7503
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-add-widget-preview/SKILL.md",
+          "size": 6407
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-add-widget-test/SKILL.md",
+          "size": 6542
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-apply-architecture-best-practices/SKILL.md",
+          "size": 6512
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-build-responsive-layout/SKILL.md",
+          "size": 6966
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-fix-layout-issues/SKILL.md",
+          "size": 5487
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-implement-json-serialization/SKILL.md",
+          "size": 5811
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-setup-declarative-routing/SKILL.md",
+          "size": 8365
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-setup-localization/SKILL.md",
+          "size": 6081
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/flutter-use-http-package/SKILL.md",
+          "size": 6617
+        }
+      ]
+    },
+    {
+      "id": "gemini-api",
+      "name": "gemini-api",
+      "version": "2.3.0",
+      "description": "Build applications with the Gemini Interactions API and Live API, including text, image, video, and speech generation, managed agents, and real-time multimodal streaming.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\gemini-api",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "gemini-api-docs"
+      ],
+      "hooks": [],
+      "skills": [
+        "gemini-api-dev",
+        "gemini-live-api-dev",
+        "gemini-omni-flash-api"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 265
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 1043
+        },
+        {
+          "name": "README.md",
+          "relPath": "README.md",
+          "size": 2440
+        },
+        {
+          "name": "migration.md",
+          "relPath": "skills/gemini-api-dev/references/migration.md",
+          "size": 14834
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/gemini-api-dev/SKILL.md",
+          "size": 21757
+        },
+        {
+          "name": "migration.md",
+          "relPath": "skills/gemini-live-api-dev/references/migration.md",
+          "size": 8973
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/gemini-live-api-dev/SKILL.md",
+          "size": 18926
+        },
+        {
+          "name": "upload_file.py",
+          "relPath": "skills/gemini-omni-flash-api/scripts/upload_file.py",
+          "size": 14682
+        },
+        {
+          "name": "generate_video.py",
+          "relPath": "skills/gemini-omni-flash-api/scripts/video/generate_video.py",
+          "size": 32350
+        },
+        {
+          "name": "inspect_video.py",
+          "relPath": "skills/gemini-omni-flash-api/scripts/video/inspect_video.py",
+          "size": 6359
+        },
+        {
+          "name": "prep_video.py",
+          "relPath": "skills/gemini-omni-flash-api/scripts/video/prep_video.py",
+          "size": 10756
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/gemini-omni-flash-api/SKILL.md",
+          "size": 25979
+        }
+      ]
+    },
+    {
+      "id": "google-antigravity-sdk",
+      "name": "google-antigravity-sdk",
+      "version": "0.0.9",
+      "description": "Using the Google Antigravity Python SDK to build AI agents",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\google-antigravity-sdk",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "google-antigravity-sdk"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 416
+        },
+        {
+          "name": "agent_skills.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/agent_skills.md",
+          "size": 1620
+        },
+        {
+          "name": "app_data_dir_override.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/app_data_dir_override.md",
+          "size": 1028
+        },
+        {
+          "name": "budget_limits.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/budget_limits.md",
+          "size": 3363
+        },
+        {
+          "name": "cancellation.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/cancellation.md",
+          "size": 1857
+        },
+        {
+          "name": "compaction.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/compaction.md",
+          "size": 1472
+        },
+        {
+          "name": "customizing_retries.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/customizing_retries.md",
+          "size": 2630
+        },
+        {
+          "name": "custom_tool.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/custom_tool.md",
+          "size": 3770
+        },
+        {
+          "name": "hello_world.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/hello_world.md",
+          "size": 2666
+        },
+        {
+          "name": "hooks.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/hooks.md",
+          "size": 4324
+        },
+        {
+          "name": "local_models.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/local_models.md",
+          "size": 6202
+        },
+        {
+          "name": "mcp_tools.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/mcp_tools.md",
+          "size": 4231
+        },
+        {
+          "name": "multimodal.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/multimodal.md",
+          "size": 1845
+        },
+        {
+          "name": "periodic_trigger.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/periodic_trigger.md",
+          "size": 2749
+        },
+        {
+          "name": "persistence.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/persistence.md",
+          "size": 1448
+        },
+        {
+          "name": "persona_config.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/persona_config.md",
+          "size": 2249
+        },
+        {
+          "name": "structured_output.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/structured_output.md",
+          "size": 1378
+        },
+        {
+          "name": "subagents.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/subagents.md",
+          "size": 3328
+        },
+        {
+          "name": "web_tools.md",
+          "relPath": "skills/google-antigravity-sdk/examples/getting_started/web_tools.md",
+          "size": 2206
+        },
+        {
+          "name": "agent_configuration.md",
+          "relPath": "skills/google-antigravity-sdk/references/agent_configuration.md",
+          "size": 12396
+        },
+        {
+          "name": "architecture.md",
+          "relPath": "skills/google-antigravity-sdk/references/architecture.md",
+          "size": 2712
+        },
+        {
+          "name": "built_in_tools.md",
+          "relPath": "skills/google-antigravity-sdk/references/built_in_tools.md",
+          "size": 3115
+        },
+        {
+          "name": "error_handling.md",
+          "relPath": "skills/google-antigravity-sdk/references/error_handling.md",
+          "size": 3407
+        },
+        {
+          "name": "local_models.md",
+          "relPath": "skills/google-antigravity-sdk/references/local_models.md",
+          "size": 7821
+        },
+        {
+          "name": "mcp_integration.md",
+          "relPath": "skills/google-antigravity-sdk/references/mcp_integration.md",
+          "size": 5377
+        },
+        {
+          "name": "observability.md",
+          "relPath": "skills/google-antigravity-sdk/references/observability.md",
+          "size": 2978
+        },
+        {
+          "name": "safety_policies.md",
+          "relPath": "skills/google-antigravity-sdk/references/safety_policies.md",
+          "size": 7716
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/google-antigravity-sdk/SKILL.md",
+          "size": 8552
+        }
+      ]
+    },
+    {
+      "id": "google-developer-knowledge",
+      "name": "google-developer-knowledge",
+      "version": "1.0.1",
+      "description": "Search and retrieve official documentation across Google Cloud, Gemini, Android, Firebase, Flutter, and Web. Requires Google Cloud credentials (ADC) or an API key.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\google-developer-knowledge",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "google-developer-knowledge"
+      ],
+      "hooks": [],
+      "skills": [
+        "retrieving-developer-knowledge"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 245
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 1144
+        },
+        {
+          "name": "README.md",
+          "relPath": "README.md",
+          "size": 4838
+        },
+        {
+          "name": "api-fallback.md",
+          "relPath": "skills/retrieving-developer-knowledge/references/api-fallback.md",
+          "size": 6481
+        },
+        {
+          "name": "mcp-usage.md",
+          "relPath": "skills/retrieving-developer-knowledge/references/mcp-usage.md",
+          "size": 1042
+        },
+        {
+          "name": "supported-domains.md",
+          "relPath": "skills/retrieving-developer-knowledge/references/supported-domains.md",
+          "size": 1580
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/retrieving-developer-knowledge/SKILL.md",
+          "size": 8355
+        }
+      ]
+    },
+    {
+      "id": "jevgraph",
+      "name": "jevgraph",
+      "version": "1.0.0",
+      "description": "JevGraph non-code document and specification relation extraction engine",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\jevgraph",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "jevgraph-build",
+        "jevgraph-query"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 170
+        },
+        {
+          "name": "pyproject.toml",
+          "relPath": "pyproject.toml",
+          "size": 1671
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/jevgraph-build/SKILL.md",
+          "size": 2851
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/jevgraph-query/SKILL.md",
+          "size": 1712
+        }
+      ]
+    },
+    {
+      "id": "lightpanda",
+      "name": "lightpanda",
+      "version": "1.0.0",
+      "description": "Lightpanda & Headless Chrome CDP browser automation and dynamic JavaScript execution engine",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\lightpanda",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "lightpanda"
+      ],
+      "hooks": [],
+      "skills": [
+        "hybrid-web"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "cdp_launcher.mjs",
+          "relPath": "cdp_launcher.mjs",
+          "size": 3857
+        },
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 112
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 291
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/hybrid-web/SKILL.md",
+          "size": 2070
+        }
+      ]
+    },
+    {
+      "id": "modern-web-guidance-plugin",
+      "name": "modern-web-guidance-plugin",
+      "version": "0.0.195",
+      "description": "Keep your coding agent up to date with the latest web best practices.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\modern-web-guidance-plugin",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "chrome-extensions",
+        "modern-web-guidance"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "logo.svg",
+          "relPath": "assets/logo.svg",
+          "size": 5532
+        },
+        {
+          "name": "gemini-extension.json",
+          "relPath": "gemini-extension.json",
+          "size": 196
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 891
+        },
+        {
+          "name": "modern-web-guidance.toml",
+          "relPath": "policies/modern-web-guidance.toml",
+          "size": 122
+        },
+        {
+          "name": "README.md",
+          "relPath": "README.md",
+          "size": 94113
+        },
+        {
+          "name": "api-calling.md",
+          "relPath": "skills/chrome-extensions/references/extensions/api-calling.md",
+          "size": 2188
+        },
+        {
+          "name": "auth-identity.md",
+          "relPath": "skills/chrome-extensions/references/extensions/auth-identity.md",
+          "size": 4036
+        },
+        {
+          "name": "content-scripts.md",
+          "relPath": "skills/chrome-extensions/references/extensions/content-scripts.md",
+          "size": 3506
+        },
+        {
+          "name": "context-menus.md",
+          "relPath": "skills/chrome-extensions/references/extensions/context-menus.md",
+          "size": 1844
+        },
+        {
+          "name": "csp-sandbox.md",
+          "relPath": "skills/chrome-extensions/references/extensions/csp-sandbox.md",
+          "size": 4810
+        },
+        {
+          "name": "declarative-net-request.md",
+          "relPath": "skills/chrome-extensions/references/extensions/declarative-net-request.md",
+          "size": 2794
+        },
+        {
+          "name": "devtools.md",
+          "relPath": "skills/chrome-extensions/references/extensions/devtools.md",
+          "size": 2889
+        },
+        {
+          "name": "icons.md",
+          "relPath": "skills/chrome-extensions/references/extensions/icons.md",
+          "size": 2756
+        },
+        {
+          "name": "media-capture.md",
+          "relPath": "skills/chrome-extensions/references/extensions/media-capture.md",
+          "size": 4805
+        },
+        {
+          "name": "message-passing.md",
+          "relPath": "skills/chrome-extensions/references/extensions/message-passing.md",
+          "size": 4214
+        },
+        {
+          "name": "omnibox.md",
+          "relPath": "skills/chrome-extensions/references/extensions/omnibox.md",
+          "size": 1819
+        },
+        {
+          "name": "permissions.md",
+          "relPath": "skills/chrome-extensions/references/extensions/permissions.md",
+          "size": 4641
+        },
+        {
+          "name": "popup-ui.md",
+          "relPath": "skills/chrome-extensions/references/extensions/popup-ui.md",
+          "size": 2378
+        },
+        {
+          "name": "prompt-api.md",
+          "relPath": "skills/chrome-extensions/references/extensions/prompt-api.md",
+          "size": 3835
+        },
+        {
+          "name": "service-worker.md",
+          "relPath": "skills/chrome-extensions/references/extensions/service-worker.md",
+          "size": 4591
+        },
+        {
+          "name": "side-panel.md",
+          "relPath": "skills/chrome-extensions/references/extensions/side-panel.md",
+          "size": 4480
+        },
+        {
+          "name": "storage.md",
+          "relPath": "skills/chrome-extensions/references/extensions/storage.md",
+          "size": 1965
+        },
+        {
+          "name": "tab-management.md",
+          "relPath": "skills/chrome-extensions/references/extensions/tab-management.md",
+          "size": 3756
+        },
+        {
+          "name": "user-scripts.md",
+          "relPath": "skills/chrome-extensions/references/extensions/user-scripts.md",
+          "size": 9414
+        },
+        {
+          "name": "chromewebstore-template.md",
+          "relPath": "skills/chrome-extensions/references/webstore/chromewebstore-template.md",
+          "size": 5786
+        },
+        {
+          "name": "privacy-policy.md",
+          "relPath": "skills/chrome-extensions/references/webstore/privacy-policy.md",
+          "size": 4247
+        },
+        {
+          "name": "review-checklist.md",
+          "relPath": "skills/chrome-extensions/references/webstore/review-checklist.md",
+          "size": 7074
+        },
+        {
+          "name": "store-listing.md",
+          "relPath": "skills/chrome-extensions/references/webstore/store-listing.md",
+          "size": 8033
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/chrome-extensions/SKILL.md",
+          "size": 26702
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/modern-web-guidance/SKILL.md",
+          "size": 10078
+        }
+      ]
+    },
+    {
+      "id": "ponytail",
+      "name": "ponytail",
+      "version": "1.0.0",
+      "description": "Minimalist YAGNI development philosophy: reach for standard library and minimal diffs",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\ponytail",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "ponytail",
+        "ponytail-audit",
+        "ponytail-debt",
+        "ponytail-gain",
+        "ponytail-help",
+        "ponytail-review"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 245
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ponytail/SKILL.md",
+          "size": 5240
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ponytail-audit/SKILL.md",
+          "size": 1844
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ponytail-debt/SKILL.md",
+          "size": 1895
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ponytail-gain/SKILL.md",
+          "size": 2165
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ponytail-help/SKILL.md",
+          "size": 1750
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ponytail-review/SKILL.md",
+          "size": 1930
+        }
+      ]
+    },
+    {
+      "id": "rea",
+      "name": "rea",
+      "version": "1.0.0",
+      "description": "Reverse Engineer Anything (REA) native, managed, firmware, and web binary analysis tool",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\rea",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "rea"
+      ],
+      "hooks": [],
+      "skills": [
+        "reverse-engineer-anything"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 234
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 176
+        },
+        {
+          "name": "android-applications.md",
+          "relPath": "skills/reverse-engineer-anything/references/android-applications.md",
+          "size": 1992
+        },
+        {
+          "name": "connection-and-recovery.md",
+          "relPath": "skills/reverse-engineer-anything/references/connection-and-recovery.md",
+          "size": 8823
+        },
+        {
+          "name": "evidence-workflows.md",
+          "relPath": "skills/reverse-engineer-anything/references/evidence-workflows.md",
+          "size": 4363
+        },
+        {
+          "name": "javascript-applications.md",
+          "relPath": "skills/reverse-engineer-anything/references/javascript-applications.md",
+          "size": 9949
+        },
+        {
+          "name": "native-and-artifacts.md",
+          "relPath": "skills/reverse-engineer-anything/references/native-and-artifacts.md",
+          "size": 17722
+        },
+        {
+          "name": "runtime-observation.md",
+          "relPath": "skills/reverse-engineer-anything/references/runtime-observation.md",
+          "size": 4798
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/reverse-engineer-anything/SKILL.md",
+          "size": 22760
+        }
+      ]
+    },
+    {
+      "id": "rtk",
+      "name": "rtk",
+      "version": "1.0.0",
+      "description": "Rust Token Killer (RTK) and token reduction utilities for AI coding agents",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\rtk",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "publishtokensaverlocal",
+        "publishtokensavernow",
+        "rtk-compress",
+        "rtk-diff",
+        "rtk-doctor",
+        "rtk-gain",
+        "rtk-omniroute",
+        "rtk-outline",
+        "rtk-roi",
+        "rtk-run",
+        "rtk-savedtokenoff",
+        "rtk-savedtokenon",
+        "rtk-sync",
+        "rtk-tree",
+        "rtk-update"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 159
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/publishtokensaverlocal/SKILL.md",
+          "size": 1316
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/publishtokensavernow/SKILL.md",
+          "size": 3902
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-compress/SKILL.md",
+          "size": 1174
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-diff/SKILL.md",
+          "size": 1266
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-doctor/SKILL.md",
+          "size": 1359
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-gain/SKILL.md",
+          "size": 674
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-omniroute/SKILL.md",
+          "size": 3486
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-outline/SKILL.md",
+          "size": 1902
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-roi/SKILL.md",
+          "size": 1355
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-run/SKILL.md",
+          "size": 943
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-savedtokenoff/SKILL.md",
+          "size": 1042
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-savedtokenon/SKILL.md",
+          "size": 2076
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-sync/SKILL.md",
+          "size": 1241
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-tree/SKILL.md",
+          "size": 1081
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/rtk-update/SKILL.md",
+          "size": 2607
+        }
+      ]
+    },
+    {
+      "id": "science",
+      "name": "science",
+      "version": "1.3.1",
+      "description": "Curated collection of agent skills for science tasks.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\science",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "biomolecular_structure_viewer_mcp"
+      ],
+      "hooks": [],
+      "skills": [
+        "alphafold_database_fetch_and_analyze",
+        "alphagenome_atlas_website_links",
+        "alphagenome_single_variant_analysis",
+        "alphagenome_variant_impact_score",
+        "biomolecular_structure_viewer",
+        "chembl_database",
+        "clinical_trials_database",
+        "clinvar_database",
+        "credentials",
+        "dbsnp_database",
+        "embl_ebi_ols",
+        "encode_ccres_database",
+        "ensembl_database",
+        "foldseek_structural_search",
+        "gnomad_database",
+        "gtex_database",
+        "human_protein_atlas_database",
+        "interpro_database",
+        "jaspar_database",
+        "literature_search_arxiv",
+        "literature_search_biorxiv",
+        "literature_search_europepmc",
+        "literature_search_openalex",
+        "ncbi_sequence_fetch",
+        "openfda_database",
+        "opentargets_database",
+        "pdb_database",
+        "predictingthepast",
+        "protein_sequence_msa",
+        "protein_sequence_similarity_search",
+        "pubchem_database",
+        "pubmed_database",
+        "pymol",
+        "quickgo_database",
+        "reactome_database",
+        "string_database",
+        "ucsc_conservation_and_tfbs",
+        "unibind_database",
+        "uniprot_database",
+        "uv",
+        "workflow_skill_creator"
+      ],
+      "rules": [
+        "AGENTS.md"
+      ],
+      "agents": [],
+      "files": [
+        {
+          "name": "CONTRIBUTING.md",
+          "relPath": "CONTRIBUTING.md",
+          "size": 590
+        },
+        {
+          "name": "LICENSE",
+          "relPath": "LICENSE",
+          "size": 11358
+        },
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 180
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 230
+        },
+        {
+          "name": "README.md",
+          "relPath": "README.md",
+          "size": 3171
+        },
+        {
+          "name": "AGENTS.md",
+          "relPath": "rules/AGENTS.md",
+          "size": 822
+        },
+        {
+          "name": "main.js",
+          "relPath": "sidecars/biomolecular_structure_viewer/dist/main.js",
+          "size": 183992
+        },
+        {
+          "name": "mcp_entry.cjs",
+          "relPath": "sidecars/biomolecular_structure_viewer/dist/mcp_entry.cjs",
+          "size": 30502
+        },
+        {
+          "name": "server.cjs",
+          "relPath": "sidecars/biomolecular_structure_viewer/dist/server.cjs",
+          "size": 68677
+        },
+        {
+          "name": "sidecar.json",
+          "relPath": "sidecars/biomolecular_structure_viewer/sidecar.json",
+          "size": 485
+        },
+        {
+          "name": "ui.html",
+          "relPath": "sidecars/biomolecular_structure_viewer/ui.html",
+          "size": 2989
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/alphafold_database_fetch_and_analyze/references/citation.bib",
+          "size": 10493
+        },
+        {
+          "name": "analyze_pae.py",
+          "relPath": "skills/alphafold_database_fetch_and_analyze/scripts/analyze_pae.py",
+          "size": 6223
+        },
+        {
+          "name": "analyze_plddt.py",
+          "relPath": "skills/alphafold_database_fetch_and_analyze/scripts/analyze_plddt.py",
+          "size": 3940
+        },
+        {
+          "name": "fetch_structure.py",
+          "relPath": "skills/alphafold_database_fetch_and_analyze/scripts/fetch_structure.py",
+          "size": 5018
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/alphafold_database_fetch_and_analyze/SKILL.md",
+          "size": 4986
+        },
+        {
+          "name": "pyproject.toml",
+          "relPath": "skills/alphagenome_atlas_website_links/pyproject.toml",
+          "size": 215
+        },
+        {
+          "name": "alphagenome_atlas_links.py",
+          "relPath": "skills/alphagenome_atlas_website_links/scripts/alphagenome_atlas_links.py",
+          "size": 36863
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/alphagenome_atlas_website_links/SKILL.md",
+          "size": 12792
+        },
+        {
+          "name": "alphagenome-api.md",
+          "relPath": "skills/alphagenome_single_variant_analysis/docs/alphagenome-api.md",
+          "size": 13586
+        },
+        {
+          "name": "interpretation-guide.md",
+          "relPath": "skills/alphagenome_single_variant_analysis/docs/interpretation-guide.md",
+          "size": 17785
+        },
+        {
+          "name": "report-templates.md",
+          "relPath": "skills/alphagenome_single_variant_analysis/docs/report-templates.md",
+          "size": 2909
+        },
+        {
+          "name": "pyproject.toml",
+          "relPath": "skills/alphagenome_single_variant_analysis/pyproject.toml",
+          "size": 269
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/alphagenome_single_variant_analysis/references/citation.bib",
+          "size": 823
+        },
+        {
+          "name": "analyze_ism.py",
+          "relPath": "skills/alphagenome_single_variant_analysis/scripts/analyze_ism.py",
+          "size": 10378
+        },
+        {
+          "name": "generate_ontology_mapping.py",
+          "relPath": "skills/alphagenome_single_variant_analysis/scripts/generate_ontology_mapping.py",
+          "size": 4965
+        },
+        {
+          "name": "interpret_splicing.py",
+          "relPath": "skills/alphagenome_single_variant_analysis/scripts/interpret_splicing.py",
+          "size": 9726
+        },
+        {
+          "name": "lookup_gene_info.py",
+          "relPath": "skills/alphagenome_single_variant_analysis/scripts/lookup_gene_info.py",
+          "size": 9999
+        },
+        {
+          "name": "resolve_ontology_terms.py",
+          "relPath": "skills/alphagenome_single_variant_analysis/scripts/resolve_ontology_terms.py",
+          "size": 5601
+        },
+        {
+          "name": "visualize_genome_tracks.py",
+          "relPath": "skills/alphagenome_single_variant_analysis/scripts/visualize_genome_tracks.py",
+          "size": 12743
+        },
+        {
+          "name": "visualize_variant_effects.py",
+          "relPath": "skills/alphagenome_single_variant_analysis/scripts/visualize_variant_effects.py",
+          "size": 37866
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/alphagenome_single_variant_analysis/SKILL.md",
+          "size": 12204
+        },
+        {
+          "name": "pyproject.toml",
+          "relPath": "skills/alphagenome_variant_impact_score/pyproject.toml",
+          "size": 314
+        },
+        {
+          "name": "alphagenome_atlas_avi.py",
+          "relPath": "skills/alphagenome_variant_impact_score/scripts/alphagenome_atlas_avi.py",
+          "size": 72835
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/alphagenome_variant_impact_score/SKILL.md",
+          "size": 16940
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/biomolecular_structure_viewer/SKILL.md",
+          "size": 32503
+        },
+        {
+          "name": "api_endpoints.md",
+          "relPath": "skills/chembl_database/references/api_endpoints.md",
+          "size": 2832
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/chembl_database/references/citation.bib",
+          "size": 3639
+        },
+        {
+          "name": "chembl_api.py",
+          "relPath": "skills/chembl_database/scripts/chembl_api.py",
+          "size": 18842
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/chembl_database/SKILL.md",
+          "size": 11730
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/clinical_trials_database/references/citation.bib",
+          "size": 376
+        },
+        {
+          "name": "clinical_trials_api.md",
+          "relPath": "skills/clinical_trials_database/references/clinical_trials_api.md",
+          "size": 6331
+        },
+        {
+          "name": "studies_schema.md",
+          "relPath": "skills/clinical_trials_database/references/studies_schema.md",
+          "size": 5146
+        },
+        {
+          "name": "clinical_trials_api.py",
+          "relPath": "skills/clinical_trials_database/scripts/clinical_trials_api.py",
+          "size": 11639
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/clinical_trials_database/SKILL.md",
+          "size": 12934
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/clinvar_database/references/citation.bib",
+          "size": 1098
+        },
+        {
+          "name": "clinvar_api.py",
+          "relPath": "skills/clinvar_database/scripts/clinvar_api.py",
+          "size": 24359
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/clinvar_database/SKILL.md",
+          "size": 15950
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/credentials/SKILL.md",
+          "size": 4385
+        },
+        {
+          "name": "api-notes.md",
+          "relPath": "skills/dbsnp_database/references/api-notes.md",
+          "size": 3762
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/dbsnp_database/references/citation.bib",
+          "size": 368
+        },
+        {
+          "name": "dbsnp_cli.py",
+          "relPath": "skills/dbsnp_database/scripts/dbsnp_cli.py",
+          "size": 19840
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/dbsnp_database/SKILL.md",
+          "size": 13865
+        },
+        {
+          "name": "api_reference.md",
+          "relPath": "skills/embl_ebi_ols/references/api_reference.md",
+          "size": 5117
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/embl_ebi_ols/references/citation.bib",
+          "size": 2037
+        },
+        {
+          "name": "get_individual.py",
+          "relPath": "skills/embl_ebi_ols/scripts/get_individual.py",
+          "size": 5387
+        },
+        {
+          "name": "get_ontology.py",
+          "relPath": "skills/embl_ebi_ols/scripts/get_ontology.py",
+          "size": 4423
+        },
+        {
+          "name": "get_property.py",
+          "relPath": "skills/embl_ebi_ols/scripts/get_property.py",
+          "size": 6743
+        },
+        {
+          "name": "get_stats.py",
+          "relPath": "skills/embl_ebi_ols/scripts/get_stats.py",
+          "size": 2085
+        },
+        {
+          "name": "get_term.py",
+          "relPath": "skills/embl_ebi_ols/scripts/get_term.py",
+          "size": 10524
+        },
+        {
+          "name": "ols_utils.py",
+          "relPath": "skills/embl_ebi_ols/scripts/ols_utils.py",
+          "size": 2761
+        },
+        {
+          "name": "search_ols.py",
+          "relPath": "skills/embl_ebi_ols/scripts/search_ols.py",
+          "size": 6577
+        },
+        {
+          "name": "suggest_ols.py",
+          "relPath": "skills/embl_ebi_ols/scripts/suggest_ols.py",
+          "size": 3818
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/embl_ebi_ols/SKILL.md",
+          "size": 11689
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/encode_ccres_database/references/citation.bib",
+          "size": 7838
+        },
+        {
+          "name": "graphql_schema.md",
+          "relPath": "skills/encode_ccres_database/references/graphql_schema.md",
+          "size": 4708
+        },
+        {
+          "name": "json_output_structure.md",
+          "relPath": "skills/encode_ccres_database/references/json_output_structure.md",
+          "size": 5622
+        },
+        {
+          "name": "encode_portal_api.py",
+          "relPath": "skills/encode_ccres_database/scripts/encode_portal_api.py",
+          "size": 2099
+        },
+        {
+          "name": "screen_api.py",
+          "relPath": "skills/encode_ccres_database/scripts/screen_api.py",
+          "size": 20490
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/encode_ccres_database/SKILL.md",
+          "size": 7073
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/ensembl_database/references/citation.bib",
+          "size": 3789
+        },
+        {
+          "name": "ensembl_rest_api_reference.md",
+          "relPath": "skills/ensembl_database/references/ensembl_rest_api_reference.md",
+          "size": 11511
+        },
+        {
+          "name": "ensembl_api.py",
+          "relPath": "skills/ensembl_database/scripts/ensembl_api.py",
+          "size": 23730
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ensembl_database/SKILL.md",
+          "size": 9053
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/foldseek_structural_search/references/citation.bib",
+          "size": 445
+        },
+        {
+          "name": "search.py",
+          "relPath": "skills/foldseek_structural_search/scripts/search.py",
+          "size": 8005
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/foldseek_structural_search/SKILL.md",
+          "size": 5577
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/gnomad_database/references/citation.bib",
+          "size": 5197
+        },
+        {
+          "name": "get_gene_constraint.py",
+          "relPath": "skills/gnomad_database/scripts/get_gene_constraint.py",
+          "size": 2465
+        },
+        {
+          "name": "get_variant_frequency.py",
+          "relPath": "skills/gnomad_database/scripts/get_variant_frequency.py",
+          "size": 4326
+        },
+        {
+          "name": "search_variants.py",
+          "relPath": "skills/gnomad_database/scripts/search_variants.py",
+          "size": 5360
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/gnomad_database/SKILL.md",
+          "size": 3324
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/gtex_database/references/citation.bib",
+          "size": 5807
+        },
+        {
+          "name": "gtex_cli.py",
+          "relPath": "skills/gtex_database/scripts/gtex_cli.py",
+          "size": 8904
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/gtex_database/SKILL.md",
+          "size": 6297
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/human_protein_atlas_database/references/citation.bib",
+          "size": 2768
+        },
+        {
+          "name": "search-api.md",
+          "relPath": "skills/human_protein_atlas_database/references/search-api.md",
+          "size": 5893
+        },
+        {
+          "name": "hpa_cli.py",
+          "relPath": "skills/human_protein_atlas_database/scripts/hpa_cli.py",
+          "size": 8325
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/human_protein_atlas_database/SKILL.md",
+          "size": 6665
+        },
+        {
+          "name": "api_reference.md",
+          "relPath": "skills/interpro_database/references/api_reference.md",
+          "size": 7898
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/interpro_database/references/citation.bib",
+          "size": 3469
+        },
+        {
+          "name": "example_responses.tsv",
+          "relPath": "skills/interpro_database/references/example_responses.tsv",
+          "size": 13208
+        },
+        {
+          "name": "interpro_client.py",
+          "relPath": "skills/interpro_database/scripts/interpro_client.py",
+          "size": 14796
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/interpro_database/SKILL.md",
+          "size": 17203
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/jaspar_database/references/citation.bib",
+          "size": 2665
+        },
+        {
+          "name": "jaspar_api.py",
+          "relPath": "skills/jaspar_database/scripts/jaspar_api.py",
+          "size": 8785
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/jaspar_database/SKILL.md",
+          "size": 4691
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/literature_search_arxiv/references/citation.bib",
+          "size": 366
+        },
+        {
+          "name": "query_syntax.md",
+          "relPath": "skills/literature_search_arxiv/references/query_syntax.md",
+          "size": 997
+        },
+        {
+          "name": "download_paper.py",
+          "relPath": "skills/literature_search_arxiv/scripts/download_paper.py",
+          "size": 3455
+        },
+        {
+          "name": "download_paper_source.py",
+          "relPath": "skills/literature_search_arxiv/scripts/download_paper_source.py",
+          "size": 2881
+        },
+        {
+          "name": "search_arxiv.py",
+          "relPath": "skills/literature_search_arxiv/scripts/search_arxiv.py",
+          "size": 5118
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/literature_search_arxiv/SKILL.md",
+          "size": 4854
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/literature_search_biorxiv/references/citation.bib",
+          "size": 3018
+        },
+        {
+          "name": "search_by_dates.py",
+          "relPath": "skills/literature_search_biorxiv/scripts/search_by_dates.py",
+          "size": 8611
+        },
+        {
+          "name": "search_by_doi.py",
+          "relPath": "skills/literature_search_biorxiv/scripts/search_by_doi.py",
+          "size": 2101
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/literature_search_biorxiv/SKILL.md",
+          "size": 7973
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/literature_search_europepmc/references/citation.bib",
+          "size": 2022
+        },
+        {
+          "name": "europepmc_api.py",
+          "relPath": "skills/literature_search_europepmc/scripts/europepmc_api.py",
+          "size": 11419
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/literature_search_europepmc/SKILL.md",
+          "size": 8583
+        },
+        {
+          "name": "authors.md",
+          "relPath": "skills/literature_search_openalex/references/authors.md",
+          "size": 3703
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/literature_search_openalex/references/citation.bib",
+          "size": 299
+        },
+        {
+          "name": "geo_and_language.md",
+          "relPath": "skills/literature_search_openalex/references/geo_and_language.md",
+          "size": 1982
+        },
+        {
+          "name": "institutions.md",
+          "relPath": "skills/literature_search_openalex/references/institutions.md",
+          "size": 2813
+        },
+        {
+          "name": "publishers_funders.md",
+          "relPath": "skills/literature_search_openalex/references/publishers_funders.md",
+          "size": 2571
+        },
+        {
+          "name": "sources.md",
+          "relPath": "skills/literature_search_openalex/references/sources.md",
+          "size": 3851
+        },
+        {
+          "name": "taxonomy.md",
+          "relPath": "skills/literature_search_openalex/references/taxonomy.md",
+          "size": 2865
+        },
+        {
+          "name": "topics.md",
+          "relPath": "skills/literature_search_openalex/references/topics.md",
+          "size": 1188
+        },
+        {
+          "name": "type_values.md",
+          "relPath": "skills/literature_search_openalex/references/type_values.md",
+          "size": 3657
+        },
+        {
+          "name": "works.md",
+          "relPath": "skills/literature_search_openalex/references/works.md",
+          "size": 17281
+        },
+        {
+          "name": "openalex_cli.py",
+          "relPath": "skills/literature_search_openalex/scripts/openalex_cli.py",
+          "size": 23953
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/literature_search_openalex/SKILL.md",
+          "size": 8740
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/ncbi_sequence_fetch/references/citation.bib",
+          "size": 1809
+        },
+        {
+          "name": "ncbi_fetch.py",
+          "relPath": "skills/ncbi_sequence_fetch/scripts/ncbi_fetch.py",
+          "size": 35920
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ncbi_sequence_fetch/SKILL.md",
+          "size": 9299
+        },
+        {
+          "name": "api_endpoints.md",
+          "relPath": "skills/openfda_database/references/api_endpoints.md",
+          "size": 6414
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/openfda_database/references/citation.bib",
+          "size": 2029
+        },
+        {
+          "name": "recipes.md",
+          "relPath": "skills/openfda_database/references/recipes.md",
+          "size": 4524
+        },
+        {
+          "name": "openfda_query.py",
+          "relPath": "skills/openfda_database/scripts/openfda_query.py",
+          "size": 14264
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/openfda_database/SKILL.md",
+          "size": 10143
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/opentargets_database/references/citation.bib",
+          "size": 2489
+        },
+        {
+          "name": "OpenTargets_GraphQL_Guide.md",
+          "relPath": "skills/opentargets_database/references/OpenTargets_GraphQL_Guide.md",
+          "size": 7837
+        },
+        {
+          "name": "query_opentargets.py",
+          "relPath": "skills/opentargets_database/scripts/query_opentargets.py",
+          "size": 18601
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/opentargets_database/SKILL.md",
+          "size": 9753
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/pdb_database/references/citation.bib",
+          "size": 878
+        },
+        {
+          "name": "download_coordinate_files.py",
+          "relPath": "skills/pdb_database/scripts/download_coordinate_files.py",
+          "size": 3245
+        },
+        {
+          "name": "fetch_pdb_metadata.py",
+          "relPath": "skills/pdb_database/scripts/fetch_pdb_metadata.py",
+          "size": 1893
+        },
+        {
+          "name": "fetch_schema.py",
+          "relPath": "skills/pdb_database/scripts/fetch_schema.py",
+          "size": 7720
+        },
+        {
+          "name": "search_pdb.py",
+          "relPath": "skills/pdb_database/scripts/search_pdb.py",
+          "size": 5634
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/pdb_database/SKILL.md",
+          "size": 9119
+        },
+        {
+          "name": "iphi-region-sub-loc.json",
+          "relPath": "skills/predictingthepast/references/iphi-region-sub-loc.json",
+          "size": 6382
+        },
+        {
+          "name": "iphi-region-sub.txt",
+          "relPath": "skills/predictingthepast/references/iphi-region-sub.txt",
+          "size": 1107
+        },
+        {
+          "name": "led-proper-names.txt",
+          "relPath": "skills/predictingthepast/references/led-proper-names.txt",
+          "size": 337928
+        },
+        {
+          "name": "led-region-sub-loc.json",
+          "relPath": "skills/predictingthepast/references/led-region-sub-loc.json",
+          "size": 4585
+        },
+        {
+          "name": "led-region-sub.txt",
+          "relPath": "skills/predictingthepast/references/led-region-sub.txt",
+          "size": 735
+        },
+        {
+          "name": "output_format.md",
+          "relPath": "skills/predictingthepast/references/output_format.md",
+          "size": 5763
+        },
+        {
+          "name": "preprocess.py",
+          "relPath": "skills/predictingthepast/scripts/preprocess.py",
+          "size": 8153
+        },
+        {
+          "name": "run_inference.py",
+          "relPath": "skills/predictingthepast/scripts/run_inference.py",
+          "size": 27551
+        },
+        {
+          "name": "visualize_results.py",
+          "relPath": "skills/predictingthepast/scripts/visualize_results.py",
+          "size": 23866
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/predictingthepast/SKILL.md",
+          "size": 14909
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/protein_sequence_msa/references/citation.bib",
+          "size": 4729
+        },
+        {
+          "name": "msa_align.py",
+          "relPath": "skills/protein_sequence_msa/scripts/msa_align.py",
+          "size": 4953
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/protein_sequence_msa/SKILL.md",
+          "size": 6339
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/protein_sequence_similarity_search/references/citation.bib",
+          "size": 2128
+        },
+        {
+          "name": "mmseqs2_search.py",
+          "relPath": "skills/protein_sequence_similarity_search/scripts/mmseqs2_search.py",
+          "size": 11107
+        },
+        {
+          "name": "uniprot_blast.py",
+          "relPath": "skills/protein_sequence_similarity_search/scripts/uniprot_blast.py",
+          "size": 9033
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/protein_sequence_similarity_search/SKILL.md",
+          "size": 10954
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/pubchem_database/references/citation.bib",
+          "size": 2042
+        },
+        {
+          "name": "endpoints.md",
+          "relPath": "skills/pubchem_database/references/endpoints.md",
+          "size": 2448
+        },
+        {
+          "name": "workflows.md",
+          "relPath": "skills/pubchem_database/references/workflows.md",
+          "size": 1392
+        },
+        {
+          "name": "pubchem_api.py",
+          "relPath": "skills/pubchem_database/scripts/pubchem_api.py",
+          "size": 11532
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/pubchem_database/SKILL.md",
+          "size": 5841
+        },
+        {
+          "name": "advanced-linking.md",
+          "relPath": "skills/pubmed_database/references/advanced-linking.md",
+          "size": 5520
+        },
+        {
+          "name": "advanced-search.md",
+          "relPath": "skills/pubmed_database/references/advanced-search.md",
+          "size": 3660
+        },
+        {
+          "name": "bulk-workflows.md",
+          "relPath": "skills/pubmed_database/references/bulk-workflows.md",
+          "size": 3599
+        },
+        {
+          "name": "citation-matching.md",
+          "relPath": "skills/pubmed_database/references/citation-matching.md",
+          "size": 5344
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/pubmed_database/references/citation.bib",
+          "size": 1809
+        },
+        {
+          "name": "cross-database-linking.md",
+          "relPath": "skills/pubmed_database/references/cross-database-linking.md",
+          "size": 4025
+        },
+        {
+          "name": "fetch-and-resolve.md",
+          "relPath": "skills/pubmed_database/references/fetch-and-resolve.md",
+          "size": 5606
+        },
+        {
+          "name": "search-and-discovery.md",
+          "relPath": "skills/pubmed_database/references/search-and-discovery.md",
+          "size": 4948
+        },
+        {
+          "name": "utilities.md",
+          "relPath": "skills/pubmed_database/references/utilities.md",
+          "size": 1357
+        },
+        {
+          "name": "pubmed_api.py",
+          "relPath": "skills/pubmed_database/scripts/pubmed_api.py",
+          "size": 21444
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/pubmed_database/SKILL.md",
+          "size": 8569
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/pymol/references/citation.bib",
+          "size": 143
+        },
+        {
+          "name": "PYMOL_REFERENCE.md",
+          "relPath": "skills/pymol/references/PYMOL_REFERENCE.md",
+          "size": 5454
+        },
+        {
+          "name": "RECIPES.md",
+          "relPath": "skills/pymol/references/RECIPES.md",
+          "size": 11357
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/pymol/SKILL.md",
+          "size": 6850
+        },
+        {
+          "name": "annotations.md",
+          "relPath": "skills/quickgo_database/references/annotations.md",
+          "size": 2086
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/quickgo_database/references/citation.bib",
+          "size": 1425
+        },
+        {
+          "name": "eco_terms.md",
+          "relPath": "skills/quickgo_database/references/eco_terms.md",
+          "size": 1450
+        },
+        {
+          "name": "gene_products.md",
+          "relPath": "skills/quickgo_database/references/gene_products.md",
+          "size": 849
+        },
+        {
+          "name": "go_terms.md",
+          "relPath": "skills/quickgo_database/references/go_terms.md",
+          "size": 2086
+        },
+        {
+          "name": "quickgo_tool.py",
+          "relPath": "skills/quickgo_database/scripts/quickgo_tool.py",
+          "size": 9952
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/quickgo_database/SKILL.md",
+          "size": 5885
+        },
+        {
+          "name": "api_reference.md",
+          "relPath": "skills/reactome_database/references/api_reference.md",
+          "size": 4156
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/reactome_database/references/citation.bib",
+          "size": 2284
+        },
+        {
+          "name": "reactome_analysis.py",
+          "relPath": "skills/reactome_database/scripts/reactome_analysis.py",
+          "size": 31209
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/reactome_database/SKILL.md",
+          "size": 11252
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/string_database/references/citation.bib",
+          "size": 567
+        },
+        {
+          "name": "enrichment.md",
+          "relPath": "skills/string_database/references/enrichment.md",
+          "size": 1629
+        },
+        {
+          "name": "interactions.md",
+          "relPath": "skills/string_database/references/interactions.md",
+          "size": 2081
+        },
+        {
+          "name": "mapping.md",
+          "relPath": "skills/string_database/references/mapping.md",
+          "size": 735
+        },
+        {
+          "name": "valuesranks.md",
+          "relPath": "skills/string_database/references/valuesranks.md",
+          "size": 1668
+        },
+        {
+          "name": "string_cli.py",
+          "relPath": "skills/string_database/scripts/string_cli.py",
+          "size": 12068
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/string_database/SKILL.md",
+          "size": 3152
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/ucsc_conservation_and_tfbs/references/citation.bib",
+          "size": 810
+        },
+        {
+          "name": "get_conservation.py",
+          "relPath": "skills/ucsc_conservation_and_tfbs/scripts/get_conservation.py",
+          "size": 7726
+        },
+        {
+          "name": "get_tfbs.py",
+          "relPath": "skills/ucsc_conservation_and_tfbs/scripts/get_tfbs.py",
+          "size": 4984
+        },
+        {
+          "name": "list_tracks.py",
+          "relPath": "skills/ucsc_conservation_and_tfbs/scripts/list_tracks.py",
+          "size": 4268
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ucsc_conservation_and_tfbs/SKILL.md",
+          "size": 7940
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/unibind_database/references/citation.bib",
+          "size": 745
+        },
+        {
+          "name": "unibind_api.py",
+          "relPath": "skills/unibind_database/scripts/unibind_api.py",
+          "size": 13117
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/unibind_database/SKILL.md",
+          "size": 5537
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "skills/uniprot_database/references/citation.bib",
+          "size": 1457
+        },
+        {
+          "name": "id_mapping_databases.md",
+          "relPath": "skills/uniprot_database/references/id_mapping_databases.md",
+          "size": 7262
+        },
+        {
+          "name": "search_query_fields.md",
+          "relPath": "skills/uniprot_database/references/search_query_fields.md",
+          "size": 18437
+        },
+        {
+          "name": "sparql_examples.md",
+          "relPath": "skills/uniprot_database/references/sparql_examples.md",
+          "size": 2891
+        },
+        {
+          "name": "uniprot_tools.py",
+          "relPath": "skills/uniprot_database/scripts/uniprot_tools.py",
+          "size": 14440
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/uniprot_database/SKILL.md",
+          "size": 12555
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/uv/SKILL.md",
+          "size": 1908
+        },
+        {
+          "name": "cli_script_template.py",
+          "relPath": "skills/workflow_skill_creator/references/cli_script_template.py",
+          "size": 6940
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/workflow_skill_creator/SKILL.md",
+          "size": 12616
+        },
+        {
+          "name": "SKILL_LICENSES.md",
+          "relPath": "SKILL_LICENSES.md",
+          "size": 3931
+        },
+        {
+          "name": "shell.css",
+          "relPath": "ui/shared/frontend/shell.css",
+          "size": 11249
+        }
+      ]
+    },
+    {
+      "id": "stagehand",
+      "name": "stagehand",
+      "version": "1.0.0",
+      "description": "Stagehand browser automation and web extraction MCP server",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\stagehand",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "stagehand"
+      ],
+      "hooks": [],
+      "skills": [
+        "browserdefaultclean",
+        "browsernotdefault"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "mcp_server.mjs",
+          "relPath": "agent/mcp_server.mjs",
+          "size": 2818
+        },
+        {
+          "name": "model_config.mjs",
+          "relPath": "agent/model_config.mjs",
+          "size": 1261
+        },
+        {
+          "name": "package-lock.json",
+          "relPath": "agent/package-lock.json",
+          "size": 56125
+        },
+        {
+          "name": "package.json",
+          "relPath": "agent/package.json",
+          "size": 429
+        },
+        {
+          "name": "run_stagehand.mjs",
+          "relPath": "agent/run_stagehand.mjs",
+          "size": 4124
+        },
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 182
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 152
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/browserdefaultclean/SKILL.md",
+          "size": 2105
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/browsernotdefault/SKILL.md",
+          "size": 3349
+        }
+      ]
+    },
+    {
+      "id": "ui-skills",
+      "name": "ui-skills",
+      "version": "1.0.0",
+      "description": "Design systems, accessibility compliance, Base UI components, and design token management",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\ui-skills",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "ui-accessibility",
+        "ui-baseline",
+        "ui-design-tokens",
+        "ui-improve",
+        "ui-metadata",
+        "ui-motion-performance",
+        "ui-skills",
+        "ui-skills-help"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 247
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-accessibility/SKILL.md",
+          "size": 5015
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-baseline/SKILL.md",
+          "size": 3701
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-design-tokens/SKILL.md",
+          "size": 16514
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/ui-improve/agents/openai.yaml",
+          "size": 399
+        },
+        {
+          "name": "plan-template.md",
+          "relPath": "skills/ui-improve/references/plan-template.md",
+          "size": 1645
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-improve/SKILL.md",
+          "size": 7987
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-metadata/SKILL.md",
+          "size": 4799
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-motion-performance/SKILL.md",
+          "size": 5869
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/baseline-ui/SKILL.md",
+          "size": 3504
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/create-design-md/SKILL.md",
+          "size": 16462
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/fixing-accessibility/SKILL.md",
+          "size": 4853
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/fixing-metadata/SKILL.md",
+          "size": 4551
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/fixing-motion-performance/SKILL.md",
+          "size": 5716
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/ui-skills/improve-ui/agents/openai.yaml",
+          "size": 399
+        },
+        {
+          "name": "plan-template.md",
+          "relPath": "skills/ui-skills/improve-ui/references/plan-template.md",
+          "size": 1645
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/improve-ui/SKILL.md",
+          "size": 7946
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/SKILL.md",
+          "size": 1076
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills/ui-skills-root/SKILL.md",
+          "size": 1507
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/ui-skills-help/SKILL.md",
+          "size": 1176
+        }
+      ]
+    },
+    {
+      "id": "workspace-skills",
+      "name": "Workspace Skills (Root Hub)",
+      "version": "1.0.0",
+      "description": "Standalone skills collection (142 skills) located in root skills/ folder",
+      "path": "D:\\Software\\AI Agent Space\\skills",
+      "isRootSkills": true,
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "a11y-debugging",
+        "agent-self-verification",
+        "agy-customizations",
+        "alphafold_database_fetch_and_analyze",
+        "alphagenome_atlas_website_links",
+        "alphagenome_single_variant_analysis",
+        "alphagenome_variant_impact_score",
+        "antigravity_guide",
+        "antislop",
+        "antislop-code",
+        "antislop-copywriting",
+        "antislop-human",
+        "antislop-layoutmobile",
+        "antislop-ui",
+        "automation",
+        "awesome-gamedev-agent-skills",
+        "biomolecular_structure_viewer",
+        "browserdefaultclean",
+        "browsernotdefault",
+        "chembl_database",
+        "chrome-devtools",
+        "chrome-extensions",
+        "clinical_trials_database",
+        "clinvar_database",
+        "clonewebsite",
+        "codegraph-index",
+        "codegraph-query",
+        "compose-preview",
+        "cookie-debugging",
+        "credentials",
+        "crw-search",
+        "dart-add-unit-test",
+        "dart-build-cli-app",
+        "dart-collect-coverage",
+        "dart-fix-runtime-errors",
+        "dart-generate-test-mocks",
+        "dart-migrate-to-checks-package",
+        "dart-resolve-package-conflicts",
+        "dart-run-static-analysis",
+        "dart-setup-ffi-assets",
+        "dart-use-doc-examples",
+        "dart-use-ffigen",
+        "dart-use-path-package",
+        "dart-use-pattern-matching",
+        "dart-use-primary-constructors",
+        "dart-write-documentation",
+        "dbsnp_database",
+        "debug-optimize-lcp",
+        "device-hub",
+        "ecc-agent-evaluator",
+        "ecc-ck",
+        "ecc-council",
+        "ecc-strategic-compact",
+        "embl_ebi_ols",
+        "encode_ccres_database",
+        "ensembl_database",
+        "flutter-add-integration-test",
+        "flutter-add-widget-preview",
+        "flutter-add-widget-test",
+        "flutter-apply-architecture-best-practices",
+        "flutter-build-responsive-layout",
+        "flutter-fix-layout-issues",
+        "flutter-implement-json-serialization",
+        "flutter-setup-declarative-routing",
+        "flutter-setup-localization",
+        "flutter-use-http-package",
+        "foldseek_structural_search",
+        "gemini-api-dev",
+        "gemini-live-api-dev",
+        "gemini-omni-flash-api",
+        "generative_ui",
+        "gnomad_database",
+        "google-antigravity-sdk",
+        "gtex_database",
+        "human_protein_atlas_database",
+        "hybrid-web",
+        "interpro_database",
+        "jaspar_database",
+        "jevgraph-build",
+        "jevgraph-query",
+        "literature_search_arxiv",
+        "literature_search_biorxiv",
+        "literature_search_europepmc",
+        "literature_search_openalex",
+        "memory-leak-debugging",
+        "migrate-workflows",
+        "modern-web-guidance",
+        "ncbi_sequence_fetch",
+        "openfda_database",
+        "opentargets_database",
+        "pdb_database",
+        "permissioned-github",
+        "plugin",
+        "ponytail",
+        "ponytail-audit",
+        "ponytail-debt",
+        "ponytail-gain",
+        "ponytail-help",
+        "ponytail-review",
+        "predictingthepast",
+        "protein_sequence_msa",
+        "protein_sequence_similarity_search",
+        "pubchem_database",
+        "publishtokensaverlocal",
+        "publishtokensavernow",
+        "pubmed_database",
+        "pymol",
+        "quickgo_database",
+        "reactome_database",
+        "retrieving-developer-knowledge",
+        "reverse-engineer-anything",
+        "rtk-compress",
+        "rtk-diff",
+        "rtk-doctor",
+        "rtk-gain",
+        "rtk-omniroute",
+        "rtk-outline",
+        "rtk-roi",
+        "rtk-run",
+        "rtk-savedtokenoff",
+        "rtk-savedtokenon",
+        "rtk-sync",
+        "rtk-tree",
+        "rtk-update",
+        "run-workflow",
+        "string_database",
+        "tool-management-rules",
+        "troubleshooting",
+        "ucsc_conservation_and_tfbs",
+        "ui-accessibility",
+        "ui-baseline",
+        "ui-design-tokens",
+        "ui-improve",
+        "ui-metadata",
+        "ui-motion-performance",
+        "ui-plugin-navigation",
+        "ui-skills",
+        "ui-skills-help",
+        "unibind_database",
+        "uniprot_database",
+        "uv",
+        "workflow_skill_creator"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "a11y-snippets.md",
+          "relPath": "a11y-debugging/references/a11y-snippets.md",
+          "size": 2788
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "a11y-debugging/SKILL.md",
+          "size": 6124
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "agent-self-verification/SKILL.md",
+          "size": 5351
+        },
+        {
+          "name": "update_check_state.json",
+          "relPath": "agent-self-verification/update_check_state.json",
+          "size": 195
+        },
+        {
+          "name": "hooks.md",
+          "relPath": "agy-customizations/docs/hooks.md",
+          "size": 13129
+        },
+        {
+          "name": "json_configs.md",
+          "relPath": "agy-customizations/docs/json_configs.md",
+          "size": 4904
+        },
+        {
+          "name": "mcp_servers.md",
+          "relPath": "agy-customizations/docs/mcp_servers.md",
+          "size": 3378
+        },
+        {
+          "name": "plugins.md",
+          "relPath": "agy-customizations/docs/plugins.md",
+          "size": 4347
+        },
+        {
+          "name": "rules.md",
+          "relPath": "agy-customizations/docs/rules.md",
+          "size": 1757
+        },
+        {
+          "name": "skills.md",
+          "relPath": "agy-customizations/docs/skills.md",
+          "size": 2650
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "agy-customizations/SKILL.md",
+          "size": 5683
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "alphafold_database_fetch_and_analyze/references/citation.bib",
+          "size": 10493
+        },
+        {
+          "name": "analyze_pae.py",
+          "relPath": "alphafold_database_fetch_and_analyze/scripts/analyze_pae.py",
+          "size": 6223
+        },
+        {
+          "name": "analyze_plddt.py",
+          "relPath": "alphafold_database_fetch_and_analyze/scripts/analyze_plddt.py",
+          "size": 3940
+        },
+        {
+          "name": "fetch_structure.py",
+          "relPath": "alphafold_database_fetch_and_analyze/scripts/fetch_structure.py",
+          "size": 5018
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "alphafold_database_fetch_and_analyze/SKILL.md",
+          "size": 4986
+        },
+        {
+          "name": "pyproject.toml",
+          "relPath": "alphagenome_atlas_website_links/pyproject.toml",
+          "size": 215
+        },
+        {
+          "name": "alphagenome_atlas_links.py",
+          "relPath": "alphagenome_atlas_website_links/scripts/alphagenome_atlas_links.py",
+          "size": 36863
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "alphagenome_atlas_website_links/SKILL.md",
+          "size": 12792
+        },
+        {
+          "name": "alphagenome-api.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/alphagenome-api.md",
+          "size": 13586
+        },
+        {
+          "name": "ism_skeletal_muscle_RNA_SEQ.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/model_limitation_RNU4ATAC/ism_skeletal_muscle_RNA_SEQ.png",
+          "size": 12364
+        },
+        {
+          "name": "plot_skeletal_muscle_RNU4ATAC_detail.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/model_limitation_RNU4ATAC/plot_skeletal_muscle_RNU4ATAC_detail.png",
+          "size": 78094
+        },
+        {
+          "name": "plot_skeletal_muscle_RNU4ATAC_effects.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/model_limitation_RNU4ATAC/plot_skeletal_muscle_RNU4ATAC_effects.png",
+          "size": 74636
+        },
+        {
+          "name": "plot_skeletal_muscle_RNU4ATAC_wholegene.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/model_limitation_RNU4ATAC/plot_skeletal_muscle_RNU4ATAC_wholegene.png",
+          "size": 80148
+        },
+        {
+          "name": "README.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/model_limitation_RNU4ATAC/README.md",
+          "size": 1773
+        },
+        {
+          "name": "report.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/model_limitation_RNU4ATAC/report.md",
+          "size": 3788
+        },
+        {
+          "name": "ism_heart_DNASE.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_GATA4/ism_heart_DNASE.png",
+          "size": 11999
+        },
+        {
+          "name": "plot_heart_GATA4_detail.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_GATA4/plot_heart_GATA4_detail.png",
+          "size": 75300
+        },
+        {
+          "name": "plot_heart_GATA4_effects.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_GATA4/plot_heart_GATA4_effects.png",
+          "size": 71841
+        },
+        {
+          "name": "plot_heart_GATA4_wholegene.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_GATA4/plot_heart_GATA4_wholegene.png",
+          "size": 80112
+        },
+        {
+          "name": "README.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_GATA4/README.md",
+          "size": 1098
+        },
+        {
+          "name": "report.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_GATA4/report.md",
+          "size": 3685
+        },
+        {
+          "name": "ism_heart_ATAC.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_TGFB3/ism_heart_ATAC.png",
+          "size": 6670
+        },
+        {
+          "name": "ism_heart_RNA_SEQ.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_TGFB3/ism_heart_RNA_SEQ.png",
+          "size": 10589
+        },
+        {
+          "name": "plot_heart_TGFB3_detail.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_TGFB3/plot_heart_TGFB3_detail.png",
+          "size": 52720
+        },
+        {
+          "name": "plot_heart_TGFB3_effects.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_TGFB3/plot_heart_TGFB3_effects.png",
+          "size": 65556
+        },
+        {
+          "name": "plot_heart_TGFB3_wholegene.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_TGFB3/plot_heart_TGFB3_wholegene.png",
+          "size": 44945
+        },
+        {
+          "name": "README.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_TGFB3/README.md",
+          "size": 1192
+        },
+        {
+          "name": "report.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/negative_result_TGFB3/report.md",
+          "size": 3091
+        },
+        {
+          "name": "ism_K562_RNA_SEQ.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/polyadenylation_HBA2/ism_K562_RNA_SEQ.png",
+          "size": 11019
+        },
+        {
+          "name": "plot_K562_HBA2_effects.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/polyadenylation_HBA2/plot_K562_HBA2_effects.png",
+          "size": 162282
+        },
+        {
+          "name": "plot_K562_HBA2_wholegene.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/polyadenylation_HBA2/plot_K562_HBA2_wholegene.png",
+          "size": 163085
+        },
+        {
+          "name": "README.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/polyadenylation_HBA2/README.md",
+          "size": 1139
+        },
+        {
+          "name": "report.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/polyadenylation_HBA2/report.md",
+          "size": 3222
+        },
+        {
+          "name": "README.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/regulatory/README.md",
+          "size": 1245
+        },
+        {
+          "name": "col6a2_exon_extension.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/splicing/col6a2_exon_extension.png",
+          "size": 103832
+        },
+        {
+          "name": "col6a2_report.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/splicing/col6a2_report.md",
+          "size": 2271
+        },
+        {
+          "name": "dlg1_exon_skipping.png",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/splicing/dlg1_exon_skipping.png",
+          "size": 74883
+        },
+        {
+          "name": "dlg1_report.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/splicing/dlg1_report.md",
+          "size": 1977
+        },
+        {
+          "name": "README.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/examples/splicing/README.md",
+          "size": 1282
+        },
+        {
+          "name": "interpretation-guide.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/interpretation-guide.md",
+          "size": 17785
+        },
+        {
+          "name": "report-templates.md",
+          "relPath": "alphagenome_single_variant_analysis/docs/report-templates.md",
+          "size": 2909
+        },
+        {
+          "name": "pyproject.toml",
+          "relPath": "alphagenome_single_variant_analysis/pyproject.toml",
+          "size": 269
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "alphagenome_single_variant_analysis/references/citation.bib",
+          "size": 823
+        },
+        {
+          "name": "analyze_ism.py",
+          "relPath": "alphagenome_single_variant_analysis/scripts/analyze_ism.py",
+          "size": 10378
+        },
+        {
+          "name": "generate_ontology_mapping.py",
+          "relPath": "alphagenome_single_variant_analysis/scripts/generate_ontology_mapping.py",
+          "size": 4965
+        },
+        {
+          "name": "interpret_splicing.py",
+          "relPath": "alphagenome_single_variant_analysis/scripts/interpret_splicing.py",
+          "size": 9726
+        },
+        {
+          "name": "lookup_gene_info.py",
+          "relPath": "alphagenome_single_variant_analysis/scripts/lookup_gene_info.py",
+          "size": 9999
+        },
+        {
+          "name": "resolve_ontology_terms.py",
+          "relPath": "alphagenome_single_variant_analysis/scripts/resolve_ontology_terms.py",
+          "size": 5601
+        },
+        {
+          "name": "visualize_genome_tracks.py",
+          "relPath": "alphagenome_single_variant_analysis/scripts/visualize_genome_tracks.py",
+          "size": 12743
+        },
+        {
+          "name": "visualize_variant_effects.py",
+          "relPath": "alphagenome_single_variant_analysis/scripts/visualize_variant_effects.py",
+          "size": 37866
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "alphagenome_single_variant_analysis/SKILL.md",
+          "size": 12204
+        },
+        {
+          "name": "pyproject.toml",
+          "relPath": "alphagenome_variant_impact_score/pyproject.toml",
+          "size": 314
+        },
+        {
+          "name": "alphagenome_atlas_avi.py",
+          "relPath": "alphagenome_variant_impact_score/scripts/alphagenome_atlas_avi.py",
+          "size": 72835
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "alphagenome_variant_impact_score/SKILL.md",
+          "size": 16940
+        },
+        {
+          "name": "app.md",
+          "relPath": "antigravity_guide/references/app.md",
+          "size": 3852
+        },
+        {
+          "name": "cli.md",
+          "relPath": "antigravity_guide/references/cli.md",
+          "size": 1686
+        },
+        {
+          "name": "ide.md",
+          "relPath": "antigravity_guide/references/ide.md",
+          "size": 4540
+        },
+        {
+          "name": "sdk.md",
+          "relPath": "antigravity_guide/references/sdk.md",
+          "size": 3130
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "antigravity_guide/SKILL.md",
+          "size": 3242
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "antislop/SKILL.md",
+          "size": 58025
+        },
+        {
+          "name": "VERSION",
+          "relPath": "antislop/VERSION",
+          "size": 7
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "antislop-code/SKILL.md",
+          "size": 9141
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "antislop-copywriting/SKILL.md",
+          "size": 25616
+        },
+        {
+          "name": "contrast-check.py",
+          "relPath": "antislop-human/contrast-check.py",
+          "size": 5589
+        },
+        {
+          "name": "contrast-mcp.py",
+          "relPath": "antislop-human/contrast-mcp.py",
+          "size": 3628
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "antislop-human/SKILL.md",
+          "size": 11248
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "antislop-layoutmobile/SKILL.md",
+          "size": 16575
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "antislop-ui/SKILL.md",
+          "size": 27041
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "automation/SKILL.md",
+          "size": 10467
+        },
+        {
+          "name": "marketplace.json",
+          "relPath": "awesome-gamedev-agent-skills/.claude-plugin/marketplace.json",
+          "size": 9399
+        },
+        {
+          "name": "CONTRIBUTING.md",
+          "relPath": "awesome-gamedev-agent-skills/CONTRIBUTING.md",
+          "size": 5470
+        },
+        {
+          "name": "awesome-gamedev-agent-skills-banner.png",
+          "relPath": "awesome-gamedev-agent-skills/docs/assets/awesome-gamedev-agent-skills-banner.png",
+          "size": 1917415
+        },
+        {
+          "name": "COMPATIBILITY.md",
+          "relPath": "awesome-gamedev-agent-skills/docs/COMPATIBILITY.md",
+          "size": 7824
+        },
+        {
+          "name": "INSTALLATION.md",
+          "relPath": "awesome-gamedev-agent-skills/docs/INSTALLATION.md",
+          "size": 8487
+        },
+        {
+          "name": "SKILL-FORMAT.md",
+          "relPath": "awesome-gamedev-agent-skills/docs/SKILL-FORMAT.md",
+          "size": 5863
+        },
+        {
+          "name": "VERSION-SUPPORT.md",
+          "relPath": "awesome-gamedev-agent-skills/docs/VERSION-SUPPORT.md",
+          "size": 2854
+        },
+        {
+          "name": "LICENSE",
+          "relPath": "awesome-gamedev-agent-skills/LICENSE",
+          "size": 11596
+        },
+        {
+          "name": "NOTICE",
+          "relPath": "awesome-gamedev-agent-skills/NOTICE",
+          "size": 898
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/README.md",
+          "size": 20384
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "awesome-gamedev-agent-skills/router/agents/openai.yaml",
+          "size": 225
+        },
+        {
+          "name": "engine-detection.md",
+          "relPath": "awesome-gamedev-agent-skills/router/references/engine-detection.md",
+          "size": 4949
+        },
+        {
+          "name": "routing-table.md",
+          "relPath": "awesome-gamedev-agent-skills/router/references/routing-table.md",
+          "size": 12585
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/router/SKILL.md",
+          "size": 15602
+        },
+        {
+          "name": "check-site.py",
+          "relPath": "awesome-gamedev-agent-skills/scripts/check-site.py",
+          "size": 2802
+        },
+        {
+          "name": "generate-site.py",
+          "relPath": "awesome-gamedev-agent-skills/scripts/generate-site.py",
+          "size": 21272
+        },
+        {
+          "name": "validate-skills.py",
+          "relPath": "awesome-gamedev-agent-skills/scripts/validate-skills.py",
+          "size": 14173
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/SKILL.md",
+          "size": 15870
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/ai-behavior-trees-utility-ai/SKILL.md",
+          "size": 8420
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/audio-design/SKILL.md",
+          "size": 6956
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/camera-systems/SKILL.md",
+          "size": 8684
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/create-game-assets/SKILL.md",
+          "size": 8114
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/dialogue-systems/SKILL.md",
+          "size": 7577
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/game-ai/SKILL.md",
+          "size": 8172
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/game-feel/SKILL.md",
+          "size": 9150
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/game-ui-ux/SKILL.md",
+          "size": 8587
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/input-systems/SKILL.md",
+          "size": 7821
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/level-design/SKILL.md",
+          "size": 7219
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/performance-optimization/SKILL.md",
+          "size": 9168
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/physics-tuning/SKILL.md",
+          "size": 7701
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/procedural-gen/SKILL.md",
+          "size": 7317
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/README.md",
+          "size": 727
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/save-systems/SKILL.md",
+          "size": 7498
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/disciplines/shader-programming/SKILL.md",
+          "size": 6984
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/card-game/SKILL.md",
+          "size": 6650
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/fps-shooter/SKILL.md",
+          "size": 6287
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/platformer/SKILL.md",
+          "size": 6901
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/puzzle/SKILL.md",
+          "size": 7142
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/README.md",
+          "size": 501
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/roguelike/SKILL.md",
+          "size": 7404
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/rpg/SKILL.md",
+          "size": 6492
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/survival-crafting/SKILL.md",
+          "size": 7558
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/tower-defense/SKILL.md",
+          "size": 6785
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/genres/visual-novel/SKILL.md",
+          "size": 6898
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-2d-movement/SKILL.md",
+          "size": 6161
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-3d-essentials/SKILL.md",
+          "size": 5842
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-animation/SKILL.md",
+          "size": 5555
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-audio/SKILL.md",
+          "size": 5362
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-csharp/SKILL.md",
+          "size": 6840
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-export/SKILL.md",
+          "size": 5714
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-gdscript/SKILL.md",
+          "size": 5421
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-gdscript-headless-testing/SKILL.md",
+          "size": 9382
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-multiplayer/SKILL.md",
+          "size": 6623
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-nodes-scenes/SKILL.md",
+          "size": 5634
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-physics/SKILL.md",
+          "size": 8460
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-resources/SKILL.md",
+          "size": 5113
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-shaders/SKILL.md",
+          "size": 5672
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-signals-groups/SKILL.md",
+          "size": 5184
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-tilemap/SKILL.md",
+          "size": 5885
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/godot-ui-control/SKILL.md",
+          "size": 5908
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/godot/README.md",
+          "size": 435
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/bevy-ecs/SKILL.md",
+          "size": 10133
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/love2d-core/SKILL.md",
+          "size": 6492
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/pygame-core/SKILL.md",
+          "size": 7396
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/README.md",
+          "size": 451
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/roblox-characters/SKILL.md",
+          "size": 8801
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/roblox-datastores/SKILL.md",
+          "size": 7925
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/roblox-luau/SKILL.md",
+          "size": 9043
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/roblox-networking/SKILL.md",
+          "size": 9483
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/roblox-physics/SKILL.md",
+          "size": 8201
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/roblox-studio-workflow/SKILL.md",
+          "size": 10441
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/other-engines/roblox-ui/SKILL.md",
+          "size": 11952
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/README.md",
+          "size": 1107
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/README.md",
+          "size": 434
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-animation/SKILL.md",
+          "size": 5777
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-build-pipeline/SKILL.md",
+          "size": 6011
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-csharp-scripting/SKILL.md",
+          "size": 6332
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-input-system/SKILL.md",
+          "size": 6291
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-navmesh/SKILL.md",
+          "size": 7189
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-physics/SKILL.md",
+          "size": 8780
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-scriptableobjects/SKILL.md",
+          "size": 5921
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unity/unity-tilemap-2d/SKILL.md",
+          "size": 6082
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unreal/README.md",
+          "size": 397
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unreal/unreal-behavior-trees/SKILL.md",
+          "size": 6317
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unreal/unreal-blueprints/SKILL.md",
+          "size": 5924
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unreal/unreal-cpp-gameplay/SKILL.md",
+          "size": 6083
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unreal/unreal-enhanced-input/SKILL.md",
+          "size": 6124
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unreal/unreal-niagara/SKILL.md",
+          "size": 5971
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/unreal/unreal-packaging/SKILL.md",
+          "size": 5204
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/web-engines/phaser-arcade-physics/SKILL.md",
+          "size": 7187
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/web-engines/phaser-core/SKILL.md",
+          "size": 7456
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/web-engines/pixijs-rendering/SKILL.md",
+          "size": 9507
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/web-engines/README.md",
+          "size": 425
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/web-engines/threejs-gltf-loading/SKILL.md",
+          "size": 7313
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/web-engines/threejs-materials-lighting/SKILL.md",
+          "size": 7459
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/web-engines/threejs-scene-setup/SKILL.md",
+          "size": 7032
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/workflows/game-jam/SKILL.md",
+          "size": 6634
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/workflows/itch-publish/SKILL.md",
+          "size": 7044
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/workflows/prototype-fast/SKILL.md",
+          "size": 6143
+        },
+        {
+          "name": "README.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/workflows/README.md",
+          "size": 491
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "awesome-gamedev-agent-skills/skills/workflows/steam-publish/SKILL.md",
+          "size": 9530
+        },
+        {
+          "name": "SKILL.template.md",
+          "relPath": "awesome-gamedev-agent-skills/templates/SKILL.template.md",
+          "size": 1639
+        },
+        {
+          "name": "test_asset_tools.py",
+          "relPath": "awesome-gamedev-agent-skills/tests/test_asset_tools.py",
+          "size": 3012
+        },
+        {
+          "name": "test_validate_skills.py",
+          "relPath": "awesome-gamedev-agent-skills/tests/test_validate_skills.py",
+          "size": 6758
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "biomolecular_structure_viewer/SKILL.md",
+          "size": 32503
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "browserdefaultclean/SKILL.md",
+          "size": 2105
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "browsernotdefault/SKILL.md",
+          "size": 3349
+        },
+        {
+          "name": "api_endpoints.md",
+          "relPath": "chembl_database/references/api_endpoints.md",
+          "size": 2832
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "chembl_database/references/citation.bib",
+          "size": 3639
+        },
+        {
+          "name": "chembl_api.py",
+          "relPath": "chembl_database/scripts/chembl_api.py",
+          "size": 18842
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "chembl_database/SKILL.md",
+          "size": 11730
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "chrome-devtools/SKILL.md",
+          "size": 4588
+        },
+        {
+          "name": "api-calling.md",
+          "relPath": "chrome-extensions/references/extensions/api-calling.md",
+          "size": 2188
+        },
+        {
+          "name": "auth-identity.md",
+          "relPath": "chrome-extensions/references/extensions/auth-identity.md",
+          "size": 4036
+        },
+        {
+          "name": "content-scripts.md",
+          "relPath": "chrome-extensions/references/extensions/content-scripts.md",
+          "size": 3506
+        },
+        {
+          "name": "context-menus.md",
+          "relPath": "chrome-extensions/references/extensions/context-menus.md",
+          "size": 1844
+        },
+        {
+          "name": "csp-sandbox.md",
+          "relPath": "chrome-extensions/references/extensions/csp-sandbox.md",
+          "size": 4810
+        },
+        {
+          "name": "declarative-net-request.md",
+          "relPath": "chrome-extensions/references/extensions/declarative-net-request.md",
+          "size": 2794
+        },
+        {
+          "name": "devtools.md",
+          "relPath": "chrome-extensions/references/extensions/devtools.md",
+          "size": 2889
+        },
+        {
+          "name": "icons.md",
+          "relPath": "chrome-extensions/references/extensions/icons.md",
+          "size": 2756
+        },
+        {
+          "name": "media-capture.md",
+          "relPath": "chrome-extensions/references/extensions/media-capture.md",
+          "size": 4805
+        },
+        {
+          "name": "message-passing.md",
+          "relPath": "chrome-extensions/references/extensions/message-passing.md",
+          "size": 4214
+        },
+        {
+          "name": "omnibox.md",
+          "relPath": "chrome-extensions/references/extensions/omnibox.md",
+          "size": 1819
+        },
+        {
+          "name": "permissions.md",
+          "relPath": "chrome-extensions/references/extensions/permissions.md",
+          "size": 4641
+        },
+        {
+          "name": "popup-ui.md",
+          "relPath": "chrome-extensions/references/extensions/popup-ui.md",
+          "size": 2378
+        },
+        {
+          "name": "prompt-api.md",
+          "relPath": "chrome-extensions/references/extensions/prompt-api.md",
+          "size": 3835
+        },
+        {
+          "name": "service-worker.md",
+          "relPath": "chrome-extensions/references/extensions/service-worker.md",
+          "size": 4591
+        },
+        {
+          "name": "side-panel.md",
+          "relPath": "chrome-extensions/references/extensions/side-panel.md",
+          "size": 4480
+        },
+        {
+          "name": "storage.md",
+          "relPath": "chrome-extensions/references/extensions/storage.md",
+          "size": 1965
+        },
+        {
+          "name": "tab-management.md",
+          "relPath": "chrome-extensions/references/extensions/tab-management.md",
+          "size": 3756
+        },
+        {
+          "name": "user-scripts.md",
+          "relPath": "chrome-extensions/references/extensions/user-scripts.md",
+          "size": 9414
+        },
+        {
+          "name": "chromewebstore-template.md",
+          "relPath": "chrome-extensions/references/webstore/chromewebstore-template.md",
+          "size": 5786
+        },
+        {
+          "name": "privacy-policy.md",
+          "relPath": "chrome-extensions/references/webstore/privacy-policy.md",
+          "size": 4247
+        },
+        {
+          "name": "review-checklist.md",
+          "relPath": "chrome-extensions/references/webstore/review-checklist.md",
+          "size": 7074
+        },
+        {
+          "name": "store-listing.md",
+          "relPath": "chrome-extensions/references/webstore/store-listing.md",
+          "size": 8033
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "chrome-extensions/SKILL.md",
+          "size": 26702
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "clinical_trials_database/references/citation.bib",
+          "size": 376
+        },
+        {
+          "name": "clinical_trials_api.md",
+          "relPath": "clinical_trials_database/references/clinical_trials_api.md",
+          "size": 6331
+        },
+        {
+          "name": "studies_schema.md",
+          "relPath": "clinical_trials_database/references/studies_schema.md",
+          "size": 5146
+        },
+        {
+          "name": "clinical_trials_api.py",
+          "relPath": "clinical_trials_database/scripts/clinical_trials_api.py",
+          "size": 11639
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "clinical_trials_database/SKILL.md",
+          "size": 12934
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "clinvar_database/references/citation.bib",
+          "size": 1098
+        },
+        {
+          "name": "clinvar_api.py",
+          "relPath": "clinvar_database/scripts/clinvar_api.py",
+          "size": 24359
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "clinvar_database/SKILL.md",
+          "size": 15950
+        },
+        {
+          "name": "framer-and-motion.md",
+          "relPath": "clonewebsite/references/framer-and-motion.md",
+          "size": 3223
+        },
+        {
+          "name": "inspection-guide.md",
+          "relPath": "clonewebsite/references/inspection-guide.md",
+          "size": 3055
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "clonewebsite/SKILL.md",
+          "size": 6883
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "codegraph-index/SKILL.md",
+          "size": 1090
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "codegraph-query/SKILL.md",
+          "size": 1715
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "compose-preview/SKILL.md",
+          "size": 13164
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "cookie-debugging/SKILL.md",
+          "size": 10231
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "credentials/SKILL.md",
+          "size": 4385
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "crw-search/SKILL.md",
+          "size": 1319
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-add-unit-test/SKILL.md",
+          "size": 4870
+        },
+        {
+          "name": "multi_command_runner.dart",
+          "relPath": "dart-build-cli-app/examples/multi_command_runner.dart",
+          "size": 2508
+        },
+        {
+          "name": "single_command_tool.dart",
+          "relPath": "dart-build-cli-app/examples/single_command_tool.dart",
+          "size": 2365
+        },
+        {
+          "name": "aot_sdk_discovery.md",
+          "relPath": "dart-build-cli-app/references/aot_sdk_discovery.md",
+          "size": 3981
+        },
+        {
+          "name": "signals_and_terminal.md",
+          "relPath": "dart-build-cli-app/references/signals_and_terminal.md",
+          "size": 4144
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-build-cli-app/SKILL.md",
+          "size": 13988
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-collect-coverage/SKILL.md",
+          "size": 5054
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-fix-runtime-errors/SKILL.md",
+          "size": 6418
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-generate-test-mocks/SKILL.md",
+          "size": 6500
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-migrate-to-checks-package/SKILL.md",
+          "size": 19485
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-resolve-package-conflicts/SKILL.md",
+          "size": 5428
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-run-static-analysis/SKILL.md",
+          "size": 5194
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-setup-ffi-assets/SKILL.md",
+          "size": 19060
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-use-doc-examples/SKILL.md",
+          "size": 5504
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-use-ffigen/SKILL.md",
+          "size": 11797
+        },
+        {
+          "name": "cross_platform_paths.dart",
+          "relPath": "dart-use-path-package/examples/cross_platform_paths.dart",
+          "size": 1859
+        },
+        {
+          "name": "file_system_context.dart",
+          "relPath": "dart-use-path-package/examples/file_system_context.dart",
+          "size": 1035
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-use-path-package/SKILL.md",
+          "size": 11439
+        },
+        {
+          "name": "json_patterns.dart",
+          "relPath": "dart-use-pattern-matching/examples/json_patterns.dart",
+          "size": 2642
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-use-pattern-matching/SKILL.md",
+          "size": 13893
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-use-primary-constructors/SKILL.md",
+          "size": 11522
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dart-write-documentation/SKILL.md",
+          "size": 6887
+        },
+        {
+          "name": "api-notes.md",
+          "relPath": "dbsnp_database/references/api-notes.md",
+          "size": 3762
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "dbsnp_database/references/citation.bib",
+          "size": 368
+        },
+        {
+          "name": "dbsnp_cli.py",
+          "relPath": "dbsnp_database/scripts/dbsnp_cli.py",
+          "size": 19840
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "dbsnp_database/SKILL.md",
+          "size": 13865
+        },
+        {
+          "name": "elements-and-size.md",
+          "relPath": "debug-optimize-lcp/references/elements-and-size.md",
+          "size": 1326
+        },
+        {
+          "name": "lcp-breakdown.md",
+          "relPath": "debug-optimize-lcp/references/lcp-breakdown.md",
+          "size": 2525
+        },
+        {
+          "name": "lcp-snippets.md",
+          "relPath": "debug-optimize-lcp/references/lcp-snippets.md",
+          "size": 2436
+        },
+        {
+          "name": "optimization-strategies.md",
+          "relPath": "debug-optimize-lcp/references/optimization-strategies.md",
+          "size": 2154
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "debug-optimize-lcp/SKILL.md",
+          "size": 6844
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "device-hub/SKILL.md",
+          "size": 8012
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ecc-agent-evaluator/SKILL.md",
+          "size": 660
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ecc-ck/SKILL.md",
+          "size": 785
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ecc-council/SKILL.md",
+          "size": 914
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ecc-strategic-compact/SKILL.md",
+          "size": 968
+        },
+        {
+          "name": "api_reference.md",
+          "relPath": "embl_ebi_ols/references/api_reference.md",
+          "size": 5117
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "embl_ebi_ols/references/citation.bib",
+          "size": 2037
+        },
+        {
+          "name": "get_individual.py",
+          "relPath": "embl_ebi_ols/scripts/get_individual.py",
+          "size": 5387
+        },
+        {
+          "name": "get_ontology.py",
+          "relPath": "embl_ebi_ols/scripts/get_ontology.py",
+          "size": 4423
+        },
+        {
+          "name": "get_property.py",
+          "relPath": "embl_ebi_ols/scripts/get_property.py",
+          "size": 6743
+        },
+        {
+          "name": "get_stats.py",
+          "relPath": "embl_ebi_ols/scripts/get_stats.py",
+          "size": 2085
+        },
+        {
+          "name": "get_term.py",
+          "relPath": "embl_ebi_ols/scripts/get_term.py",
+          "size": 10524
+        },
+        {
+          "name": "ols_utils.py",
+          "relPath": "embl_ebi_ols/scripts/ols_utils.py",
+          "size": 2761
+        },
+        {
+          "name": "search_ols.py",
+          "relPath": "embl_ebi_ols/scripts/search_ols.py",
+          "size": 6577
+        },
+        {
+          "name": "suggest_ols.py",
+          "relPath": "embl_ebi_ols/scripts/suggest_ols.py",
+          "size": 3818
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "embl_ebi_ols/SKILL.md",
+          "size": 11689
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "encode_ccres_database/references/citation.bib",
+          "size": 7838
+        },
+        {
+          "name": "graphql_schema.md",
+          "relPath": "encode_ccres_database/references/graphql_schema.md",
+          "size": 4708
+        },
+        {
+          "name": "json_output_structure.md",
+          "relPath": "encode_ccres_database/references/json_output_structure.md",
+          "size": 5622
+        },
+        {
+          "name": "encode_portal_api.py",
+          "relPath": "encode_ccres_database/scripts/encode_portal_api.py",
+          "size": 2099
+        },
+        {
+          "name": "screen_api.py",
+          "relPath": "encode_ccres_database/scripts/screen_api.py",
+          "size": 20490
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "encode_ccres_database/SKILL.md",
+          "size": 7073
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "ensembl_database/references/citation.bib",
+          "size": 3789
+        },
+        {
+          "name": "ensembl_rest_api_reference.md",
+          "relPath": "ensembl_database/references/ensembl_rest_api_reference.md",
+          "size": 11511
+        },
+        {
+          "name": "ensembl_api.py",
+          "relPath": "ensembl_database/scripts/ensembl_api.py",
+          "size": 23730
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ensembl_database/SKILL.md",
+          "size": 9053
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-add-integration-test/SKILL.md",
+          "size": 7503
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-add-widget-preview/SKILL.md",
+          "size": 6407
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-add-widget-test/SKILL.md",
+          "size": 6542
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-apply-architecture-best-practices/SKILL.md",
+          "size": 6512
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-build-responsive-layout/SKILL.md",
+          "size": 6966
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-fix-layout-issues/SKILL.md",
+          "size": 5487
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-implement-json-serialization/SKILL.md",
+          "size": 5811
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-setup-declarative-routing/SKILL.md",
+          "size": 8365
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-setup-localization/SKILL.md",
+          "size": 6081
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "flutter-use-http-package/SKILL.md",
+          "size": 6617
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "foldseek_structural_search/references/citation.bib",
+          "size": 445
+        },
+        {
+          "name": "search.py",
+          "relPath": "foldseek_structural_search/scripts/search.py",
+          "size": 8005
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "foldseek_structural_search/SKILL.md",
+          "size": 5577
+        },
+        {
+          "name": "migration.md",
+          "relPath": "gemini-api-dev/references/migration.md",
+          "size": 14834
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "gemini-api-dev/SKILL.md",
+          "size": 21757
+        },
+        {
+          "name": "migration.md",
+          "relPath": "gemini-live-api-dev/references/migration.md",
+          "size": 8973
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "gemini-live-api-dev/SKILL.md",
+          "size": 18926
+        },
+        {
+          "name": "upload_file.py",
+          "relPath": "gemini-omni-flash-api/scripts/upload_file.py",
+          "size": 14682
+        },
+        {
+          "name": "generate_video.py",
+          "relPath": "gemini-omni-flash-api/scripts/video/generate_video.py",
+          "size": 32350
+        },
+        {
+          "name": "inspect_video.py",
+          "relPath": "gemini-omni-flash-api/scripts/video/inspect_video.py",
+          "size": 6359
+        },
+        {
+          "name": "prep_video.py",
+          "relPath": "gemini-omni-flash-api/scripts/video/prep_video.py",
+          "size": 10756
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "gemini-omni-flash-api/SKILL.md",
+          "size": 25979
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "generative_ui/SKILL.md",
+          "size": 6042
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "gnomad_database/references/citation.bib",
+          "size": 5197
+        },
+        {
+          "name": "get_gene_constraint.py",
+          "relPath": "gnomad_database/scripts/get_gene_constraint.py",
+          "size": 2465
+        },
+        {
+          "name": "get_variant_frequency.py",
+          "relPath": "gnomad_database/scripts/get_variant_frequency.py",
+          "size": 4326
+        },
+        {
+          "name": "search_variants.py",
+          "relPath": "gnomad_database/scripts/search_variants.py",
+          "size": 5360
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "gnomad_database/SKILL.md",
+          "size": 3324
+        },
+        {
+          "name": "agent_skills.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/agent_skills.md",
+          "size": 1620
+        },
+        {
+          "name": "app_data_dir_override.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/app_data_dir_override.md",
+          "size": 1028
+        },
+        {
+          "name": "budget_limits.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/budget_limits.md",
+          "size": 3363
+        },
+        {
+          "name": "cancellation.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/cancellation.md",
+          "size": 1857
+        },
+        {
+          "name": "compaction.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/compaction.md",
+          "size": 1472
+        },
+        {
+          "name": "customizing_retries.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/customizing_retries.md",
+          "size": 2630
+        },
+        {
+          "name": "custom_tool.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/custom_tool.md",
+          "size": 3770
+        },
+        {
+          "name": "hello_world.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/hello_world.md",
+          "size": 2666
+        },
+        {
+          "name": "hooks.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/hooks.md",
+          "size": 4324
+        },
+        {
+          "name": "local_models.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/local_models.md",
+          "size": 6202
+        },
+        {
+          "name": "mcp_tools.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/mcp_tools.md",
+          "size": 4231
+        },
+        {
+          "name": "multimodal.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/multimodal.md",
+          "size": 1845
+        },
+        {
+          "name": "periodic_trigger.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/periodic_trigger.md",
+          "size": 2749
+        },
+        {
+          "name": "persistence.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/persistence.md",
+          "size": 1448
+        },
+        {
+          "name": "persona_config.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/persona_config.md",
+          "size": 2249
+        },
+        {
+          "name": "structured_output.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/structured_output.md",
+          "size": 1378
+        },
+        {
+          "name": "subagents.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/subagents.md",
+          "size": 3328
+        },
+        {
+          "name": "web_tools.md",
+          "relPath": "google-antigravity-sdk/examples/getting_started/web_tools.md",
+          "size": 2206
+        },
+        {
+          "name": "agent_configuration.md",
+          "relPath": "google-antigravity-sdk/references/agent_configuration.md",
+          "size": 12396
+        },
+        {
+          "name": "architecture.md",
+          "relPath": "google-antigravity-sdk/references/architecture.md",
+          "size": 2712
+        },
+        {
+          "name": "built_in_tools.md",
+          "relPath": "google-antigravity-sdk/references/built_in_tools.md",
+          "size": 3115
+        },
+        {
+          "name": "error_handling.md",
+          "relPath": "google-antigravity-sdk/references/error_handling.md",
+          "size": 3407
+        },
+        {
+          "name": "local_models.md",
+          "relPath": "google-antigravity-sdk/references/local_models.md",
+          "size": 7821
+        },
+        {
+          "name": "mcp_integration.md",
+          "relPath": "google-antigravity-sdk/references/mcp_integration.md",
+          "size": 5377
+        },
+        {
+          "name": "observability.md",
+          "relPath": "google-antigravity-sdk/references/observability.md",
+          "size": 2978
+        },
+        {
+          "name": "safety_policies.md",
+          "relPath": "google-antigravity-sdk/references/safety_policies.md",
+          "size": 7716
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "google-antigravity-sdk/SKILL.md",
+          "size": 8552
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "gtex_database/references/citation.bib",
+          "size": 5807
+        },
+        {
+          "name": "gtex_cli.py",
+          "relPath": "gtex_database/scripts/gtex_cli.py",
+          "size": 8904
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "gtex_database/SKILL.md",
+          "size": 6297
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "human_protein_atlas_database/references/citation.bib",
+          "size": 2768
+        },
+        {
+          "name": "search-api.md",
+          "relPath": "human_protein_atlas_database/references/search-api.md",
+          "size": 5893
+        },
+        {
+          "name": "hpa_cli.py",
+          "relPath": "human_protein_atlas_database/scripts/hpa_cli.py",
+          "size": 8325
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "human_protein_atlas_database/SKILL.md",
+          "size": 6665
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "hybrid-web/SKILL.md",
+          "size": 2070
+        },
+        {
+          "name": "api_reference.md",
+          "relPath": "interpro_database/references/api_reference.md",
+          "size": 7898
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "interpro_database/references/citation.bib",
+          "size": 3469
+        },
+        {
+          "name": "example_responses.tsv",
+          "relPath": "interpro_database/references/example_responses.tsv",
+          "size": 13208
+        },
+        {
+          "name": "interpro_client.py",
+          "relPath": "interpro_database/scripts/interpro_client.py",
+          "size": 14796
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "interpro_database/SKILL.md",
+          "size": 17203
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "jaspar_database/references/citation.bib",
+          "size": 2665
+        },
+        {
+          "name": "jaspar_api.py",
+          "relPath": "jaspar_database/scripts/jaspar_api.py",
+          "size": 8785
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "jaspar_database/SKILL.md",
+          "size": 4691
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "jevgraph-build/SKILL.md",
+          "size": 2851
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "jevgraph-query/SKILL.md",
+          "size": 1712
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "literature_search_arxiv/references/citation.bib",
+          "size": 366
+        },
+        {
+          "name": "query_syntax.md",
+          "relPath": "literature_search_arxiv/references/query_syntax.md",
+          "size": 997
+        },
+        {
+          "name": "download_paper.py",
+          "relPath": "literature_search_arxiv/scripts/download_paper.py",
+          "size": 3455
+        },
+        {
+          "name": "download_paper_source.py",
+          "relPath": "literature_search_arxiv/scripts/download_paper_source.py",
+          "size": 2881
+        },
+        {
+          "name": "search_arxiv.py",
+          "relPath": "literature_search_arxiv/scripts/search_arxiv.py",
+          "size": 5118
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "literature_search_arxiv/SKILL.md",
+          "size": 4854
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "literature_search_biorxiv/references/citation.bib",
+          "size": 3018
+        },
+        {
+          "name": "search_by_dates.py",
+          "relPath": "literature_search_biorxiv/scripts/search_by_dates.py",
+          "size": 8611
+        },
+        {
+          "name": "search_by_doi.py",
+          "relPath": "literature_search_biorxiv/scripts/search_by_doi.py",
+          "size": 2101
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "literature_search_biorxiv/SKILL.md",
+          "size": 7973
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "literature_search_europepmc/references/citation.bib",
+          "size": 2022
+        },
+        {
+          "name": "europepmc_api.py",
+          "relPath": "literature_search_europepmc/scripts/europepmc_api.py",
+          "size": 11419
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "literature_search_europepmc/SKILL.md",
+          "size": 8583
+        },
+        {
+          "name": "authors.md",
+          "relPath": "literature_search_openalex/references/authors.md",
+          "size": 3703
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "literature_search_openalex/references/citation.bib",
+          "size": 299
+        },
+        {
+          "name": "geo_and_language.md",
+          "relPath": "literature_search_openalex/references/geo_and_language.md",
+          "size": 1982
+        },
+        {
+          "name": "institutions.md",
+          "relPath": "literature_search_openalex/references/institutions.md",
+          "size": 2813
+        },
+        {
+          "name": "publishers_funders.md",
+          "relPath": "literature_search_openalex/references/publishers_funders.md",
+          "size": 2571
+        },
+        {
+          "name": "sources.md",
+          "relPath": "literature_search_openalex/references/sources.md",
+          "size": 3851
+        },
+        {
+          "name": "taxonomy.md",
+          "relPath": "literature_search_openalex/references/taxonomy.md",
+          "size": 2865
+        },
+        {
+          "name": "topics.md",
+          "relPath": "literature_search_openalex/references/topics.md",
+          "size": 1188
+        },
+        {
+          "name": "type_values.md",
+          "relPath": "literature_search_openalex/references/type_values.md",
+          "size": 3657
+        },
+        {
+          "name": "works.md",
+          "relPath": "literature_search_openalex/references/works.md",
+          "size": 17281
+        },
+        {
+          "name": "openalex_cli.py",
+          "relPath": "literature_search_openalex/scripts/openalex_cli.py",
+          "size": 23953
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "literature_search_openalex/SKILL.md",
+          "size": 8740
+        },
+        {
+          "name": "common-leaks.md",
+          "relPath": "memory-leak-debugging/references/common-leaks.md",
+          "size": 1813
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "memory-leak-debugging/SKILL.md",
+          "size": 4584
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "migrate-workflows/SKILL.md",
+          "size": 6257
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "modern-web-guidance/SKILL.md",
+          "size": 10078
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "ncbi_sequence_fetch/references/citation.bib",
+          "size": 1809
+        },
+        {
+          "name": "ncbi_fetch.py",
+          "relPath": "ncbi_sequence_fetch/scripts/ncbi_fetch.py",
+          "size": 35920
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ncbi_sequence_fetch/SKILL.md",
+          "size": 9299
+        },
+        {
+          "name": "api_endpoints.md",
+          "relPath": "openfda_database/references/api_endpoints.md",
+          "size": 6414
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "openfda_database/references/citation.bib",
+          "size": 2029
+        },
+        {
+          "name": "recipes.md",
+          "relPath": "openfda_database/references/recipes.md",
+          "size": 4524
+        },
+        {
+          "name": "openfda_query.py",
+          "relPath": "openfda_database/scripts/openfda_query.py",
+          "size": 14264
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "openfda_database/SKILL.md",
+          "size": 10143
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "opentargets_database/references/citation.bib",
+          "size": 2489
+        },
+        {
+          "name": "OpenTargets_GraphQL_Guide.md",
+          "relPath": "opentargets_database/references/OpenTargets_GraphQL_Guide.md",
+          "size": 7837
+        },
+        {
+          "name": "query_opentargets.py",
+          "relPath": "opentargets_database/scripts/query_opentargets.py",
+          "size": 18601
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "opentargets_database/SKILL.md",
+          "size": 9753
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "pdb_database/references/citation.bib",
+          "size": 878
+        },
+        {
+          "name": "download_coordinate_files.py",
+          "relPath": "pdb_database/scripts/download_coordinate_files.py",
+          "size": 3245
+        },
+        {
+          "name": "fetch_pdb_metadata.py",
+          "relPath": "pdb_database/scripts/fetch_pdb_metadata.py",
+          "size": 1893
+        },
+        {
+          "name": "fetch_schema.py",
+          "relPath": "pdb_database/scripts/fetch_schema.py",
+          "size": 7720
+        },
+        {
+          "name": "search_pdb.py",
+          "relPath": "pdb_database/scripts/search_pdb.py",
+          "size": 5634
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "pdb_database/SKILL.md",
+          "size": 9119
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "permissioned-github/SKILL.md",
+          "size": 8511
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "plugin/SKILL.md",
+          "size": 14925
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ponytail/SKILL.md",
+          "size": 5240
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ponytail-audit/SKILL.md",
+          "size": 1844
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ponytail-debt/SKILL.md",
+          "size": 1895
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ponytail-gain/SKILL.md",
+          "size": 2165
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ponytail-help/SKILL.md",
+          "size": 1750
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ponytail-review/SKILL.md",
+          "size": 1930
+        },
+        {
+          "name": "iphi-region-sub-loc.json",
+          "relPath": "predictingthepast/references/iphi-region-sub-loc.json",
+          "size": 6382
+        },
+        {
+          "name": "iphi-region-sub.txt",
+          "relPath": "predictingthepast/references/iphi-region-sub.txt",
+          "size": 1107
+        },
+        {
+          "name": "led-proper-names.txt",
+          "relPath": "predictingthepast/references/led-proper-names.txt",
+          "size": 337928
+        },
+        {
+          "name": "led-region-sub-loc.json",
+          "relPath": "predictingthepast/references/led-region-sub-loc.json",
+          "size": 4585
+        },
+        {
+          "name": "led-region-sub.txt",
+          "relPath": "predictingthepast/references/led-region-sub.txt",
+          "size": 735
+        },
+        {
+          "name": "output_format.md",
+          "relPath": "predictingthepast/references/output_format.md",
+          "size": 5763
+        },
+        {
+          "name": "preprocess.py",
+          "relPath": "predictingthepast/scripts/preprocess.py",
+          "size": 8153
+        },
+        {
+          "name": "run_inference.py",
+          "relPath": "predictingthepast/scripts/run_inference.py",
+          "size": 27551
+        },
+        {
+          "name": "visualize_results.py",
+          "relPath": "predictingthepast/scripts/visualize_results.py",
+          "size": 23866
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "predictingthepast/SKILL.md",
+          "size": 14909
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "protein_sequence_msa/references/citation.bib",
+          "size": 4729
+        },
+        {
+          "name": "msa_align.py",
+          "relPath": "protein_sequence_msa/scripts/msa_align.py",
+          "size": 4953
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "protein_sequence_msa/SKILL.md",
+          "size": 6339
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "protein_sequence_similarity_search/references/citation.bib",
+          "size": 2128
+        },
+        {
+          "name": "mmseqs2_search.py",
+          "relPath": "protein_sequence_similarity_search/scripts/mmseqs2_search.py",
+          "size": 11107
+        },
+        {
+          "name": "uniprot_blast.py",
+          "relPath": "protein_sequence_similarity_search/scripts/uniprot_blast.py",
+          "size": 9033
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "protein_sequence_similarity_search/SKILL.md",
+          "size": 10954
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "pubchem_database/references/citation.bib",
+          "size": 2042
+        },
+        {
+          "name": "endpoints.md",
+          "relPath": "pubchem_database/references/endpoints.md",
+          "size": 2448
+        },
+        {
+          "name": "workflows.md",
+          "relPath": "pubchem_database/references/workflows.md",
+          "size": 1392
+        },
+        {
+          "name": "pubchem_api.py",
+          "relPath": "pubchem_database/scripts/pubchem_api.py",
+          "size": 11532
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "pubchem_database/SKILL.md",
+          "size": 5841
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "publishtokensaverlocal/SKILL.md",
+          "size": 1316
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "publishtokensavernow/SKILL.md",
+          "size": 3902
+        },
+        {
+          "name": "advanced-linking.md",
+          "relPath": "pubmed_database/references/advanced-linking.md",
+          "size": 5520
+        },
+        {
+          "name": "advanced-search.md",
+          "relPath": "pubmed_database/references/advanced-search.md",
+          "size": 3660
+        },
+        {
+          "name": "bulk-workflows.md",
+          "relPath": "pubmed_database/references/bulk-workflows.md",
+          "size": 3599
+        },
+        {
+          "name": "citation-matching.md",
+          "relPath": "pubmed_database/references/citation-matching.md",
+          "size": 5344
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "pubmed_database/references/citation.bib",
+          "size": 1809
+        },
+        {
+          "name": "cross-database-linking.md",
+          "relPath": "pubmed_database/references/cross-database-linking.md",
+          "size": 4025
+        },
+        {
+          "name": "fetch-and-resolve.md",
+          "relPath": "pubmed_database/references/fetch-and-resolve.md",
+          "size": 5606
+        },
+        {
+          "name": "search-and-discovery.md",
+          "relPath": "pubmed_database/references/search-and-discovery.md",
+          "size": 4948
+        },
+        {
+          "name": "utilities.md",
+          "relPath": "pubmed_database/references/utilities.md",
+          "size": 1357
+        },
+        {
+          "name": "pubmed_api.py",
+          "relPath": "pubmed_database/scripts/pubmed_api.py",
+          "size": 21444
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "pubmed_database/SKILL.md",
+          "size": 8569
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "pymol/references/citation.bib",
+          "size": 143
+        },
+        {
+          "name": "PYMOL_REFERENCE.md",
+          "relPath": "pymol/references/PYMOL_REFERENCE.md",
+          "size": 5454
+        },
+        {
+          "name": "RECIPES.md",
+          "relPath": "pymol/references/RECIPES.md",
+          "size": 11357
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "pymol/SKILL.md",
+          "size": 6850
+        },
+        {
+          "name": "annotations.md",
+          "relPath": "quickgo_database/references/annotations.md",
+          "size": 2086
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "quickgo_database/references/citation.bib",
+          "size": 1425
+        },
+        {
+          "name": "eco_terms.md",
+          "relPath": "quickgo_database/references/eco_terms.md",
+          "size": 1450
+        },
+        {
+          "name": "gene_products.md",
+          "relPath": "quickgo_database/references/gene_products.md",
+          "size": 849
+        },
+        {
+          "name": "go_terms.md",
+          "relPath": "quickgo_database/references/go_terms.md",
+          "size": 2086
+        },
+        {
+          "name": "quickgo_tool.py",
+          "relPath": "quickgo_database/scripts/quickgo_tool.py",
+          "size": 9952
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "quickgo_database/SKILL.md",
+          "size": 5885
+        },
+        {
+          "name": "api_reference.md",
+          "relPath": "reactome_database/references/api_reference.md",
+          "size": 4156
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "reactome_database/references/citation.bib",
+          "size": 2284
+        },
+        {
+          "name": "reactome_analysis.py",
+          "relPath": "reactome_database/scripts/reactome_analysis.py",
+          "size": 31209
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "reactome_database/SKILL.md",
+          "size": 11252
+        },
+        {
+          "name": "api-fallback.md",
+          "relPath": "retrieving-developer-knowledge/references/api-fallback.md",
+          "size": 6481
+        },
+        {
+          "name": "mcp-usage.md",
+          "relPath": "retrieving-developer-knowledge/references/mcp-usage.md",
+          "size": 1042
+        },
+        {
+          "name": "supported-domains.md",
+          "relPath": "retrieving-developer-knowledge/references/supported-domains.md",
+          "size": 1580
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "retrieving-developer-knowledge/SKILL.md",
+          "size": 8355
+        },
+        {
+          "name": "android-applications.md",
+          "relPath": "reverse-engineer-anything/references/android-applications.md",
+          "size": 1992
+        },
+        {
+          "name": "connection-and-recovery.md",
+          "relPath": "reverse-engineer-anything/references/connection-and-recovery.md",
+          "size": 8823
+        },
+        {
+          "name": "evidence-workflows.md",
+          "relPath": "reverse-engineer-anything/references/evidence-workflows.md",
+          "size": 4363
+        },
+        {
+          "name": "javascript-applications.md",
+          "relPath": "reverse-engineer-anything/references/javascript-applications.md",
+          "size": 9949
+        },
+        {
+          "name": "native-and-artifacts.md",
+          "relPath": "reverse-engineer-anything/references/native-and-artifacts.md",
+          "size": 17722
+        },
+        {
+          "name": "runtime-observation.md",
+          "relPath": "reverse-engineer-anything/references/runtime-observation.md",
+          "size": 4798
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "reverse-engineer-anything/SKILL.md",
+          "size": 22760
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-compress/SKILL.md",
+          "size": 1174
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-diff/SKILL.md",
+          "size": 1266
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-doctor/SKILL.md",
+          "size": 1359
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-gain/SKILL.md",
+          "size": 674
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-omniroute/SKILL.md",
+          "size": 3486
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-outline/SKILL.md",
+          "size": 1902
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-roi/SKILL.md",
+          "size": 1355
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-run/SKILL.md",
+          "size": 943
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-savedtokenoff/SKILL.md",
+          "size": 1042
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-savedtokenon/SKILL.md",
+          "size": 2076
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-sync/SKILL.md",
+          "size": 1241
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-tree/SKILL.md",
+          "size": 1081
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "rtk-update/SKILL.md",
+          "size": 2607
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "run-workflow/SKILL.md",
+          "size": 10533
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "string_database/references/citation.bib",
+          "size": 567
+        },
+        {
+          "name": "enrichment.md",
+          "relPath": "string_database/references/enrichment.md",
+          "size": 1629
+        },
+        {
+          "name": "interactions.md",
+          "relPath": "string_database/references/interactions.md",
+          "size": 2081
+        },
+        {
+          "name": "mapping.md",
+          "relPath": "string_database/references/mapping.md",
+          "size": 735
+        },
+        {
+          "name": "valuesranks.md",
+          "relPath": "string_database/references/valuesranks.md",
+          "size": 1668
+        },
+        {
+          "name": "string_cli.py",
+          "relPath": "string_database/scripts/string_cli.py",
+          "size": 12068
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "string_database/SKILL.md",
+          "size": 3152
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "tool-management-rules/SKILL.md",
+          "size": 5035
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "troubleshooting/SKILL.md",
+          "size": 7268
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "ucsc_conservation_and_tfbs/references/citation.bib",
+          "size": 810
+        },
+        {
+          "name": "get_conservation.py",
+          "relPath": "ucsc_conservation_and_tfbs/scripts/get_conservation.py",
+          "size": 7726
+        },
+        {
+          "name": "get_tfbs.py",
+          "relPath": "ucsc_conservation_and_tfbs/scripts/get_tfbs.py",
+          "size": 4984
+        },
+        {
+          "name": "list_tracks.py",
+          "relPath": "ucsc_conservation_and_tfbs/scripts/list_tracks.py",
+          "size": 4268
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ucsc_conservation_and_tfbs/SKILL.md",
+          "size": 7940
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-accessibility/SKILL.md",
+          "size": 5015
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-baseline/SKILL.md",
+          "size": 3701
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-design-tokens/SKILL.md",
+          "size": 16514
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "ui-improve/agents/openai.yaml",
+          "size": 399
+        },
+        {
+          "name": "plan-template.md",
+          "relPath": "ui-improve/references/plan-template.md",
+          "size": 1645
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-improve/SKILL.md",
+          "size": 7987
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-metadata/SKILL.md",
+          "size": 4799
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-motion-performance/SKILL.md",
+          "size": 5869
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-plugin-navigation/SKILL.md",
+          "size": 3798
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/baseline-ui/SKILL.md",
+          "size": 3504
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/create-design-md/SKILL.md",
+          "size": 16462
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/fixing-accessibility/SKILL.md",
+          "size": 4853
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/fixing-metadata/SKILL.md",
+          "size": 4551
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/fixing-motion-performance/SKILL.md",
+          "size": 5716
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "ui-skills/improve-ui/agents/openai.yaml",
+          "size": 399
+        },
+        {
+          "name": "plan-template.md",
+          "relPath": "ui-skills/improve-ui/references/plan-template.md",
+          "size": 1645
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/improve-ui/SKILL.md",
+          "size": 7946
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/SKILL.md",
+          "size": 1076
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills/ui-skills-root/SKILL.md",
+          "size": 1507
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "ui-skills-help/SKILL.md",
+          "size": 1176
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "unibind_database/references/citation.bib",
+          "size": 745
+        },
+        {
+          "name": "unibind_api.py",
+          "relPath": "unibind_database/scripts/unibind_api.py",
+          "size": 13117
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "unibind_database/SKILL.md",
+          "size": 5537
+        },
+        {
+          "name": "citation.bib",
+          "relPath": "uniprot_database/references/citation.bib",
+          "size": 1457
+        },
+        {
+          "name": "id_mapping_databases.md",
+          "relPath": "uniprot_database/references/id_mapping_databases.md",
+          "size": 7262
+        },
+        {
+          "name": "search_query_fields.md",
+          "relPath": "uniprot_database/references/search_query_fields.md",
+          "size": 18437
+        },
+        {
+          "name": "sparql_examples.md",
+          "relPath": "uniprot_database/references/sparql_examples.md",
+          "size": 2891
+        },
+        {
+          "name": "uniprot_tools.py",
+          "relPath": "uniprot_database/scripts/uniprot_tools.py",
+          "size": 14440
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "uniprot_database/SKILL.md",
+          "size": 12555
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "uv/SKILL.md",
+          "size": 1908
+        },
+        {
+          "name": "cli_script_template.py",
+          "relPath": "workflow_skill_creator/references/cli_script_template.py",
+          "size": 6940
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "workflow_skill_creator/SKILL.md",
+          "size": 12616
+        }
+      ]
+    }
+  ],
+  "categories": {
+    "plugins": [
+      {
+        "id": "android-cli-plugin",
+        "name": "android-cli-plugin",
+        "version": "1.0.16625370",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin",
+        "description": "Core tools and knowledge required to develop for Android.",
+        "skillsCount": 3,
+        "filesCount": 11,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "antigravity-core",
+        "name": "antigravity-core",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core",
+        "description": "Core Antigravity system skills, customizations, and SDK orchestration",
+        "skillsCount": 11,
+        "filesCount": 23,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "antislop",
+        "name": "antislop",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\antislop",
+        "description": "Rules and filters to eliminate generic AI-generated slop in code, copy, and UI",
+        "skillsCount": 6,
+        "filesCount": 10,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "awesome-gamedev",
+        "name": "awesome-gamedev",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\awesome-gamedev",
+        "description": "Game-dev skill suite and master dispatcher across 10 engines (Godot, Unity, Unreal, etc.)",
+        "skillsCount": 1,
+        "filesCount": 31,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "chrome-devtools-plugin",
+        "name": "chrome-devtools-plugin",
+        "version": "1.10.1",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin",
+        "description": "Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer",
+        "skillsCount": 6,
+        "filesCount": 13,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "clonewebsite",
+        "name": "clonewebsite",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\clonewebsite",
+        "description": "Rebuild existing web pages as working local code matching real content, layout, and animations",
+        "skillsCount": 1,
+        "filesCount": 4,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "codegraph",
+        "name": "codegraph",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\codegraph",
+        "description": "CodeGraphContext AST semantic property graph and hierarchy query engine",
+        "skillsCount": 2,
+        "filesCount": 3,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "data-agent-kit-plugin",
+        "name": "data-agent-kit-plugin",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
+        "description": "Invalid plugin.json",
+        "skillsCount": 0,
+        "filesCount": 1,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "ecc-council",
+        "name": "ecc-council",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\ecc-council",
+        "description": "Multi-perspective reasoning council, agent evaluation, snapshot context keeper, and compacting tools",
+        "skillsCount": 4,
+        "filesCount": 5,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "fastcrw",
+        "name": "fastcrw",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\fastcrw",
+        "description": "High-performance fastCRW web crawler and markdown extraction tool with MCP server",
+        "skillsCount": 1,
+        "filesCount": 7,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "flutter",
+        "name": "flutter",
+        "version": "1.0.6",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\flutter",
+        "description": "Official plugin for Dart and Flutter that installs Flutter/Dart Skills, Rules, Custom Agents, and Dart MCP server for building natively compiled, visually stunning applications for mobile, web, desktop, and embedded devices from a single codebase",
+        "skillsCount": 25,
+        "filesCount": 38,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "gemini-api",
+        "name": "gemini-api",
+        "version": "2.3.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\gemini-api",
+        "description": "Build applications with the Gemini Interactions API and Live API, including text, image, video, and speech generation, managed agents, and real-time multimodal streaming.",
+        "skillsCount": 3,
+        "filesCount": 12,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "google-antigravity-sdk",
+        "name": "google-antigravity-sdk",
+        "version": "0.0.9",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\google-antigravity-sdk",
+        "description": "Using the Google Antigravity Python SDK to build AI agents",
+        "skillsCount": 1,
+        "filesCount": 28,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "google-developer-knowledge",
+        "name": "google-developer-knowledge",
+        "version": "1.0.1",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\google-developer-knowledge",
+        "description": "Search and retrieve official documentation across Google Cloud, Gemini, Android, Firebase, Flutter, and Web. Requires Google Cloud credentials (ADC) or an API key.",
+        "skillsCount": 1,
+        "filesCount": 7,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "jevgraph",
+        "name": "jevgraph",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\jevgraph",
+        "description": "JevGraph non-code document and specification relation extraction engine",
+        "skillsCount": 2,
+        "filesCount": 4,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "lightpanda",
+        "name": "lightpanda",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\lightpanda",
+        "description": "Lightpanda & Headless Chrome CDP browser automation and dynamic JavaScript execution engine",
+        "skillsCount": 1,
+        "filesCount": 4,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "modern-web-guidance-plugin",
+        "name": "modern-web-guidance-plugin",
+        "version": "0.0.195",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\modern-web-guidance-plugin",
+        "description": "Keep your coding agent up to date with the latest web best practices.",
+        "skillsCount": 2,
+        "filesCount": 30,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "ponytail",
+        "name": "ponytail",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\ponytail",
+        "description": "Minimalist YAGNI development philosophy: reach for standard library and minimal diffs",
+        "skillsCount": 6,
+        "filesCount": 7,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "rea",
+        "name": "rea",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\rea",
+        "description": "Reverse Engineer Anything (REA) native, managed, firmware, and web binary analysis tool",
+        "skillsCount": 1,
+        "filesCount": 9,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "rtk",
+        "name": "rtk",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\rtk",
+        "description": "Rust Token Killer (RTK) and token reduction utilities for AI coding agents",
+        "skillsCount": 15,
+        "filesCount": 16,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "science",
+        "name": "science",
+        "version": "1.3.1",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\science",
+        "description": "Curated collection of agent skills for science tasks.",
+        "skillsCount": 41,
+        "filesCount": 214,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "stagehand",
+        "name": "stagehand",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\stagehand",
+        "description": "Stagehand browser automation and web extraction MCP server",
+        "skillsCount": 2,
+        "filesCount": 9,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "ui-skills",
+        "name": "ui-skills",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\ui-skills",
+        "description": "Design systems, accessibility compliance, Base UI components, and design token management",
+        "skillsCount": 8,
+        "filesCount": 20,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "workspace-skills",
+        "name": "Workspace Skills (Root Hub)",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\skills",
+        "description": "Standalone skills collection (142 skills) located in root skills/ folder",
+        "skillsCount": 142,
+        "filesCount": 539,
+        "hasMcp": false,
+        "hasHooks": false
+      }
+    ],
+    "mcps": [
+      {
+        "name": "fastcrw",
+        "pluginId": "fastcrw",
+        "pluginName": "fastcrw",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\fastcrw\\mcp_config.json"
+      },
+      {
+        "name": "dart-mcp-server",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\mcp_config.json"
+      },
+      {
+        "name": "gemini-api-docs",
+        "pluginId": "gemini-api",
+        "pluginName": "gemini-api",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\gemini-api\\mcp_config.json"
+      },
+      {
+        "name": "google-developer-knowledge",
+        "pluginId": "google-developer-knowledge",
+        "pluginName": "google-developer-knowledge",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\google-developer-knowledge\\mcp_config.json"
+      },
+      {
+        "name": "lightpanda",
+        "pluginId": "lightpanda",
+        "pluginName": "lightpanda",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\lightpanda\\mcp_config.json"
+      },
+      {
+        "name": "rea",
+        "pluginId": "rea",
+        "pluginName": "rea",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rea\\mcp_config.json"
+      },
+      {
+        "name": "biomolecular_structure_viewer_mcp",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\mcp_config.json"
+      },
+      {
+        "name": "stagehand",
+        "pluginId": "stagehand",
+        "pluginName": "stagehand",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\stagehand\\mcp_config.json"
+      }
+    ],
+    "hooks": [],
+    "skills": [
+      {
+        "name": "compose-preview",
+        "pluginId": "android-cli-plugin",
+        "pluginName": "android-cli-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin\\skills\\compose-preview"
+      },
+      {
+        "name": "device-hub",
+        "pluginId": "android-cli-plugin",
+        "pluginName": "android-cli-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin\\skills\\device-hub"
+      },
+      {
+        "name": "references",
+        "pluginId": "android-cli-plugin",
+        "pluginName": "android-cli-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin\\skills\\references"
+      },
+      {
+        "name": "agent-self-verification",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\agent-self-verification"
+      },
+      {
+        "name": "agy-customizations",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\agy-customizations"
+      },
+      {
+        "name": "antigravity_guide",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\antigravity_guide"
+      },
+      {
+        "name": "automation",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\automation"
+      },
+      {
+        "name": "generative_ui",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\generative_ui"
+      },
+      {
+        "name": "migrate-workflows",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\migrate-workflows"
+      },
+      {
+        "name": "permissioned-github",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\permissioned-github"
+      },
+      {
+        "name": "plugin",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\plugin"
+      },
+      {
+        "name": "run-workflow",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\run-workflow"
+      },
+      {
+        "name": "tool-management-rules",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\tool-management-rules"
+      },
+      {
+        "name": "ui-plugin-navigation",
+        "pluginId": "antigravity-core",
+        "pluginName": "antigravity-core",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core\\skills\\ui-plugin-navigation"
+      },
+      {
+        "name": "antislop",
+        "pluginId": "antislop",
+        "pluginName": "antislop",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antislop\\skills\\antislop"
+      },
+      {
+        "name": "antislop-code",
+        "pluginId": "antislop",
+        "pluginName": "antislop",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antislop\\skills\\antislop-code"
+      },
+      {
+        "name": "antislop-copywriting",
+        "pluginId": "antislop",
+        "pluginName": "antislop",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antislop\\skills\\antislop-copywriting"
+      },
+      {
+        "name": "antislop-human",
+        "pluginId": "antislop",
+        "pluginName": "antislop",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antislop\\skills\\antislop-human"
+      },
+      {
+        "name": "antislop-layoutmobile",
+        "pluginId": "antislop",
+        "pluginName": "antislop",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antislop\\skills\\antislop-layoutmobile"
+      },
+      {
+        "name": "antislop-ui",
+        "pluginId": "antislop",
+        "pluginName": "antislop",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\antislop\\skills\\antislop-ui"
+      },
+      {
+        "name": "awesome-gamedev-agent-skills",
+        "pluginId": "awesome-gamedev",
+        "pluginName": "awesome-gamedev",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\awesome-gamedev\\skills\\awesome-gamedev-agent-skills"
+      },
+      {
+        "name": "a11y-debugging",
+        "pluginId": "chrome-devtools-plugin",
+        "pluginName": "chrome-devtools-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin\\skills\\a11y-debugging"
+      },
+      {
+        "name": "chrome-devtools",
+        "pluginId": "chrome-devtools-plugin",
+        "pluginName": "chrome-devtools-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin\\skills\\chrome-devtools"
+      },
+      {
+        "name": "cookie-debugging",
+        "pluginId": "chrome-devtools-plugin",
+        "pluginName": "chrome-devtools-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin\\skills\\cookie-debugging"
+      },
+      {
+        "name": "debug-optimize-lcp",
+        "pluginId": "chrome-devtools-plugin",
+        "pluginName": "chrome-devtools-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin\\skills\\debug-optimize-lcp"
+      },
+      {
+        "name": "memory-leak-debugging",
+        "pluginId": "chrome-devtools-plugin",
+        "pluginName": "chrome-devtools-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin\\skills\\memory-leak-debugging"
+      },
+      {
+        "name": "troubleshooting",
+        "pluginId": "chrome-devtools-plugin",
+        "pluginName": "chrome-devtools-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin\\skills\\troubleshooting"
+      },
+      {
+        "name": "clonewebsite",
+        "pluginId": "clonewebsite",
+        "pluginName": "clonewebsite",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\clonewebsite\\skills\\clonewebsite"
+      },
+      {
+        "name": "codegraph-index",
+        "pluginId": "codegraph",
+        "pluginName": "codegraph",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\codegraph\\skills\\codegraph-index"
+      },
+      {
+        "name": "codegraph-query",
+        "pluginId": "codegraph",
+        "pluginName": "codegraph",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\codegraph\\skills\\codegraph-query"
+      },
+      {
+        "name": "ecc-agent-evaluator",
+        "pluginId": "ecc-council",
+        "pluginName": "ecc-council",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ecc-council\\skills\\ecc-agent-evaluator"
+      },
+      {
+        "name": "ecc-ck",
+        "pluginId": "ecc-council",
+        "pluginName": "ecc-council",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ecc-council\\skills\\ecc-ck"
+      },
+      {
+        "name": "ecc-council",
+        "pluginId": "ecc-council",
+        "pluginName": "ecc-council",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ecc-council\\skills\\ecc-council"
+      },
+      {
+        "name": "ecc-strategic-compact",
+        "pluginId": "ecc-council",
+        "pluginName": "ecc-council",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ecc-council\\skills\\ecc-strategic-compact"
+      },
+      {
+        "name": "crw-search",
+        "pluginId": "fastcrw",
+        "pluginName": "fastcrw",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\fastcrw\\skills\\crw-search"
+      },
+      {
+        "name": "dart-add-unit-test",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-add-unit-test"
+      },
+      {
+        "name": "dart-build-cli-app",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-build-cli-app"
+      },
+      {
+        "name": "dart-collect-coverage",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-collect-coverage"
+      },
+      {
+        "name": "dart-fix-runtime-errors",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-fix-runtime-errors"
+      },
+      {
+        "name": "dart-generate-test-mocks",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-generate-test-mocks"
+      },
+      {
+        "name": "dart-migrate-to-checks-package",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-migrate-to-checks-package"
+      },
+      {
+        "name": "dart-resolve-package-conflicts",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-resolve-package-conflicts"
+      },
+      {
+        "name": "dart-run-static-analysis",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-run-static-analysis"
+      },
+      {
+        "name": "dart-setup-ffi-assets",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-setup-ffi-assets"
+      },
+      {
+        "name": "dart-use-doc-examples",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-use-doc-examples"
+      },
+      {
+        "name": "dart-use-ffigen",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-use-ffigen"
+      },
+      {
+        "name": "dart-use-path-package",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-use-path-package"
+      },
+      {
+        "name": "dart-use-pattern-matching",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-use-pattern-matching"
+      },
+      {
+        "name": "dart-use-primary-constructors",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-use-primary-constructors"
+      },
+      {
+        "name": "dart-write-documentation",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\dart-write-documentation"
+      },
+      {
+        "name": "flutter-add-integration-test",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-add-integration-test"
+      },
+      {
+        "name": "flutter-add-widget-preview",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-add-widget-preview"
+      },
+      {
+        "name": "flutter-add-widget-test",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-add-widget-test"
+      },
+      {
+        "name": "flutter-apply-architecture-best-practices",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-apply-architecture-best-practices"
+      },
+      {
+        "name": "flutter-build-responsive-layout",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-build-responsive-layout"
+      },
+      {
+        "name": "flutter-fix-layout-issues",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-fix-layout-issues"
+      },
+      {
+        "name": "flutter-implement-json-serialization",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-implement-json-serialization"
+      },
+      {
+        "name": "flutter-setup-declarative-routing",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-setup-declarative-routing"
+      },
+      {
+        "name": "flutter-setup-localization",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-setup-localization"
+      },
+      {
+        "name": "flutter-use-http-package",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-use-http-package"
+      },
+      {
+        "name": "gemini-api-dev",
+        "pluginId": "gemini-api",
+        "pluginName": "gemini-api",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\gemini-api\\skills\\gemini-api-dev"
+      },
+      {
+        "name": "gemini-live-api-dev",
+        "pluginId": "gemini-api",
+        "pluginName": "gemini-api",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\gemini-api\\skills\\gemini-live-api-dev"
+      },
+      {
+        "name": "gemini-omni-flash-api",
+        "pluginId": "gemini-api",
+        "pluginName": "gemini-api",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\gemini-api\\skills\\gemini-omni-flash-api"
+      },
+      {
+        "name": "google-antigravity-sdk",
+        "pluginId": "google-antigravity-sdk",
+        "pluginName": "google-antigravity-sdk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\google-antigravity-sdk\\skills\\google-antigravity-sdk"
+      },
+      {
+        "name": "retrieving-developer-knowledge",
+        "pluginId": "google-developer-knowledge",
+        "pluginName": "google-developer-knowledge",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\google-developer-knowledge\\skills\\retrieving-developer-knowledge"
+      },
+      {
+        "name": "jevgraph-build",
+        "pluginId": "jevgraph",
+        "pluginName": "jevgraph",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\jevgraph\\skills\\jevgraph-build"
+      },
+      {
+        "name": "jevgraph-query",
+        "pluginId": "jevgraph",
+        "pluginName": "jevgraph",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\jevgraph\\skills\\jevgraph-query"
+      },
+      {
+        "name": "hybrid-web",
+        "pluginId": "lightpanda",
+        "pluginName": "lightpanda",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\lightpanda\\skills\\hybrid-web"
+      },
+      {
+        "name": "chrome-extensions",
+        "pluginId": "modern-web-guidance-plugin",
+        "pluginName": "modern-web-guidance-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\modern-web-guidance-plugin\\skills\\chrome-extensions"
+      },
+      {
+        "name": "modern-web-guidance",
+        "pluginId": "modern-web-guidance-plugin",
+        "pluginName": "modern-web-guidance-plugin",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\modern-web-guidance-plugin\\skills\\modern-web-guidance"
+      },
+      {
+        "name": "ponytail",
+        "pluginId": "ponytail",
+        "pluginName": "ponytail",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ponytail\\skills\\ponytail"
+      },
+      {
+        "name": "ponytail-audit",
+        "pluginId": "ponytail",
+        "pluginName": "ponytail",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ponytail\\skills\\ponytail-audit"
+      },
+      {
+        "name": "ponytail-debt",
+        "pluginId": "ponytail",
+        "pluginName": "ponytail",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ponytail\\skills\\ponytail-debt"
+      },
+      {
+        "name": "ponytail-gain",
+        "pluginId": "ponytail",
+        "pluginName": "ponytail",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ponytail\\skills\\ponytail-gain"
+      },
+      {
+        "name": "ponytail-help",
+        "pluginId": "ponytail",
+        "pluginName": "ponytail",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ponytail\\skills\\ponytail-help"
+      },
+      {
+        "name": "ponytail-review",
+        "pluginId": "ponytail",
+        "pluginName": "ponytail",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ponytail\\skills\\ponytail-review"
+      },
+      {
+        "name": "reverse-engineer-anything",
+        "pluginId": "rea",
+        "pluginName": "rea",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rea\\skills\\reverse-engineer-anything"
+      },
+      {
+        "name": "publishtokensaverlocal",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\publishtokensaverlocal"
+      },
+      {
+        "name": "publishtokensavernow",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\publishtokensavernow"
+      },
+      {
+        "name": "rtk-compress",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-compress"
+      },
+      {
+        "name": "rtk-diff",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-diff"
+      },
+      {
+        "name": "rtk-doctor",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-doctor"
+      },
+      {
+        "name": "rtk-gain",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-gain"
+      },
+      {
+        "name": "rtk-omniroute",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-omniroute"
+      },
+      {
+        "name": "rtk-outline",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-outline"
+      },
+      {
+        "name": "rtk-roi",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-roi"
+      },
+      {
+        "name": "rtk-run",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-run"
+      },
+      {
+        "name": "rtk-savedtokenoff",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-savedtokenoff"
+      },
+      {
+        "name": "rtk-savedtokenon",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-savedtokenon"
+      },
+      {
+        "name": "rtk-sync",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-sync"
+      },
+      {
+        "name": "rtk-tree",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-tree"
+      },
+      {
+        "name": "rtk-update",
+        "pluginId": "rtk",
+        "pluginName": "rtk",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\rtk\\skills\\rtk-update"
+      },
+      {
+        "name": "alphafold_database_fetch_and_analyze",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\alphafold_database_fetch_and_analyze"
+      },
+      {
+        "name": "alphagenome_atlas_website_links",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\alphagenome_atlas_website_links"
+      },
+      {
+        "name": "alphagenome_single_variant_analysis",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\alphagenome_single_variant_analysis"
+      },
+      {
+        "name": "alphagenome_variant_impact_score",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\alphagenome_variant_impact_score"
+      },
+      {
+        "name": "biomolecular_structure_viewer",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\biomolecular_structure_viewer"
+      },
+      {
+        "name": "chembl_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\chembl_database"
+      },
+      {
+        "name": "clinical_trials_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\clinical_trials_database"
+      },
+      {
+        "name": "clinvar_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\clinvar_database"
+      },
+      {
+        "name": "credentials",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\credentials"
+      },
+      {
+        "name": "dbsnp_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\dbsnp_database"
+      },
+      {
+        "name": "embl_ebi_ols",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\embl_ebi_ols"
+      },
+      {
+        "name": "encode_ccres_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\encode_ccres_database"
+      },
+      {
+        "name": "ensembl_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\ensembl_database"
+      },
+      {
+        "name": "foldseek_structural_search",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\foldseek_structural_search"
+      },
+      {
+        "name": "gnomad_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\gnomad_database"
+      },
+      {
+        "name": "gtex_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\gtex_database"
+      },
+      {
+        "name": "human_protein_atlas_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\human_protein_atlas_database"
+      },
+      {
+        "name": "interpro_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\interpro_database"
+      },
+      {
+        "name": "jaspar_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\jaspar_database"
+      },
+      {
+        "name": "literature_search_arxiv",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\literature_search_arxiv"
+      },
+      {
+        "name": "literature_search_biorxiv",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\literature_search_biorxiv"
+      },
+      {
+        "name": "literature_search_europepmc",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\literature_search_europepmc"
+      },
+      {
+        "name": "literature_search_openalex",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\literature_search_openalex"
+      },
+      {
+        "name": "ncbi_sequence_fetch",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\ncbi_sequence_fetch"
+      },
+      {
+        "name": "openfda_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\openfda_database"
+      },
+      {
+        "name": "opentargets_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\opentargets_database"
+      },
+      {
+        "name": "pdb_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\pdb_database"
+      },
+      {
+        "name": "predictingthepast",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\predictingthepast"
+      },
+      {
+        "name": "protein_sequence_msa",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\protein_sequence_msa"
+      },
+      {
+        "name": "protein_sequence_similarity_search",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\protein_sequence_similarity_search"
+      },
+      {
+        "name": "pubchem_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\pubchem_database"
+      },
+      {
+        "name": "pubmed_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\pubmed_database"
+      },
+      {
+        "name": "pymol",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\pymol"
+      },
+      {
+        "name": "quickgo_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\quickgo_database"
+      },
+      {
+        "name": "reactome_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\reactome_database"
+      },
+      {
+        "name": "string_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\string_database"
+      },
+      {
+        "name": "ucsc_conservation_and_tfbs",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\ucsc_conservation_and_tfbs"
+      },
+      {
+        "name": "unibind_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\unibind_database"
+      },
+      {
+        "name": "uniprot_database",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\uniprot_database"
+      },
+      {
+        "name": "uv",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\uv"
+      },
+      {
+        "name": "workflow_skill_creator",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\skills\\workflow_skill_creator"
+      },
+      {
+        "name": "browserdefaultclean",
+        "pluginId": "stagehand",
+        "pluginName": "stagehand",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\stagehand\\skills\\browserdefaultclean"
+      },
+      {
+        "name": "browsernotdefault",
+        "pluginId": "stagehand",
+        "pluginName": "stagehand",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\stagehand\\skills\\browsernotdefault"
+      },
+      {
+        "name": "ui-accessibility",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-accessibility"
+      },
+      {
+        "name": "ui-baseline",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-baseline"
+      },
+      {
+        "name": "ui-design-tokens",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-design-tokens"
+      },
+      {
+        "name": "ui-improve",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-improve"
+      },
+      {
+        "name": "ui-metadata",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-metadata"
+      },
+      {
+        "name": "ui-motion-performance",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-motion-performance"
+      },
+      {
+        "name": "ui-skills",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-skills"
+      },
+      {
+        "name": "ui-skills-help",
+        "pluginId": "ui-skills",
+        "pluginName": "ui-skills",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\ui-skills\\skills\\ui-skills-help"
+      }
+    ],
+    "agents": [
+      {
+        "name": "a11y_agent.md",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\agents\\a11y_agent.md"
+      }
+    ],
+    "rules": [
+      {
+        "name": "flutter-hot-reload.md",
+        "pluginId": "flutter",
+        "pluginName": "flutter",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\rules\\flutter-hot-reload.md"
+      },
+      {
+        "name": "AGENTS.md",
+        "pluginId": "science",
+        "pluginName": "science",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\rules\\AGENTS.md"
+      }
+    ]
+  }
+};

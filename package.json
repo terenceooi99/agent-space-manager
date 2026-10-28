@@ -1,0 +1,37 @@
+{
+  "name": "agent-space-manager",
+  "version": "1.1.0",
+  "description": "Universal Agent Space Manager & Dynamic Intent-Based MCP Tool Gateway for Magpie",
+  "type": "module",
+  "main": "./index.mjs",
+  "keywords": [
+    "magpie",
+    "magpie-plugin",
+    "middleware",
+    "gateway",
+    "tools",
+    "mcp",
+    "agent-space",
+    "skills-manager"
+  ],
+  "author": "Terence Ooi Teng Wei",
+  "license": "MIT",
+  "magpie": {
+    "title": "Agent Space Manager",
+    "name": "Agent Space Manager",
+    "icon": "page/icon.svg",
+    "page": {
+      "title": "Agent Space Manager",
+      "file": "page/index.html",
+      "icon": "page/icon.svg"
+    },
+    "hooks": "./smart-tools.middleware.js",
+    "optionsExample": {
+      "smartMiddlewareEnabled": true,
+      "maxTools": 96,
+      "autoFilter": true,
+      "logFailures": true,
+      "toolsRoot": "D:\\Software\\AI Agent Space"
+    }
+  }
+}
