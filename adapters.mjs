@@ -162,7 +162,11 @@ export function collectEnabledComponents(allPlugins = [], enabledMap = {}) {
   const conflicts = [];
 
   for (const plugin of allPlugins) {
-    const isEnabled = enabledMap ? enabledMap[plugin.id] !== false : true;
+    const isEnabled = Boolean(
+      enabledMap &&
+      (enabledMap[plugin.id] === true ||
+        (plugin.isRootSkills && enabledMap[plugin.id] !== false && Object.values(enabledMap).some((v) => v === true)))
+    );
     if (!isEnabled || !plugin.path || !fs.existsSync(plugin.path)) continue;
 
     // 1. Skills
@@ -652,7 +656,7 @@ export function syncSkillSlashCommands(skills = [], commandsSpec = null, prevOwn
  * Supports remote servers (`url`, `serverUrl`, `httpUrl`) and local command servers.
  * Returns `null` if neither a remote URL nor a command is defined.
  */
-function toOpenCodeMcpEntry(def) {
+export function toOpenCodeMcpEntry(def) {
   const remoteUrl = def.url || def.serverUrl || def.httpUrl;
   if (remoteUrl) {
     return {

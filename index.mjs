@@ -7,6 +7,7 @@ import {
   loadHubConfig,
   saveHubConfig,
   scanPlugins,
+  connectAgent,
   syncIdePlugins,
   syncAllIdes,
   unlinkAllForIde,
@@ -50,13 +51,41 @@ export const AgentSpaceManagerPlugin = {
     getAgentProfiles: async () => {
       return listAgentProfilesForUi();
     },
-    saveConfig: async (config) => {
+    saveConfig: async (config, options = {}) => {
       saveHubConfig(config);
       const effHub = getEffectiveHubRoot(config);
       const plugins = scanPlugins(effHub);
       const categories = buildCategoriesRegistry(plugins, effHub);
-      const sync = syncAllIdes(config, plugins);
-      return { success: true, pluginCount: plugins.length, plugins, categories, sync };
+      const shouldSync = Boolean(
+        options.sync === true ||
+        options.connect === true ||
+        config?.sync === true ||
+        config?.connect === true
+      );
+      const sync = shouldSync ? syncAllIdes(config, plugins) : null;
+      return {
+        success: true,
+        pluginCount: plugins.length,
+        plugins,
+        categories,
+        synced: shouldSync,
+        ...(sync ? { sync } : {}),
+      };
+    },
+    connectAgent: async (hubConfigOrIde, targetIdeOrOptions = {}, options = {}) => {
+      let hubConfig;
+      let targetIde;
+      let opts;
+      if (hubConfigOrIde && Array.isArray(hubConfigOrIde.ides)) {
+        hubConfig = hubConfigOrIde;
+        targetIde = targetIdeOrOptions;
+        opts = options || {};
+      } else {
+        hubConfig = loadHubConfig();
+        targetIde = hubConfigOrIde;
+        opts = targetIdeOrOptions || {};
+      }
+      return connectAgent(hubConfig, targetIde, opts);
     },
     getPlugins: async (customHubRoot) => {
       if (customHubRoot !== undefined && customHubRoot !== null && customHubRoot !== "") {

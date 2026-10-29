@@ -201,6 +201,42 @@
            globalThis.magpie?.api;
   }
 
+  // Non-blocking toast notifications (Desktop WebView2 Dialog Safety Invariant)
+  function showToast(message, type = "info", duration = 4000) {
+    try {
+      let container = $("toastContainer");
+      if (!container) {
+        container = document.createElement("div");
+        container.id = "toastContainer";
+        container.style.cssText = "position: fixed; bottom: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;";
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement("div");
+      toast.className = `toast toast-${type}`;
+      const bg = type === "error" ? "#dc2626" : type === "success" ? "#16a34a" : "#2563eb";
+      toast.style.cssText = `background: ${bg}; color: #ffffff; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.25); pointer-events: auto; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; transform: translateY(8px); display: flex; align-items: center; gap: 8px;`;
+      const icon = type === "error" ? "⚠️" : type === "success" ? "✓" : "ℹ️";
+      toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+      });
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(8px)";
+        setTimeout(() => {
+          toast.remove();
+          if (container.children.length === 0) container.remove();
+        }, 300);
+      }, duration);
+    } catch (err) {
+      console.warn("Toast error:", err);
+    }
+  }
+
   // Zero hardcoded plugins - always discovered dynamically from active filesystem
   const DEFAULT_PLUGINS = [];
 
@@ -321,19 +357,20 @@
       return [];
     },
 
-    async saveConfig(config) {
+    async saveConfig(config, options = {}) {
       try {
         const magpieApi = getMagpieApi();
         if (typeof magpieApi?.saveConfig === "function") {
-          const res = await magpieApi.saveConfig(config);
+          const res = await magpieApi.saveConfig(config, options);
           if (res) return res;
         }
       } catch {}
       try {
+        const payload = { config, ...options };
         const res = await fetch(`${API_BASE}/api/save`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(config),
+          body: JSON.stringify(payload),
           signal: AbortSignal.timeout(10000),
         });
         if (res.ok) return await res.json();
@@ -494,6 +531,28 @@
         });
         if (res.ok) return await res.json();
       } catch {}
+      return null;
+    },
+
+    async connectTarget(target, options = {}) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.connectAgent === "function") {
+          const res = await magpieApi.connectAgent(target, options);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/connect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(target || {}),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (res.ok) return await res.json();
+      } catch (err) {
+        console.warn("apiClient.connectTarget error:", err);
+      }
       return null;
     },
   };
@@ -1405,7 +1464,7 @@
     if (!configPath || String(configPath).trim() === "") {
       return { workable: false, color: "red", status: "failed", summary: `Agent "${ide.name || ide.id}" has no configuration path`, tooltip: `🔴 Connection failed: Target link path for "${ide.name || ide.id}" is not configured` };
     }
-    const isEnabled = ide.plugins ? ide.plugins[plugin.id] !== false : true;
+    const isEnabled = Boolean(ide.plugins && ide.plugins[plugin.id] === true);
     if (!isEnabled) {
       return { workable: false, color: "red", status: "disabled", summary: `Disabled for ${ide.name || ide.id}`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for "${ide.name || ide.id}". Turn on the toggle switch to connect.` };
     }
@@ -1451,7 +1510,9 @@
     if (!project || !project.repoPath) {
       return { workable: false, color: "red", status: "failed", summary: "Project repository path missing", tooltip: "🔴 Connection failed: Repository path does not exist" };
     }
-    const isEnabled = project.plugins ? project.plugins[plugin.id] !== false : (parentIde?.plugins ? parentIde.plugins[plugin.id] !== false : true);
+    const isEnabled = project.plugins && project.plugins[plugin.id] !== undefined
+      ? project.plugins[plugin.id] === true
+      : Boolean(parentIde?.plugins && parentIde.plugins[plugin.id] === true);
     if (!isEnabled) {
       return { workable: false, color: "red", status: "disabled", summary: `Disabled for project "${project.name}"`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for project "${project.name}"` };
     }
@@ -1533,7 +1594,7 @@
     }
 
     discoveredPlugins.forEach((plugin) => {
-      const isEnabled = activeMap[plugin.id] !== false; // Default true
+      const isEnabled = activeMap[plugin.id] === true;
       const isFilesExpanded = expandedFiles.has(plugin.id);
       const workability = evaluateComponentWorkability(plugin);
       const row = document.createElement("tr");
@@ -1659,7 +1720,17 @@
             proj.plugins[plugin.id] = checked;
           }
         }
-        triggerAutoSync();
+
+        // Live update status dot for this component
+        const newWorkability = evaluateComponentWorkability(plugin);
+        const dot = row.querySelector(".component-status-dot");
+        if (dot) {
+          dot.className = `component-status-dot dot-${newWorkability.color}`;
+          dot.title = newWorkability.tooltip;
+          dot.setAttribute("aria-label", newWorkability.summary);
+        }
+
+        triggerSavePreferences();
       });
 
       tableBody.appendChild(row);
@@ -2291,7 +2362,7 @@
         }
 
         if (!name || !configPath) {
-          alert("Please provide an Agent/IDE name and configuration path.");
+          showToast("Please provide an Agent/IDE name and configuration path.", "error");
           return;
         }
 
@@ -2308,9 +2379,25 @@
           }
         } else {
           const baseId = (agentType !== "custom" ? agentType : name).toLowerCase().replace(/[^a-z0-9]/g, "-");
-          const id = hubConfig.ides.some((i) => i.id === baseId) ? `${baseId}-${Date.now()}` : baseId;
-          hubConfig.ides.push({ id, name, agentType, exePath, configPath, componentPaths, enabled: true, plugins: {} });
-          currentSelection = { type: "ide", id };
+          const normConfig = (configPath || "").trim().toLowerCase().replace(/\\/g, "/");
+          const existing = hubConfig.ides.find((i) =>
+            i.id === baseId ||
+            (agentType && agentType !== "custom" && i.agentType === agentType) ||
+            (normConfig && (i.configPath || "").trim().toLowerCase().replace(/\\/g, "/") === normConfig)
+          );
+
+          if (existing) {
+            // Update in-place to avoid duplicate agents and bridges (Requirement R3)
+            existing.name = name;
+            existing.agentType = agentType;
+            existing.exePath = exePath;
+            existing.configPath = configPath;
+            existing.componentPaths = componentPaths;
+            currentSelection = { type: "ide", id: existing.id };
+          } else {
+            hubConfig.ides.push({ id: baseId, name, agentType, exePath, configPath, componentPaths, enabled: true, plugins: {} });
+            currentSelection = { type: "ide", id: baseId };
+          }
         }
 
         if ($("addIdeModal")) $("addIdeModal").style.display = "none";
@@ -2328,7 +2415,7 @@
         const repoPath = $("projectPathInput")?.value?.trim();
 
         if (!name || !repoPath) {
-          alert("Please provide project name and repository path.");
+          showToast("Please provide project name and repository path.", "error");
           return;
         }
 
@@ -2354,6 +2441,125 @@
     // Rescan button & Progress Modal
     if ($("closeRescanModal")) $("closeRescanModal").addEventListener("click", () => $("rescanProgressModal").style.display = "none");
     if ($("btnDoneRescan")) $("btnDoneRescan").addEventListener("click", () => $("rescanProgressModal").style.display = "none");
+
+    // Connect button: Explicit manual connection trigger (Requirements R1, R2, R3)
+    const connectBtn = $("connectBtn");
+    if (connectBtn) {
+      connectBtn.addEventListener("click", async () => {
+        let target = null;
+        let targetName = "";
+        let isProject = false;
+
+        if (currentSelection.type === "ide") {
+          target = hubConfig.ides.find((i) => i.id === currentSelection.id);
+          targetName = target?.name || target?.id || "Agent";
+        } else if (currentSelection.type === "project") {
+          isProject = true;
+          const proj = hubConfig.projects.find((p) => p.id === currentSelection.id);
+          const parentIde = proj ? hubConfig.ides.find((i) => i.id === proj.ideId) : null;
+          target = parentIde ? { ...parentIde, project: proj } : { id: proj?.id, agentType: "custom", configPath: proj?.repoPath, plugins: proj?.plugins };
+          targetName = proj?.name || "Project";
+        }
+
+        if (!target) {
+          showToast("No agent or project selected to connect.", "error");
+          return;
+        }
+
+        connectBtn.disabled = true;
+        const origText = "⚡ Connect";
+        connectBtn.textContent = "Connecting...";
+        const indicator = $("syncIndicator");
+        if (indicator) {
+          indicator.textContent = `Connecting to ${targetName}...`;
+          indicator.className = "sync-indicator syncing";
+        }
+
+        try {
+          // 1. Ensure current configuration preferences are persisted first
+          await persistConfig(false, { connect: false, sync: false });
+
+          // 2. Execute explicit connection
+          let connectRes = null;
+          if (isProject) {
+            connectRes = await apiClient.saveConfig(hubConfig, { sync: true, connect: true });
+          } else {
+            connectRes = await apiClient.connectTarget(target);
+          }
+
+          if (connectRes && connectRes.success !== false) {
+            let syncResult = connectRes.result || connectRes.sync;
+            if (connectRes.sync?.results) {
+              for (const r of connectRes.sync.results) {
+                if (r.ideId) lastSyncByIde[r.ideId] = r;
+                if (r.projectId && r.projectId === target.id) syncResult = r;
+              }
+            } else if (target.id) {
+              lastSyncByIde[target.id] = syncResult || { success: true };
+            }
+
+            connectBtn.textContent = "✓ Connected";
+            connectBtn.style.background = "#16a34a";
+            connectBtn.style.borderColor = "transparent";
+
+            if (indicator) {
+              indicator.textContent = "Connected";
+              indicator.className = "sync-indicator";
+            }
+
+            let summaryStr = "Synchronized";
+            if (syncResult?.summary) {
+              const s = syncResult.summary;
+              if (syncResult.mode === "bundle") {
+                summaryStr = `${s.plugins || 0} plugin bundle(s)`;
+              } else {
+                summaryStr = `${s.skills || 0} skills · ${s.mcp || 0} MCP`;
+              }
+            }
+            showToast(`Connected to ${targetName} (${summaryStr})`, "success");
+
+            renderAll();
+
+            setTimeout(() => {
+              connectBtn.disabled = false;
+              connectBtn.textContent = origText;
+              connectBtn.style.background = "";
+              connectBtn.style.borderColor = "";
+            }, 2500);
+          } else {
+            const errMsg = connectRes?.error || "Connection failed";
+            connectBtn.textContent = "✗ Failed";
+            connectBtn.style.background = "#dc2626";
+            connectBtn.style.borderColor = "transparent";
+
+            if (indicator) {
+              indicator.textContent = "Connection Failed";
+              indicator.className = "sync-indicator";
+            }
+
+            showToast(`Connection failed to ${targetName}: ${errMsg}`, "error");
+
+            setTimeout(() => {
+              connectBtn.disabled = false;
+              connectBtn.textContent = origText;
+              connectBtn.style.background = "";
+              connectBtn.style.borderColor = "";
+            }, 3000);
+          }
+        } catch (err) {
+          console.error("Connect error:", err);
+          connectBtn.textContent = "✗ Error";
+          showToast(`Connect error: ${err.message}`, "error");
+
+          setTimeout(() => {
+            connectBtn.disabled = false;
+            connectBtn.textContent = origText;
+            connectBtn.style.background = "";
+            connectBtn.style.borderColor = "";
+          }, 3000);
+        }
+      });
+    }
 
     if ($("rescanBtn")) {
       $("rescanBtn").addEventListener("click", async () => {
@@ -2552,31 +2758,50 @@
     }
   }
 
-  // Auto-Save & Auto-Sync with debounce
-  function triggerAutoSync() {
+  let savePreferencesTimer = null;
+  // Preference Persistence: Saves user checkbox selections without auto-connecting (Requirements R1 & R2)
+  function triggerSavePreferences() {
     const indicator = $("syncIndicator");
     if (indicator) {
-      indicator.textContent = "Syncing...";
+      indicator.textContent = "Saving preferences...";
       indicator.className = "sync-indicator syncing";
     }
 
-    clearTimeout(autoSyncTimer);
-    autoSyncTimer = setTimeout(async () => {
-      await persistConfig();
+    clearTimeout(savePreferencesTimer);
+    savePreferencesTimer = setTimeout(async () => {
+      await persistConfig(false, { connect: false, sync: false });
       if (indicator) {
-        indicator.textContent = "Synced";
+        indicator.textContent = "Preferences saved";
         indicator.className = "sync-indicator";
       }
     }, 450);
   }
 
-  async function persistConfig(forceRescan = false) {
+  // Auto-Save configuration without automatic agent connection
+  function triggerAutoSync(options = { connect: false, sync: false }) {
+    const indicator = $("syncIndicator");
+    if (indicator) {
+      indicator.textContent = "Saving...";
+      indicator.className = "sync-indicator syncing";
+    }
+
+    clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(async () => {
+      await persistConfig(false, options);
+      if (indicator) {
+        indicator.textContent = "Saved";
+        indicator.className = "sync-indicator";
+      }
+    }, 450);
+  }
+
+  async function persistConfig(forceRescan = false, options = { connect: false, sync: false }) {
     try {
       localStorage.setItem("magpie_agent_space_config", JSON.stringify(hubConfig));
     } catch {}
 
     // 1. Try direct API server first (works in browser / unrestricted WebView)
-    const saveRes = await apiClient.saveConfig(hubConfig);
+    const saveRes = await apiClient.saveConfig(hubConfig, options);
     if (saveRes) {
       if (saveRes.sync?.results && Array.isArray(saveRes.sync.results)) {
         for (const r of saveRes.sync.results) {

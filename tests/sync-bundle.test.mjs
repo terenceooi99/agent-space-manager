@@ -18,7 +18,7 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
         agentType: "antigravity",
         configPath: agyConfig,
         enabled: true,
-        plugins: { "beta-plugin": false },
+        plugins: { "alpha-plugin": true, "beta-plugin": false },
       };
 
       const res1 = m.syncIdePlugins(ide, plugins);
@@ -113,7 +113,7 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
         agentType: "antigravity",
         configPath: agyConfig,
         enabled: true,
-        plugins: {},
+        plugins: { "alpha-plugin": true },
       };
 
       m.syncIdePlugins(ide, plugins);
@@ -151,6 +151,193 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
       assert.equal(fs.existsSync(flattenedSkillDir), false, "All flattened skill folders must be completely removed");
       assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "rules", "alpha-style.md")), false);
       assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "agents", "reviewer.md")), false);
+    } finally {
+      sb.cleanup();
+    }
+  });
+
+  test("Antigravity bundle mode with empty plugins (default disabled) links zero plugins", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      const plugins = m.scanPlugins(sb.hub);
+      const agyConfig = path.join(sb.home, ".gemini", "config", "plugins");
+      const ide = {
+        id: "antigravity",
+        name: "Antigravity",
+        agentType: "antigravity",
+        configPath: agyConfig,
+        enabled: true,
+        plugins: {}, // Default unchecked / unselected
+      };
+
+      const res = m.syncIdePlugins(ide, plugins);
+      assert.equal(res.success, true);
+      assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin")), false);
+      assert.equal(fs.existsSync(path.join(agyConfig, "beta-plugin")), false);
+    } finally {
+      sb.cleanup();
+    }
+  });
+
+  test("connectAgent replaces existing connection bridge rather than duplicating bridges (Requirement R3)", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      const plugins = m.scanPlugins(sb.hub);
+      const agyConfig = path.join(sb.home, ".gemini", "config", "plugins");
+
+      const hubConfig = {
+        hubRoot: sb.hub,
+        ides: [],
+        projects: [],
+      };
+
+      // 1. Initial Connection with alpha-plugin
+      const conn1 = m.connectAgent(
+        hubConfig,
+        {
+          id: "antigravity",
+          name: "Antigravity",
+          agentType: "antigravity",
+          configPath: agyConfig,
+          plugins: { "alpha-plugin": true },
+        },
+        { effHub: sb.hub }
+      );
+
+      assert.equal(conn1.success, true);
+      assert.equal(hubConfig.ides.length, 1);
+      assert.equal(hubConfig.ides[0].id, "antigravity");
+      assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin")), true);
+      assert.equal(fs.existsSync(path.join(agyConfig, "beta-plugin")), false);
+
+      const bridgeFile = path.join(sb.hub, "agent-space-bridge.json");
+      assert.equal(fs.existsSync(bridgeFile), true);
+      const bridge1 = JSON.parse(fs.readFileSync(bridgeFile, "utf8"));
+      assert.equal(bridge1.activeAgents.length, 1);
+      assert.equal(bridge1.activeAgents[0].id, "antigravity");
+
+      const connectorsFile = path.join(sb.hub, "shared", "agent-connectors.json");
+      assert.equal(fs.existsSync(connectorsFile), true);
+      const connMap1 = JSON.parse(fs.readFileSync(connectorsFile, "utf8"));
+      assert.equal(Object.keys(connMap1.connectors).length, 1);
+      assert.ok(connMap1.connectors["antigravity"]);
+
+      // 2. Re-connect to the same agent with timestamped ID and different components (beta-plugin: true, alpha-plugin: false)
+      const conn2 = m.connectAgent(
+        hubConfig,
+        {
+          id: `antigravity-${Date.now()}`,
+          name: "Antigravity Reconnected",
+          agentType: "antigravity",
+          configPath: agyConfig,
+          plugins: { "alpha-plugin": false, "beta-plugin": true },
+        },
+        { effHub: sb.hub }
+      );
+
+      assert.equal(conn2.success, true);
+      // In-place deduplication: exactly 1 IDE in config
+      assert.equal(hubConfig.ides.length, 1);
+      assert.equal(hubConfig.ides[0].id, "antigravity");
+
+      // Differential sync: alpha unlinked, beta linked
+      assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin")), false);
+      assert.equal(fs.existsSync(path.join(agyConfig, "beta-plugin")), true);
+
+      // Single bridge replacement: exactly 1 entry in activeAgents and connectors
+      const bridge2 = JSON.parse(fs.readFileSync(bridgeFile, "utf8"));
+      assert.equal(bridge2.activeAgents.length, 1);
+      assert.equal(bridge2.activeAgents[0].id, "antigravity");
+
+      const connMap2 = JSON.parse(fs.readFileSync(connectorsFile, "utf8"));
+      assert.equal(Object.keys(connMap2.connectors).length, 1);
+      assert.ok(connMap2.connectors["antigravity"]);
+    } finally {
+      sb.cleanup();
+    }
+  });
+
+  test("Magpie Host IPC api.connectAgent and decoupled api.saveConfig", async () => {
+    const sb = makeSandbox();
+    try {
+      const { AgentSpaceManagerPlugin } = await import("../index.mjs");
+      const agyConfig = path.join(sb.home, ".gemini", "config", "plugins");
+
+      const hubConfig = {
+        hubRoot: sb.hub,
+        ides: [],
+        projects: [],
+      };
+
+      // Save without sync flag does not trigger sync
+      const saveRes = await AgentSpaceManagerPlugin.api.saveConfig(hubConfig);
+      assert.equal(saveRes.success, true);
+      assert.equal(saveRes.synced, false);
+      assert.equal(saveRes.sync, undefined);
+
+      // Save with explicit sync flag triggers sync
+      const saveWithSync = await AgentSpaceManagerPlugin.api.saveConfig(hubConfig, { sync: true });
+      assert.equal(saveWithSync.success, true);
+      assert.equal(saveWithSync.synced, true);
+      assert.ok(saveWithSync.sync);
+
+      // Connect agent via IPC
+      const connectRes = await AgentSpaceManagerPlugin.api.connectAgent(
+        hubConfig,
+        {
+          id: "antigravity",
+          agentType: "antigravity",
+          configPath: agyConfig,
+          plugins: { "alpha-plugin": true },
+        },
+        { effHub: sb.hub }
+      );
+      assert.equal(connectRes.success, true);
+      assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin")), true);
+    } finally {
+      sb.cleanup();
+    }
+  });
+
+  test("REST API POST /api/connect connects agent and returns single bridge payload", async () => {
+    const sb = makeSandbox();
+    try {
+      const { startApiServer } = await import("../server.mjs");
+      const agyConfig = path.join(sb.home, ".gemini", "config", "plugins");
+      const srv = startApiServer(0);
+      await new Promise((resolve) => srv.once("listening", resolve));
+      const port = srv.address().port;
+      const base = `http://127.0.0.1:${port}`;
+
+      try {
+        const connectRes = await fetch(`${base}/api/connect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: "antigravity",
+            agentType: "antigravity",
+            configPath: agyConfig,
+            plugins: { "alpha-plugin": true },
+          }),
+        }).then((r) => r.json());
+
+        assert.equal(connectRes.success, true);
+        assert.ok(connectRes.bridge);
+        assert.ok(Array.isArray(connectRes.activeAgents));
+        assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin")), true);
+
+        // Missing id/agentType returns 400
+        const badRes = await fetch(`${base}/api/connect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        assert.equal(badRes.status, 400);
+      } finally {
+        await new Promise((resolve) => srv.close(resolve));
+      }
     } finally {
       sb.cleanup();
     }

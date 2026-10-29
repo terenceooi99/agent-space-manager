@@ -12,6 +12,7 @@ import {
   loadHubConfig,
   saveHubConfig,
   scanPlugins,
+  connectAgent,
   syncIdePlugins,
   syncAllIdes,
   unlinkAllForIde,
@@ -306,20 +307,95 @@ export function startApiServer(port = API_PORT) {
         return;
       }
 
+      if (pathname === "/api/connect" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          try {
+            const parsed = JSON.parse(body || "{}");
+            const targetIde = parsed.ide && typeof parsed.ide === "object" ? parsed.ide : parsed;
+            if (!targetIde || (!targetIde.id && !targetIde.agentType)) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: "Missing required agent id or agentType" }));
+              return;
+            }
+
+            const config = loadHubConfig();
+            const effHub = getEffectiveHubRoot(config);
+            const customPlugins = Array.isArray(parsed.plugins) ? parsed.plugins : null;
+            const connectRes = connectAgent(config, targetIde, {
+              effHub,
+              customPlugins,
+            });
+
+            // Ensure bridge and activeAgents are populated from file or return object
+            let bridge = connectRes.bridge || null;
+            let activeAgents = connectRes.activeAgents || [];
+            if (!bridge || Object.keys(bridge).length === 0) {
+              try {
+                const bridgePath = path.join(effHub, "agent-space-bridge.json");
+                if (fs.existsSync(bridgePath)) {
+                  bridge = JSON.parse(fs.readFileSync(bridgePath, "utf8"));
+                  activeAgents = bridge.activeAgents || [];
+                }
+              } catch {}
+            }
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                success: connectRes.success !== false,
+                bridge: bridge || {},
+                activeAgents: activeAgents.length > 0 ? activeAgents : (bridge?.activeAgents || []),
+                result: connectRes.result || connectRes.sync || connectRes,
+                hubConfig: connectRes.hubConfig || config,
+              })
+            );
+          } catch (err) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
       if (pathname === "/api/save" && req.method === "POST") {
         let body = "";
         req.on("data", (chunk) => { body += chunk; });
         req.on("end", () => {
           try {
-            const config = JSON.parse(body);
+            const raw = JSON.parse(body || "{}");
+            const config = raw.config && typeof raw.config === "object" ? raw.config : raw;
+            const shouldSync = Boolean(
+              raw.sync === true ||
+              raw.connect === true ||
+              config.sync === true ||
+              config.connect === true
+            );
+
             saveHubConfig(config);
             const effPath = getEffectiveHubRoot(config);
-            const plugins = scanPlugins(effPath);
+            const plugins = Array.isArray(raw.plugins) ? raw.plugins : scanPlugins(effPath);
             const categories = buildCategoriesRegistry(plugins, effPath);
             updatePluginsCache(effPath, plugins, categories);
-            const syncRes = syncAllIdes(config, plugins);
+
+            let syncRes = null;
+            if (shouldSync) {
+              syncRes = syncAllIdes(config, plugins);
+            }
+
             res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: true, pluginCount: plugins.length, plugins, categories, sync: syncRes }));
+            res.end(
+              JSON.stringify({
+                success: true,
+                config,
+                pluginCount: plugins.length,
+                plugins,
+                categories,
+                synced: shouldSync,
+                ...(syncRes ? { sync: syncRes } : {}),
+              })
+            );
           } catch (err) {
             res.writeHead(400, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ success: false, error: err.message }));

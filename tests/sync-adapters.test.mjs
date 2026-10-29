@@ -26,7 +26,7 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
         agentType: "claude-code",
         configPath: path.join(sb.home, ".claude", "skills"),
         enabled: true,
-        plugins: {},
+        plugins: { "alpha-plugin": true, "beta-plugin": true },
       };
 
       const res = m.syncIdePlugins(ide, plugins);
@@ -64,7 +64,7 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
       assert.equal(fs.existsSync(path.join(sb.home, ".claude", "agents", "reviewer.md")), true);
 
       // 5. Disable alpha-plugin -> its skills & MCP servers are pruned, beta-plugin & user-custom-mcp remain
-      ide.plugins = { "alpha-plugin": false };
+      ide.plugins = { "alpha-plugin": false, "beta-plugin": true };
       m.syncIdePlugins(ide, plugins);
       assert.equal(fs.existsSync(path.join(sb.home, ".claude", "skills", "code-review", "SKILL.md")), false);
       assert.equal(fs.existsSync(path.join(sb.home, ".claude", "skills", "deploy-helper", "SKILL.md")), true);
@@ -94,7 +94,7 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
         agentType: "codex",
         configPath: path.join(codexDir, "skills"),
         enabled: true,
-        plugins: {},
+        plugins: { "alpha-plugin": true, "beta-plugin": true },
       };
 
       m.syncIdePlugins(ide, plugins);
@@ -127,7 +127,7 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
         agentType: "opencode",
         configPath: m.detectAgentConfigPath("OpenCode"),
         enabled: true,
-        plugins: {},
+        plugins: { "alpha-plugin": true, "beta-plugin": true },
       };
 
       assert.match(ide.configPath, /skills$/i, "OpenCode configPath must target skills, not plugins");
@@ -175,7 +175,7 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
           agentType,
           configPath: m.detectAgentConfigPath(agentType),
           enabled: true,
-          plugins: {},
+          plugins: { "alpha-plugin": true, "beta-plugin": true },
         };
         const res = m.syncIdePlugins(ide, plugins);
         assert.equal(res.success, true, `Sync failed for ${agentType}`);
@@ -227,7 +227,7 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
           hooks: customHooks,
         },
         enabled: true,
-        plugins: {},
+        plugins: { "alpha-plugin": true, "beta-plugin": true },
       };
 
       const res = m.syncIdePlugins(ide, plugins);
@@ -259,6 +259,31 @@ describe("Feature 2 & 3: Native-Format Multi-Agent Adapters (Skills, MCP, Rules,
 
       const afterRules = fs.readFileSync(customRules, "utf8");
       assert.doesNotMatch(afterRules, /agent-space-manager:start/, "Rules block must be completely removed");
+    } finally {
+      sb.cleanup();
+    }
+  });
+
+  test("Native adapter with empty plugins (default disabled) links zero components", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      const plugins = m.scanPlugins(sb.hub);
+
+      const ide = {
+        id: "claude-code",
+        name: "Claude Code",
+        agentType: "claude-code",
+        configPath: path.join(sb.home, ".claude", "skills"),
+        enabled: true,
+        plugins: {}, // Default unchecked / unselected
+      };
+
+      const res = m.syncIdePlugins(ide, plugins);
+      assert.equal(res.success, true);
+      assert.equal(fs.existsSync(path.join(sb.home, ".claude", "skills", "code-review")), false);
+      assert.equal(fs.existsSync(path.join(sb.home, ".claude", "skills", "deploy-helper")), false);
+      assert.equal(fs.existsSync(path.join(sb.home, ".claude", "CLAUDE.md")), false);
     } finally {
       sb.cleanup();
     }

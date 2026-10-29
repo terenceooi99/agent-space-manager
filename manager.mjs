@@ -586,12 +586,60 @@ export function loadHubConfig(configFile = null) {
 }
 
 /**
- * Saves hub configuration to file (UTF-8 without BOM)
+ * Deduplicates an array of IDE entries in-place, merging component selections
+ * and ensuring only one canonical entry exists per agent type or config path.
+ *
+ * @param {Array<object>} ides - Array of IDE configuration entries.
+ * @returns {Array<object>} Deduplicated array of normalized IDE entries.
+ */
+export function deduplicateIdes(ides = []) {
+  if (!Array.isArray(ides)) return [];
+  const seenIds = new Set();
+  const seenTargets = new Set();
+  const result = [];
+
+  for (const raw of ides) {
+    if (!raw) continue;
+    const ide = normalizeIdeEntry(raw);
+    const idKey = ide.id;
+    const normConfig = ide.configPath ? path.resolve(expandHomePath(ide.configPath)) : "";
+    const targetKey = `${ide.agentType}::${normConfig}`;
+
+    const existing = result.find((item) => {
+      if (item.id === idKey) return true;
+      if (idKey && item.id && (item.id.replace(/-\d{10,}$/, "") === idKey.replace(/-\d{10,}$/, ""))) return true;
+      if (normConfig && item.agentType === ide.agentType) {
+        const itemConfig = item.configPath ? path.resolve(expandHomePath(item.configPath)) : "";
+        if (itemConfig === normConfig) return true;
+      }
+      return false;
+    });
+
+    if (existing) {
+      // Merge preferences into canonical entry
+      existing.plugins = { ...(existing.plugins || {}), ...(ide.plugins || {}) };
+      if (ide.componentPaths) {
+        existing.componentPaths = { ...(existing.componentPaths || {}), ...ide.componentPaths };
+      }
+      if (ide.exePath && !existing.exePath) existing.exePath = ide.exePath;
+      if (ide.name && (!existing.name || existing.name === existing.id)) existing.name = ide.name;
+      continue;
+    }
+
+    seenIds.add(idKey);
+    if (normConfig) seenTargets.add(targetKey);
+    result.push(ide);
+  }
+  return result;
+}
+
+/**
+ * Saves hub configuration to file (UTF-8 without BOM) with automated IDE deduplication.
  */
 export function saveHubConfig(config, configFile = null) {
   const effectiveFile = configFile || path.join(resolveHubRoot(), "hub-config.json");
   if (config && Array.isArray(config.ides)) {
-    config.ides = config.ides.map(normalizeIdeEntry);
+    config.ides = deduplicateIdes(config.ides);
   }
   ensureDir(path.dirname(effectiveFile));
   fs.writeFileSync(effectiveFile, JSON.stringify(config, null, 2), "utf8");
@@ -1091,9 +1139,13 @@ export function sanitizeAgentConfigDirectory(configDir, agentType = "general") {
             fs.unlinkSync(p);
             continue;
           }
-          const parsed = JSON.parse(content);
-          if (parsed && typeof parsed === "object" && !parsed.id) {
-            fs.unlinkSync(p);
+          try {
+            const parsed = JSON.parse(content);
+            if (parsed && typeof parsed === "object" && !parsed.id) {
+              fs.unlinkSync(p);
+            }
+          } catch {
+            try { fs.unlinkSync(p); } catch {}
           }
         } catch {}
       }
@@ -1148,7 +1200,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
 
     const activePluginMap = new Map();
     for (const plugin of allPlugins) {
-      const isEnabled = normalized.plugins ? normalized.plugins[plugin.id] !== false : true;
+      const isEnabled = Boolean(normalized.plugins && normalized.plugins[plugin.id] === true);
       if (isEnabled && plugin.path && fs.existsSync(plugin.path) && !plugin.isRootSkills) {
         activePluginMap.set(plugin.id, plugin.path);
       }
@@ -1593,6 +1645,326 @@ export function unlinkAllForProject(project, ide = null) {
   syncProjectOverrides({ ...project, plugins: {} }, ide, []);
   deleteOwnershipState(ownerKey);
   return { success: true };
+}
+
+/**
+ * Finds all indices in hubConfig.ides matching a target IDE by:
+ * 1. Exact ID match (case-insensitive)
+ * 2. Base ID match (stripping trailing timestamp suffixes)
+ * 3. Normalized configPath match (resolving ~ and symlinks)
+ * 4. Standard agentType match (for non-custom single-instance agents)
+ *
+ * @param {Array<object>} ides - Array of configured IDE objects.
+ * @param {object} targetIde - The normalized target IDE object.
+ * @returns {Array<number>} Matching indices in ides array.
+ */
+export function findMatchingIdeIndices(ides = [], targetIde = {}) {
+  if (!Array.isArray(ides) || !targetIde) return [];
+
+  const targetId = String(targetIde.id || "").trim().toLowerCase();
+  const targetType = String(targetIde.agentType || "").trim().toLowerCase();
+  const targetBaseId = targetId.replace(/-\d{10,}$/, "");
+  const targetConfig = targetIde.configPath
+    ? path.resolve(expandHomePath(targetIde.configPath)).toLowerCase()
+    : "";
+
+  const matches = [];
+
+  for (let idx = 0; idx < ides.length; idx++) {
+    const entry = ides[idx];
+    if (!entry || typeof entry !== "object") continue;
+
+    const entryId = String(entry.id || "").trim().toLowerCase();
+    const entryBaseId = entryId.replace(/-\d{10,}$/, "");
+    const entryType = String(entry.agentType || "").trim().toLowerCase();
+    const entryConfig = entry.configPath
+      ? path.resolve(expandHomePath(entry.configPath)).toLowerCase()
+      : "";
+
+    // Match 1: Exact ID match
+    if (targetId && entryId && entryId === targetId) {
+      matches.push(idx);
+      continue;
+    }
+
+    // Match 2: Base ID match (e.g. "antigravity-1730188045123" vs "antigravity")
+    if (targetBaseId && entryBaseId && entryBaseId === targetBaseId) {
+      matches.push(idx);
+      continue;
+    }
+
+    // Match 3: Config path match (same physical directory on disk)
+    if (targetConfig && entryConfig && entryConfig === targetConfig) {
+      matches.push(idx);
+      continue;
+    }
+
+    // Match 4: Standard agentType match (for built-in agents like cursor, windsurf, antigravity)
+    if (
+      targetType &&
+      targetType !== "custom" &&
+      (entryType === targetType || entryId === targetType || entryBaseId === targetType)
+    ) {
+      matches.push(idx);
+      continue;
+    }
+  }
+
+  return matches;
+}
+
+/**
+ * Connects or reconnects an agent IDE, replacing any existing bridge for that agent
+ * rather than creating duplicate bridges. Guarantees in-place deduplication,
+ * ownership manifest aggregation, clean differential teardown, and safety invariant compliance.
+ *
+ * @param {object} hubConfig - The current hub configuration object.
+ * @param {object} targetIde - The IDE entry to connect (with updated plugins map).
+ * @param {object} [options] - Additional connection options:
+ *   - customPlugins: Array of pre-scanned plugin objects.
+ *   - allPlugins: Alias for customPlugins.
+ *   - effHub: Effective hub root directory path.
+ *   - configFile: Custom path to hub-config.json.
+ *   - skipSave: Whether to skip saving hubConfig.
+ * @returns {object} { success: boolean, hubConfig: object, result: object, sync: object, bridge: object, activeAgents: Array, ide: object }
+ */
+export function connectAgent(hubConfig, targetIde, options = {}) {
+  if (!targetIde || typeof targetIde !== "object") {
+    return {
+      success: false,
+      error: "Target IDE is required",
+      hubConfig: hubConfig || null,
+      result: null,
+    };
+  }
+
+  // Ensure valid hubConfig object
+  const config = hubConfig || loadHubConfig(options.configFile);
+  if (!Array.isArray(config.ides)) {
+    config.ides = [];
+  }
+
+  const effectiveHub = options.effHub || getEffectiveHubRoot(config);
+  const plugins = options.customPlugins || options.allPlugins || scanPlugins(effectiveHub);
+
+  // 1. Normalize target IDE definition
+  const normTarget = normalizeIdeEntry(targetIde);
+  const targetType = normTarget.agentType || inferAgentType(normTarget);
+  normTarget.agentType = targetType;
+
+  // 2. Identify matching entries in hubConfig.ides
+  const matchingIndices = findMatchingIdeIndices(config.ides, normTarget);
+
+  // Determine canonical ID (clean string without timestamp suffix)
+  let canonicalId = String(normTarget.id || "").trim();
+  if (matchingIndices.length > 0) {
+    const cleanExisting = matchingIndices
+      .map((idx) => config.ides[idx])
+      .find((entry) => entry && entry.id && !/-\d{10,}$/.test(entry.id));
+
+    if (cleanExisting) {
+      canonicalId = cleanExisting.id;
+    } else {
+      canonicalId = (canonicalId || targetType || "custom").replace(/-\d{10,}$/, "");
+    }
+  } else {
+    canonicalId = (canonicalId || targetType || "custom").replace(/-\d{10,}$/, "");
+  }
+  if (!canonicalId) canonicalId = targetType || "custom";
+  normTarget.id = canonicalId;
+
+  // 3. Track duplicate IDs for ownership aggregation and handoff cleanup
+  const removedDuplicateIds = new Set();
+  if (targetIde.id && targetIde.id !== canonicalId) {
+    removedDuplicateIds.add(targetIde.id);
+  }
+
+  // 4. In-Place Deduplication of config.ides
+  let updatedIde = null;
+
+  if (matchingIndices.length > 0) {
+    const primaryIdx = matchingIndices[0];
+    const existingEntry = config.ides[primaryIdx] || {};
+
+    if (existingEntry.id && existingEntry.id !== canonicalId) {
+      removedDuplicateIds.add(existingEntry.id);
+    }
+
+    // Collect IDs of any duplicate matching entries
+    for (let k = 1; k < matchingIndices.length; k++) {
+      const dupEntry = config.ides[matchingIndices[k]];
+      if (dupEntry && dupEntry.id && dupEntry.id !== canonicalId) {
+        removedDuplicateIds.add(dupEntry.id);
+      }
+    }
+
+    const newPlugins = targetIde.plugins !== undefined && targetIde.plugins !== null
+      ? (typeof targetIde.plugins === "object" ? { ...targetIde.plugins } : {})
+      : (existingEntry.plugins ? { ...existingEntry.plugins } : {});
+
+    updatedIde = normalizeIdeEntry({
+      ...existingEntry,
+      ...normTarget,
+      id: canonicalId,
+      agentType: targetType,
+      enabled: true,
+      plugins: newPlugins,
+    });
+
+    config.ides[primaryIdx] = updatedIde;
+
+    // Remove any additional duplicate entries from config.ides
+    if (matchingIndices.length > 1) {
+      const dupSet = new Set(matchingIndices.slice(1));
+      config.ides = config.ides.filter((_, idx) => !dupSet.has(idx));
+    }
+  } else {
+    // New agent connection
+    updatedIde = normalizeIdeEntry({
+      ...normTarget,
+      id: canonicalId,
+      agentType: targetType,
+      enabled: true,
+      plugins: targetIde.plugins && typeof targetIde.plugins === "object" ? { ...targetIde.plugins } : {},
+    });
+    config.ides.push(updatedIde);
+  }
+
+  // 5. Aggregate legacy timestamped ownership manifests into ide-<canonicalId>.json
+  const canonicalOwnerKey = `ide-${canonicalId}`;
+  const canonicalState = loadOwnershipState(canonicalOwnerKey);
+  const stateDir = getStateDir();
+
+  if (fs.existsSync(stateDir)) {
+    try {
+      const stateFiles = fs.readdirSync(stateDir).filter((f) => f.endsWith(".json"));
+      for (const filename of stateFiles) {
+        const ownerId = filename.slice(0, -5);
+        if (ownerId === canonicalOwnerKey) continue;
+
+        let isMatch = false;
+
+        // Condition A: Matches an explicit duplicate ID removed from config.ides
+        for (const dupId of removedDuplicateIds) {
+          if (ownerId === `ide-${dupId}` || ownerId === dupId) {
+            isMatch = true;
+            break;
+          }
+        }
+
+        // Condition B: Matches timestamped pattern ide-<canonicalId>-<timestamp>
+        if (!isMatch) {
+          const canonPrefix = `ide-${canonicalId}-`;
+          const typePrefix = targetType && targetType !== "custom" ? `ide-${targetType}-` : null;
+          if (ownerId.startsWith(canonPrefix) || (typePrefix && ownerId.startsWith(typePrefix))) {
+            isMatch = true;
+          }
+        }
+
+        if (isMatch) {
+          const legacyState = loadOwnershipState(ownerId);
+
+          // Merge links
+          for (const link of legacyState.links || []) {
+            if (!canonicalState.links.includes(link)) {
+              canonicalState.links.push(link);
+            }
+          }
+
+          // Merge files
+          for (const file of legacyState.files || []) {
+            if (!canonicalState.files.includes(file)) {
+              canonicalState.files.push(file);
+            }
+          }
+
+          // Merge JSON keys
+          if (legacyState.jsonKeys && typeof legacyState.jsonKeys === "object") {
+            for (const [keyPath, keys] of Object.entries(legacyState.jsonKeys)) {
+              if (!canonicalState.jsonKeys[keyPath]) {
+                canonicalState.jsonKeys[keyPath] = Array.isArray(keys) ? [...keys] : [];
+              } else {
+                const mergedKeySet = new Set(canonicalState.jsonKeys[keyPath]);
+                for (const k of keys || []) mergedKeySet.add(k);
+                canonicalState.jsonKeys[keyPath] = Array.from(mergedKeySet);
+              }
+            }
+          }
+
+          // Merge demarcated blocks
+          for (const block of legacyState.blocks || []) {
+            if (!canonicalState.blocks.includes(block)) {
+              canonicalState.blocks.push(block);
+            }
+          }
+
+          // Delete obsolete state file from disk
+          deleteOwnershipState(ownerId);
+        }
+      }
+    } catch {}
+  }
+
+  // Persist aggregated state so syncIdePlugins diffs against all prior artifacts
+  saveOwnershipState(canonicalOwnerKey, canonicalState);
+
+  // Pre-sync directory sanitization (Safety Invariant 2)
+  const primaryDir = updatedIde.configPath ? expandHomePath(updatedIde.configPath) : "";
+  if (primaryDir && fs.existsSync(primaryDir)) {
+    sanitizeAgentConfigDirectory(primaryDir, updatedIde.agentType);
+  }
+
+  // 6. Differential Sync: syncIdePlugins tears down unselected components & creates selected ones
+  const syncResult = syncIdePlugins(updatedIde, plugins);
+
+  // Post-sync directory sanitization
+  if (primaryDir && fs.existsSync(primaryDir)) {
+    sanitizeAgentConfigDirectory(primaryDir, updatedIde.agentType);
+  }
+
+  // 7. Persist configuration and regenerate communication bridge files
+  if (options.skipSave !== true) {
+    try {
+      saveHubConfig(config, options.configFile);
+    } catch {}
+  }
+
+  try {
+    writeHubCommunicationFiles(effectiveHub, config, plugins, { ides: [syncResult] });
+  } catch {}
+
+  // 8. Prune stale handoff directories on disk for removed duplicate IDs
+  for (const dupId of removedDuplicateIds) {
+    if (dupId && dupId !== canonicalId) {
+      const staleHandoff = path.join(effectiveHub, "shared", "handoff", dupId);
+      try {
+        if (fs.existsSync(staleHandoff)) {
+          fs.rmSync(staleHandoff, { recursive: true, force: true });
+        }
+      } catch {}
+    }
+  }
+
+  // 9. Read fresh bridge payload
+  let bridge = null;
+  let activeAgents = [];
+  try {
+    const bridgeFile = path.join(effectiveHub, "agent-space-bridge.json");
+    if (fs.existsSync(bridgeFile)) {
+      bridge = JSON.parse(fs.readFileSync(bridgeFile, "utf8"));
+      activeAgents = bridge.activeAgents || [];
+    }
+  } catch {}
+
+  return {
+    success: syncResult.success !== false,
+    hubConfig: config,
+    result: syncResult,
+    sync: syncResult,
+    bridge: bridge || {},
+    activeAgents: activeAgents.length > 0 ? activeAgents : (bridge?.activeAgents || []),
+    ide: updatedIde,
+  };
 }
 
 /**
@@ -2400,8 +2772,8 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
     };
   }
 
-  // 3. Component toggled OFF for this specific agent
-  const isEnabled = ide.plugins ? ide.plugins[plugin.id] !== false : true;
+  // 3. Component toggled OFF / unselected for this specific agent (default is disabled/unselected)
+  const isEnabled = Boolean(ide.plugins && ide.plugins[plugin.id] === true);
   if (!isEnabled) {
     return {
       workable: false,

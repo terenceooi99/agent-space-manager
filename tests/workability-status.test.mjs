@@ -25,7 +25,7 @@ test("Feature 13: Component Workability Status Dots & Quick Actions Detection", 
     agentType: "claude-code",
     configPath: "C:\\Users\\test\\.claude\\skills",
     enabled: true,
-    plugins: {},
+    plugins: { "alpha-plugin": true },
   };
 
   await t.test("returns green dot when component is workable in connected agent with / and @ quick actions", () => {
@@ -48,6 +48,18 @@ test("Feature 13: Component Workability Status Dots & Quick Actions Detection", 
     assert.match(res.tooltip, /🟢 Workable in Claude Code/);
     assert.match(res.tooltip, /Quick action: \/code-review \/security-audit/);
     assert.match(res.tooltip, /Quick action: @reviewer @auditor/);
+  });
+
+  await t.test("returns red dot when component is unselected/default-disabled (empty plugins map)", () => {
+    const ideWithEmptyPlugins = {
+      ...activeIde,
+      plugins: {},
+    };
+    const res = evaluateComponentAgentWorkability(samplePlugin, ideWithEmptyPlugins);
+    assert.equal(res.workable, false);
+    assert.equal(res.color, "red");
+    assert.equal(res.status, "disabled");
+    assert.match(res.summary, /Disabled for Claude Code/);
   });
 
   await t.test("returns red dot when component is toggled off for the clicked connected agent", () => {

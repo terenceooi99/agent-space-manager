@@ -1,7 +1,7 @@
 window.__PLUGINS_CACHE__ = {
   "path": "D:\\Software\\AI Agent Space",
   "count": 23,
-  "updatedAt": 1793206272537,
+  "updatedAt": 1793269885151,
   "plugins": [
     {
       "id": "android-cli-plugin",
