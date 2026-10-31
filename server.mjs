@@ -28,6 +28,8 @@ import {
   checkComponentsModifications,
   checkAndAutoReconnectOnStartup,
   getComponentsStorageSnapshot,
+  recheckConnectedAgentsStatus,
+  verifyPluginWorkabilityOnDisk,
 } from "./manager.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -303,6 +305,38 @@ export function startApiServer(port = API_PORT) {
             res.end(JSON.stringify({ success: false, error: err.message }));
           }
         });
+        return;
+      }
+
+      if ((pathname === "/api/recheck-status" || pathname === "/api/recheck-status-dots") && (req.method === "GET" || req.method === "POST")) {
+        const handleRecheck = (customCfg) => {
+          try {
+            const cfg = customCfg || loadHubConfig();
+            const effHub = getEffectiveHubRoot(cfg);
+            const plugins = scanPlugins(effHub);
+            const statusResult = recheckConnectedAgentsStatus(cfg, plugins);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true, ...statusResult }));
+          } catch (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        };
+
+        if (req.method === "POST") {
+          let body = "";
+          req.on("data", (chunk) => { body += chunk; });
+          req.on("end", () => {
+            try {
+              const customCfg = body ? JSON.parse(body) : null;
+              handleRecheck(customCfg);
+            } catch {
+              handleRecheck(null);
+            }
+          });
+        } else {
+          handleRecheck(null);
+        }
         return;
       }
 

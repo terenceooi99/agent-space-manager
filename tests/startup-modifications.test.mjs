@@ -168,6 +168,12 @@ test("Feature 12: Components Storage Path Modification Tracking & Startup Auto-R
 
       assert.equal(syncRes.success, true);
       assert.equal(syncRes.startup, true);
+      assert.ok(syncRes.statusByIde);
+
+      // 3. GET /api/recheck-status
+      const recheckRes = await fetch(`${base}/api/recheck-status`).then((r) => r.json());
+      assert.equal(recheckRes.success, true);
+      assert.ok(recheckRes.statusByIde);
     } finally {
       await new Promise((resolve) => srv.close(resolve));
     }

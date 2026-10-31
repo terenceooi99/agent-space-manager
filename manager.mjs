@@ -2686,27 +2686,36 @@ export function checkAndAutoReconnectOnStartup(customHubConfig = null, options =
   const prevSnapshot = loadComponentsStorageSnapshot(effHub);
   const diff = diffComponentsStorageSnapshots(prevSnapshot, currentSnapshot);
 
-  // If force is requested or component modifications were detected, auto-reconnect connected agents!
-  if (diff.hasChanges || force) {
-    const plugins = scanPlugins(effHub);
+  const plugins = scanPlugins(effHub);
+  const preCheck = recheckConnectedAgentsStatus(cfg, plugins, options);
+
+  // If force is requested, component modifications were detected, OR enabled components are missing on disk:
+  // auto-reconnect connected agents!
+  if (diff.hasChanges || force || preCheck.hasMissingComponents) {
     const categories = buildCategoriesRegistry(plugins, effHub);
     const syncRes = syncAllIdes(cfg, plugins);
     const postSyncSnapshot = getComponentsStorageSnapshot(effHub);
     saveComponentsStorageSnapshot(effHub, postSyncSnapshot);
 
+    const postCheck = recheckConnectedAgentsStatus(cfg, plugins, options);
     const connectedAgents = (cfg.ides || []).filter((i) => i.enabled !== false).map((i) => i.name || i.id);
 
     return {
       success: true,
       startup: true,
-      hasChanges: diff.hasChanges,
+      hasChanges: Boolean(diff.hasChanges || preCheck.hasMissingComponents),
       autoReconnected: true,
       hubRoot: effHub,
       diff,
       connectedAgentsCount: connectedAgents.length,
       connectedAgents,
       sync: syncRes,
-      summary: diff.summary,
+      statusByIde: postCheck.statusByIde,
+      statusByProject: postCheck.statusByProject,
+      verifiedAgents: postCheck.verifiedAgents,
+      summary: diff.hasChanges
+        ? diff.summary
+        : (preCheck.hasMissingComponents ? "Restored missing plugin components in connected agents" : diff.summary),
     };
   }
 
@@ -2719,7 +2728,169 @@ export function checkAndAutoReconnectOnStartup(customHubConfig = null, options =
     diff,
     connectedAgentsCount: (cfg.ides || []).filter((i) => i.enabled !== false).length,
     connectedAgents: (cfg.ides || []).filter((i) => i.enabled !== false).map((i) => i.name || i.id),
+    statusByIde: preCheck.statusByIde,
+    statusByProject: preCheck.statusByProject,
+    verifiedAgents: preCheck.verifiedAgents,
     summary: diff.summary,
+  };
+}
+
+/**
+ * Verifies on-disk physical presence of component files and directories
+ * for an enabled plugin in a connected agent IDE.
+ */
+export function verifyPluginWorkabilityOnDisk(plugin, ide, options = {}) {
+  const base = evaluateComponentAgentWorkability(plugin, ide, { ...options, checkDisk: false });
+  if (!base.workable) {
+    return base;
+  }
+
+  if (options.checkDisk === false) {
+    return base;
+  }
+
+  try {
+    const normalized = normalizeIdeEntry(ide);
+    const home = getHomeDir();
+    const appData = getAppDataDir(home);
+    const paths = resolveEffectiveAgentPaths(normalized, home, appData);
+    const primaryDir = expandHomePath(paths.primary || paths.bundle || paths.skills || normalized.configPath);
+
+    if (!primaryDir || !fs.existsSync(primaryDir)) {
+      return {
+        ...base,
+        workable: false,
+        color: "red",
+        status: "missing_on_disk",
+        summary: `Target directory missing for ${ide.name || ide.id}`,
+        tooltip: `🔴 Connection failed / Missing directory: Target path "${primaryDir || "undefined"}" does not exist on disk.`,
+        reason: `Target directory "${primaryDir || "undefined"}" does not exist on disk`,
+      };
+    }
+
+    const profile = AGENT_PROFILES[normalized.agentType] || AGENT_PROFILES.custom;
+
+    // 1. Bundle Mode (e.g. Antigravity)
+    if (profile.mode === "bundle") {
+      const bundleDir = paths.bundle || primaryDir;
+      const pluginBundleDir = path.join(bundleDir, plugin.id);
+      if (!fs.existsSync(pluginBundleDir)) {
+        return {
+          ...base,
+          workable: false,
+          color: "red",
+          status: "missing_on_disk",
+          summary: `Plugin bundle missing in ${ide.name || ide.id}`,
+          tooltip: `🔴 Connection failed / Missing on disk: Plugin bundle "${plugin.id}" is not deployed in "${bundleDir}".`,
+          reason: `Plugin bundle "${plugin.id}" is not deployed in "${bundleDir}"`,
+        };
+      }
+    } else {
+      // 2. Converted / Native Mode (Claude Code, Codex, OpenCode, VS Code Copilot, Cursor, Windsurf, etc.)
+      if (Array.isArray(plugin.skills) && plugin.skills.length > 0) {
+        const skillsDir = paths.skills || primaryDir;
+        for (const s of plugin.skills) {
+          const sName = typeof s === "string" ? s : s.name;
+          const sPath1 = path.join(skillsDir, sName);
+          const sPath2 = path.join(skillsDir, sName, "SKILL.md");
+          if (!fs.existsSync(sPath1) && !fs.existsSync(sPath2)) {
+            return {
+              ...base,
+              workable: false,
+              color: "red",
+              status: "missing_on_disk",
+              summary: `Skill "${sName}" missing on disk in ${ide.name || ide.id}`,
+              tooltip: `🔴 Connection failed / Missing on disk: Skill "${sName}" is enabled but not found in "${skillsDir}".`,
+              reason: `Skill "${sName}" is missing in "${skillsDir}"`,
+            };
+          }
+        }
+      }
+    }
+
+    return {
+      ...base,
+      workable: true,
+      color: "green",
+      status: "workable",
+      verifiedOnDisk: true,
+      tooltip: base.tooltip ? base.tooltip.replace("Connected & ready.", "Connected & ready (verified on disk).") : base.tooltip,
+    };
+  } catch {
+    return base;
+  }
+}
+
+/**
+ * Verifies on-disk physical presence for project override components.
+ */
+export function verifyProjectPluginWorkabilityOnDisk(plugin, project, parentIde = null) {
+  if (!project || !project.repoPath) {
+    return { workable: false, color: "red", status: "failed", features: {}, summary: "Project repository path missing", tooltip: "🔴 Connection failed: Repository path does not exist" };
+  }
+  const isEnabled = project.plugins && project.plugins[plugin.id] !== undefined
+    ? project.plugins[plugin.id] === true
+    : Boolean(parentIde?.plugins && parentIde.plugins[plugin.id] === true);
+  if (!isEnabled) {
+    return { workable: false, color: "red", status: "disabled", features: {}, summary: `Disabled for project "${project.name}"`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for project "${project.name}"` };
+  }
+  if (!fs.existsSync(project.repoPath)) {
+    return { workable: false, color: "red", status: "missing_on_disk", features: {}, summary: "Project path not found on disk", tooltip: `🔴 Connection failed / Missing on disk: Project repository "${project.repoPath}" not found on disk.` };
+  }
+  return { workable: true, color: "green", status: "workable", verifiedOnDisk: true, summary: `Workable in ${project.name}`, tooltip: `🟢 Workable in Project "${project.name}": Repository linked & protected (.git/info/exclude).` };
+}
+
+/**
+ * Rechecks the workability status dot for each enabled plugin across all connected agents and projects.
+ */
+export function recheckConnectedAgentsStatus(hubConfig = null, plugins = null, options = {}) {
+  const cfg = hubConfig || loadHubConfig();
+  const effHub = getEffectiveHubRoot(cfg);
+  const allPlugins = plugins || scanPlugins(effHub);
+
+  const statusByIde = {};
+  const statusByProject = {};
+  let totalChecked = 0;
+  let hasMissingComponents = false;
+  const verifiedAgents = [];
+
+  const connectedIdes = (cfg.ides || []).filter((i) => i && i.enabled !== false);
+
+  for (const ide of connectedIdes) {
+    const ideKey = ide.id || ide.agentType || "ide";
+    statusByIde[ideKey] = {};
+    verifiedAgents.push(ideKey);
+
+    for (const plugin of allPlugins) {
+      const isEnabled = Boolean(ide.plugins && ide.plugins[plugin.id] === true);
+      const res = verifyPluginWorkabilityOnDisk(plugin, ide, options);
+      statusByIde[ideKey][plugin.id] = res;
+      totalChecked++;
+
+      if (isEnabled && res.status === "missing_on_disk") {
+        hasMissingComponents = true;
+      }
+    }
+  }
+
+  for (const proj of (cfg.projects || [])) {
+    statusByProject[proj.id] = {};
+    const parentIde = (cfg.ides || []).find((i) => i.id === proj.ideId) || null;
+    for (const plugin of allPlugins) {
+      const res = verifyProjectPluginWorkabilityOnDisk(plugin, proj, parentIde);
+      statusByProject[proj.id][plugin.id] = res;
+    }
+  }
+
+  return {
+    success: true,
+    timestamp: Date.now(),
+    hubRoot: effHub,
+    totalChecked,
+    hasMissingComponents,
+    verifiedAgents,
+    statusByIde,
+    statusByProject,
   };
 }
 
@@ -2728,6 +2899,12 @@ export function checkAndAutoReconnectOnStartup(customHubConfig = null, options =
  * determining the status dot color (green vs red) and detecting `@` mention or `/` slash quick actions.
  */
 export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
+  if (options.verifiedStatus && plugin?.id && options.verifiedStatus[plugin.id]) {
+    return options.verifiedStatus[plugin.id];
+  }
+  if (options.checkDisk === true && plugin && ide) {
+    return verifyPluginWorkabilityOnDisk(plugin, ide, { ...options, checkDisk: undefined });
+  }
   if (!plugin) {
     return {
       workable: false,

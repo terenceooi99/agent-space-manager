@@ -27,6 +27,8 @@ import {
   checkAndAutoReconnectOnStartup,
   getComponentsStorageSnapshot,
   evaluateComponentAgentWorkability,
+  verifyPluginWorkabilityOnDisk,
+  recheckConnectedAgentsStatus,
 } from "./manager.mjs";
 
 if (!process.env.ASM_NO_SERVER) {
@@ -36,7 +38,12 @@ if (!process.env.ASM_NO_SERVER) {
   } catch {}
 }
 
-export { onRequest, onResponse };
+export {
+  onRequest,
+  onResponse,
+  recheckConnectedAgentsStatus,
+  verifyPluginWorkabilityOnDisk,
+};
 
 export const AgentSpaceManagerPlugin = {
   name: "agent-space-manager",
@@ -172,11 +179,19 @@ export const AgentSpaceManagerPlugin = {
     startupSync: async (customConfig) => {
       return checkAndAutoReconnectOnStartup(customConfig);
     },
+    recheckStatus: async (customConfig) => {
+      const cfg = customConfig || loadHubConfig();
+      const plugins = scanPlugins(getEffectiveHubRoot(cfg));
+      return recheckConnectedAgentsStatus(cfg, plugins);
+    },
     getComponentsSnapshot: async (customHubRoot) => {
       return getComponentsStorageSnapshot(getEffectiveHubRoot(customHubRoot));
     },
     evaluateWorkability: (plugin, ide, options) => {
       return evaluateComponentAgentWorkability(plugin, ide, options);
+    },
+    verifyPluginWorkabilityOnDisk: (plugin, ide, options) => {
+      return verifyPluginWorkabilityOnDisk(plugin, ide, options);
     },
   },
 };

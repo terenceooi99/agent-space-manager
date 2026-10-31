@@ -534,6 +534,26 @@
       return null;
     },
 
+    async recheckStatus(customConfig) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.recheckStatus === "function") {
+          const res = await magpieApi.recheckStatus(customConfig);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/recheck-status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(customConfig || {}),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
+
     async connectTarget(target, options = {}) {
       try {
         const magpieApi = getMagpieApi();
@@ -575,6 +595,8 @@
 
   let agentProfiles = [...FALLBACK_AGENT_PROFILES];
   let lastSyncByIde = {};
+  let verifiedStatusByIde = {};
+  let verifiedStatusByProject = {};
 
   let hubConfig = { ...DEFAULTS };
   let discoveredPlugins = [];
@@ -586,6 +608,94 @@
   let currentSelection = { type: "ide", id: "antigravity" };
   let autoSyncTimer = null;
   let draggedItem = null;
+
+  const statusCheckingUI = {
+    show(stepText = "Auditing connected agents & enabled plugins...", pct = 25) {
+      const modal = $("statusCheckingModal");
+      if (!modal) return;
+      modal.style.display = "flex";
+      if ($("statusCheckingTitle")) $("statusCheckingTitle").textContent = "Checking Component Status...";
+      if ($("statusCheckingStep")) $("statusCheckingStep").textContent = stepText;
+      if ($("statusCheckingPct")) $("statusCheckingPct").textContent = `${pct}%`;
+      if ($("statusCheckingProgressBar")) $("statusCheckingProgressBar").style.width = `${pct}%`;
+      if ($("statusCheckingSummary")) $("statusCheckingSummary").style.display = "none";
+      if ($("btnDoneStatusCheck")) $("btnDoneStatusCheck").style.display = "none";
+      if ($("btnBackgroundStatusCheck")) $("btnBackgroundStatusCheck").style.display = "inline-block";
+      if ($("statusCheckingSpinner")) $("statusCheckingSpinner").style.display = "inline-block";
+      if ($("statusCheckingFooterNote")) $("statusCheckingFooterNote").textContent = "Checking status dots in background...";
+
+      this.renderAgentItems();
+    },
+
+    update(stepText, pct) {
+      const modal = $("statusCheckingModal");
+      if (!modal || modal.style.display !== "flex") return;
+      if (stepText && $("statusCheckingStep")) $("statusCheckingStep").textContent = stepText;
+      if (pct !== undefined) {
+        if ($("statusCheckingPct")) $("statusCheckingPct").textContent = `${pct}%`;
+        if ($("statusCheckingProgressBar")) $("statusCheckingProgressBar").style.width = `${pct}%`;
+      }
+      this.renderAgentItems();
+    },
+
+    finish(summaryText = "Status Check Complete! Verified all enabled plugins.") {
+      const modal = $("statusCheckingModal");
+      if (!modal || modal.style.display !== "flex") return;
+      if ($("statusCheckingTitle")) $("statusCheckingTitle").textContent = "Component Status Verified";
+      if ($("statusCheckingStep")) $("statusCheckingStep").textContent = "✓ Status verification complete";
+      if ($("statusCheckingPct")) $("statusCheckingPct").textContent = "100%";
+      if ($("statusCheckingProgressBar")) $("statusCheckingProgressBar").style.width = "100%";
+      if ($("statusCheckingSpinner")) $("statusCheckingSpinner").style.display = "none";
+      if ($("statusCheckingSummary")) {
+        $("statusCheckingSummary").style.display = "block";
+        $("statusCheckingSummary").innerHTML = `<strong>Status Check Complete!</strong> ${escapeHtml(summaryText)}`;
+      }
+      if ($("statusCheckingFooterNote")) $("statusCheckingFooterNote").textContent = "All component status dots up to date.";
+      if ($("btnDoneStatusCheck")) $("btnDoneStatusCheck").style.display = "inline-block";
+      if ($("btnBackgroundStatusCheck")) $("btnBackgroundStatusCheck").style.display = "none";
+
+      this.renderAgentItems();
+
+      setTimeout(() => {
+        if (modal.style.display === "flex") {
+          modal.style.display = "none";
+        }
+      }, 1200);
+    },
+
+    hide() {
+      const modal = $("statusCheckingModal");
+      if (modal) modal.style.display = "none";
+    },
+
+    renderAgentItems() {
+      const container = $("statusCheckingAgentList");
+      if (!container) return;
+      const agents = (hubConfig.ides || []).filter((i) => i && i.enabled !== false);
+      if (agents.length === 0) {
+        container.innerHTML = `<div style="color:var(--magpie-muted); padding:4px;">No connected agents to verify.</div>`;
+        return;
+      }
+
+      container.innerHTML = agents.map((ide) => {
+        const enabledCount = Object.values(ide.plugins || {}).filter((v) => v === true).length;
+        const verifiedMap = verifiedStatusByIde[ide.id] || {};
+        const isVerified = Object.keys(verifiedMap).length > 0;
+        const statusBadge = isVerified
+          ? `<span style="font-size:10.5px; padding:2px 8px; border-radius:4px; background:rgba(34,197,94,0.15); color:#22c55e; font-weight:600;">🟢 Verified</span>`
+          : `<span style="font-size:10.5px; padding:2px 8px; border-radius:4px; background:rgba(96,165,250,0.15); color:#60a5fa; font-weight:600;">Checking...</span>`;
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:6px; background:var(--magpie-surface-alt, rgba(255,255,255,0.02)); border:1px solid var(--magpie-border, #333);">
+            <div>
+              <span style="font-weight:600;">${escapeHtml(ide.name || ide.id)}</span>
+              <span style="font-size:11px; color:var(--magpie-muted); margin-left:6px;">(${enabledCount} enabled plugins)</span>
+            </div>
+            ${statusBadge}
+          </div>
+        `;
+      }).join("");
+    }
+  };
 
   // 1. Handshake with Magpie bridge safely
   try {
@@ -665,20 +775,34 @@
   } catch {}
   await reloadPluginsFromHub();
 
-  // 4b. On startup: check for modification difference in Components Storage Path and auto-reconnect connected agents!
+  // 4b. On startup: check for modification difference in Components Storage Path and recheck status dots for each enabled plugin in each connected agent!
   let startupSyncResult = null;
+  statusCheckingUI.show("Auditing connected agents & enabled plugin status dots...", 25);
   try {
     startupSyncResult = await apiClient.startupSync(hubConfig);
-    if (startupSyncResult?.hasChanges && startupSyncResult?.autoReconnected) {
-      if (startupSyncResult.sync?.results && Array.isArray(startupSyncResult.sync.results)) {
-        for (const r of startupSyncResult.sync.results) {
-          if (r.ideId) lastSyncByIde[r.ideId] = r;
-        }
+    statusCheckingUI.update("Inspecting component files & directories on disk...", 75);
+    if (startupSyncResult?.statusByIde) {
+      verifiedStatusByIde = startupSyncResult.statusByIde;
+    }
+    if (startupSyncResult?.statusByProject) {
+      verifiedStatusByProject = startupSyncResult.statusByProject;
+    }
+    if (startupSyncResult?.sync?.results && Array.isArray(startupSyncResult.sync.results)) {
+      for (const r of startupSyncResult.sync.results) {
+        if (r.ideId) lastSyncByIde[r.ideId] = r;
       }
+    }
+    if (startupSyncResult?.hasChanges && startupSyncResult?.autoReconnected) {
       await reloadPluginsFromHub(true);
     }
+    statusCheckingUI.finish(
+      startupSyncResult?.autoReconnected
+        ? "Auto-reconnected and verified all enabled plugin status dots across connected agents."
+        : "Verified all enabled plugin status dots across connected agents."
+    );
   } catch (err) {
     console.warn("Startup modification check/reconnect failed:", err);
+    statusCheckingUI.hide();
   }
 
   let editingIdeId = null;
@@ -815,6 +939,75 @@
   renderAll();
   setupEventListeners();
   renderStartupReconnectStatus(startupSyncResult);
+
+  // 6. Post-Startup Status Dot Rechecker:
+  // Rechecks the workability status dot for each enabled plugin across all connected agents after startup,
+  // ensuring that after Magpie is closed or task-killed, live status dots accurately reflect on-disk state.
+  function updateStatusDotsInDom() {
+    const tableBody = $("pluginTableBody");
+    if (!tableBody) return;
+    const rows = tableBody.querySelectorAll("tr");
+    rows.forEach((row) => {
+      const toggle = row.querySelector(".plugin-toggle");
+      if (!toggle) return;
+      const pluginId = toggle.dataset.plugin;
+      const plugin = discoveredPlugins.find((p) => p.id === pluginId);
+      if (!plugin) return;
+      const workability = evaluateComponentWorkability(plugin);
+      const dot = row.querySelector(".component-status-dot");
+      if (dot) {
+        dot.className = `component-status-dot dot-${workability.color}`;
+        dot.title = workability.tooltip;
+        dot.setAttribute("aria-label", workability.summary);
+      }
+    });
+  }
+
+  let isRecheckingStatusDots = false;
+  async function recheckAllStatusDots(updateDom = true, showProgress = false) {
+    if (isRecheckingStatusDots) return;
+    isRecheckingStatusDots = true;
+    if (showProgress) {
+      statusCheckingUI.show("Auditing connected agents & enabled plugin status dots...", 35);
+    }
+    try {
+      const res = await apiClient.recheckStatus(hubConfig);
+      if (res?.statusByIde) {
+        verifiedStatusByIde = res.statusByIde;
+      }
+      if (res?.statusByProject) {
+        verifiedStatusByProject = res.statusByProject;
+      }
+      if (updateDom) {
+        updateStatusDotsInDom();
+      }
+      if (showProgress) {
+        statusCheckingUI.finish(`Verified ${res?.totalChecked || 0} component status dots across connected agents.`);
+      }
+    } catch {
+      if (showProgress) statusCheckingUI.hide();
+    } finally {
+      isRecheckingStatusDots = false;
+    }
+  }
+
+  // Trigger post-startup status rechecks (runs during and after startup initialization)
+  setTimeout(() => recheckAllStatusDots(true), 150);
+  setTimeout(() => recheckAllStatusDots(true), 1200);
+
+  // Recheck status dots when Magpie window gains focus or visibility (e.g. after Magpie was reopened or un-minimized)
+  window.addEventListener("focus", () => recheckAllStatusDots(true));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) recheckAllStatusDots(true);
+  });
+
+  // Background status dot watcher (throttled to >= 2000ms conforming to Safety Invariant 7)
+  const statusWatcherInterval = setInterval(() => {
+    recheckAllStatusDots(true);
+  }, 5000);
+  if (typeof statusWatcherInterval.unref === "function") {
+    statusWatcherInterval.unref();
+  }
 
   async function reloadPluginsFromHub(forceReloadScript = false) {
     const effective = computeEffectiveHubPath();
@@ -1216,6 +1409,9 @@
         if (e.target.closest(".delete-ide-btn") || e.target.closest(".edit-ide-btn")) return;
         currentSelection = { type: "ide", id: ide.id };
         renderAll();
+        if (typeof recheckAllStatusDots === "function") {
+          recheckAllStatusDots(true);
+        }
       });
 
       const editBtn = item.querySelector(".edit-ide-btn");
@@ -1351,6 +1547,9 @@
         if (e.target.closest(".delete-proj-btn") || e.target.closest(".copy-proj-btn") || e.target.closest(".edit-proj-btn")) return;
         currentSelection = { type: "project", id: proj.id };
         renderAll();
+        if (typeof recheckAllStatusDots === "function") {
+          recheckAllStatusDots(true);
+        }
       });
 
       const editBtn = item.querySelector(".edit-proj-btn");
@@ -1777,9 +1976,15 @@
   function evaluateComponentWorkability(plugin) {
     if (currentSelection.type === "ide") {
       const selectedIde = hubConfig.ides.find((i) => i.id === currentSelection.id);
+      if (selectedIde && verifiedStatusByIde[selectedIde.id]?.[plugin.id]) {
+        return verifiedStatusByIde[selectedIde.id][plugin.id];
+      }
       return evaluateComponentAgentWorkability(plugin, selectedIde, { lastSync: selectedIde ? lastSyncByIde[selectedIde.id] : null });
     } else if (currentSelection.type === "project") {
       const selectedProj = hubConfig.projects.find((p) => p.id === currentSelection.id);
+      if (selectedProj && verifiedStatusByProject[selectedProj.id]?.[plugin.id]) {
+        return verifiedStatusByProject[selectedProj.id][plugin.id];
+      }
       const parentIde = selectedProj ? hubConfig.ides.find((i) => i.id === selectedProj.ideId) : null;
       return evaluateComponentProjectWorkability(plugin, selectedProj, parentIde);
     }
@@ -1993,6 +2198,12 @@
             if (!proj.plugins) proj.plugins = {};
             proj.plugins[plugin.id] = checked;
           }
+        }
+
+        if (currentSelection.type === "ide" && verifiedStatusByIde[currentSelection.id]) {
+          delete verifiedStatusByIde[currentSelection.id][plugin.id];
+        } else if (currentSelection.type === "project" && verifiedStatusByProject[currentSelection.id]) {
+          delete verifiedStatusByProject[currentSelection.id][plugin.id];
         }
 
         // Live update status dot for this component
@@ -2669,6 +2880,11 @@ Guidelines:
     // Rescan button & Progress Modal
     if ($("closeRescanModal")) $("closeRescanModal").addEventListener("click", () => $("rescanProgressModal").style.display = "none");
     if ($("btnDoneRescan")) $("btnDoneRescan").addEventListener("click", () => $("rescanProgressModal").style.display = "none");
+
+    // Status Checking Progress Modal
+    if ($("closeStatusCheckingModal")) $("closeStatusCheckingModal").addEventListener("click", () => statusCheckingUI.hide());
+    if ($("btnBackgroundStatusCheck")) $("btnBackgroundStatusCheck").addEventListener("click", () => statusCheckingUI.hide());
+    if ($("btnDoneStatusCheck")) $("btnDoneStatusCheck").addEventListener("click", () => statusCheckingUI.hide());
 
     // Connect button: Explicit manual connection trigger (Requirements R1, R2, R3)
     const connectBtn = $("connectBtn");
