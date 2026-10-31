@@ -840,7 +840,8 @@
     if (hubConfig.hubRoot && hubConfig.hubRoot.trim() !== "") {
       return { path: hubConfig.hubRoot.trim(), isAuto: false };
     }
-    return { path: "D:\\Software\\AI Agent Space", isAuto: true };
+    const fallback = hubConfig.defaultHubRoot || "~/AI-Agent-Space";
+    return { path: fallback, isAuto: true };
   }
 
   function computeComponentCounts() {
@@ -1452,83 +1453,325 @@
 
   function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
     if (!plugin) {
-      return { workable: false, color: "red", status: "failed", summary: "No component", tooltip: "🔴 Error: No component provided" };
+      return { workable: false, color: "red", status: "failed", features: {}, summary: "No component", tooltip: "🔴 Error: No component provided" };
     }
     if (!ide) {
-      return { workable: false, color: "red", status: "failed", summary: "No connected agent selected", tooltip: "🔴 Connection failed: No connected agent selected. Click an agent on the left to inspect workability." };
+      return { workable: false, color: "red", status: "failed", features: {}, summary: "No connected agent selected", tooltip: "🔴 Connection failed: No connected agent selected. Click an agent on the left to inspect workability." };
     }
     if (ide.enabled === false) {
-      return { workable: false, color: "red", status: "disabled", summary: `Agent "${ide.name || ide.id}" is disabled`, tooltip: `🔴 Connection failed: Agent "${ide.name || ide.id}" is disabled in settings` };
+      return { workable: false, color: "red", status: "disabled", features: {}, summary: `Agent "${ide.name || ide.id}" is disabled`, tooltip: `🔴 Connection failed: Agent "${ide.name || ide.id}" is disabled in settings` };
     }
     const configPath = ide.configPath || (ide.componentPaths && (ide.componentPaths.skills || ide.componentPaths.bundle));
     if (!configPath || String(configPath).trim() === "") {
-      return { workable: false, color: "red", status: "failed", summary: `Agent "${ide.name || ide.id}" has no configuration path`, tooltip: `🔴 Connection failed: Target link path for "${ide.name || ide.id}" is not configured` };
+      return { workable: false, color: "red", status: "failed", features: {}, summary: `Agent "${ide.name || ide.id}" has no configuration path`, tooltip: `🔴 Connection failed: Target link path for "${ide.name || ide.id}" is not configured` };
     }
     const isEnabled = Boolean(ide.plugins && ide.plugins[plugin.id] === true);
     if (!isEnabled) {
-      return { workable: false, color: "red", status: "disabled", summary: `Disabled for ${ide.name || ide.id}`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for "${ide.name || ide.id}". Turn on the toggle switch to connect.` };
+      return { workable: false, color: "red", status: "disabled", features: {}, summary: `Disabled for ${ide.name || ide.id}`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for "${ide.name || ide.id}". Turn on the toggle switch to connect.` };
     }
     if (options.lastSync && options.lastSync.success === false) {
       const errMsg = options.lastSync.error || options.lastSync.message || "Sync error";
-      return { workable: false, color: "red", status: "failed", summary: `Connection failed: ${errMsg}`, tooltip: `🔴 Connection failed to "${ide.name || ide.id}": ${errMsg}` };
+      return { workable: false, color: "red", status: "failed", features: {}, summary: `Connection failed: ${errMsg}`, tooltip: `🔴 Connection failed to "${ide.name || ide.id}": ${errMsg}` };
     }
 
+    // Identify component types ACTUALLY INSIDE the plugin.
+    // Explicitly SKIP any component type that is NOT present in the plugin.
     const rawSkills = Array.isArray(plugin.skills) ? plugin.skills : [];
-    const slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
-    const hasSlash = slashCommands.length > 0;
+    const hasSkillsInside = rawSkills.length > 0;
 
     const rawAgents = Array.isArray(plugin.agents) ? plugin.agents : [];
-    const mentions = rawAgents.map((a) => {
-      const rawName = typeof a === "string" ? a : a.name || "";
-      return `@${rawName.replace(/\.md$/i, "")}`;
-    });
-    const hasMention = mentions.length > 0;
+    const hasAgentsInside = rawAgents.length > 0;
 
-    const hasMcp = Boolean(plugin.hasMcp || (plugin.mcps && plugin.mcps.length > 0));
-    const hasRules = Boolean(plugin.rules && plugin.rules.length > 0);
-    const hasHooks = Boolean(plugin.hasHooks || (plugin.hooks && plugin.hooks.length > 0));
+    const rawMcps = Array.isArray(plugin.mcps) ? plugin.mcps : [];
+    const hasMcpInside = Boolean(plugin.hasMcp || rawMcps.length > 0);
 
-    const hasAnyFeature = hasSlash || hasMention || hasMcp || hasRules || hasHooks || (plugin.filesCount && plugin.filesCount > 0);
+    const rawRules = Array.isArray(plugin.rules) ? plugin.rules : [];
+    const hasRulesInside = rawRules.length > 0;
+
+    const rawHooks = Array.isArray(plugin.hooks) ? plugin.hooks : [];
+    const hasHooksInside = Boolean(plugin.hasHooks || rawHooks.length > 0);
+
+    const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || (plugin.filesCount && plugin.filesCount > 0);
     if (!hasAnyFeature && !plugin.path) {
-      return { workable: false, color: "red", status: "failed", summary: "Empty component", tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"` };
+      return { workable: false, color: "red", status: "failed", features: {}, summary: "Empty component", tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"` };
     }
 
+    // Resolve agent profile capabilities
+    const agentType = String(ide.agentType || ide.id || "").toLowerCase();
+    const profile = agentProfiles.find((p) => p.id === agentType) || { capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true } };
+    const isBundle = profile?.mode === "bundle" || agentType === "antigravity";
+    const customPaths = ide.componentPaths || {};
+
+    const capabilities = {
+      skills: isBundle || customPaths.skills ? true : (profile?.capabilities?.skills ?? true),
+      mcp: isBundle || customPaths.mcp ? true : (profile?.capabilities?.mcp ?? true),
+      rules: isBundle || customPaths.rules ? true : (profile?.capabilities?.rules ?? true),
+      agents: isBundle || customPaths.agents ? true : (profile?.capabilities?.agents ?? true),
+      hooks: isBundle || customPaths.hooks ? true : (profile?.capabilities?.hooks ?? true),
+    };
+
+    const features = {};
     const actionParts = [];
-    if (hasSlash) actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
-    if (hasMention) actionParts.push(`Quick action: ${mentions.join(" ")}`);
-    if (hasMcp) actionParts.push("MCP tools active");
-    if (hasRules) actionParts.push("Rules active");
-    if (hasHooks) actionParts.push("Hooks active");
+    const detailedTooltipLines = [];
+    let workableCount = 0;
+    let presentTypeCount = 0;
+
+    // 1. Skills Check (only if present inside plugin)
+    let slashCommands = [];
+    if (hasSkillsInside) {
+      presentTypeCount++;
+      slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
+      const isSupported = capabilities.skills === true;
+      if (isSupported) {
+        workableCount++;
+        actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
+        detailedTooltipLines.push(`✓ Skills (${slashCommands.length}): ${slashCommands.join(" ")}`);
+      } else {
+        detailedTooltipLines.push(`✗ Skills (${slashCommands.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+      }
+      features.skills = {
+        present: true,
+        count: slashCommands.length,
+        workable: isSupported,
+        items: slashCommands,
+        reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+      };
+    }
+
+    // 2. Agents / Subagents Check (only if present inside plugin)
+    let mentions = [];
+    if (hasAgentsInside) {
+      presentTypeCount++;
+      mentions = rawAgents.map((a) => {
+        const rawName = typeof a === "string" ? a : a.name || "";
+        return `@${rawName.replace(/\.md$/i, "")}`;
+      });
+      const isSupported = capabilities.agents === true;
+      if (isSupported) {
+        workableCount++;
+        actionParts.push(`Quick action: ${mentions.join(" ")}`);
+        detailedTooltipLines.push(`✓ Agents (${mentions.length}): ${mentions.join(" ")}`);
+      } else {
+        detailedTooltipLines.push(`✗ Agents (${mentions.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+      }
+      features.agents = {
+        present: true,
+        count: mentions.length,
+        workable: isSupported,
+        items: mentions,
+        reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+      };
+    }
+
+    // 3. MCP Servers Check (only if present inside plugin)
+    if (hasMcpInside) {
+      presentTypeCount++;
+      const mcpNames = rawMcps.length > 0 ? rawMcps : [plugin.id || "mcp"];
+      const isSupported = capabilities.mcp === true;
+      if (isSupported) {
+        workableCount++;
+        actionParts.push("MCP tools active");
+        detailedTooltipLines.push(`✓ MCP (${mcpNames.length}): ${mcpNames.join(", ")} active`);
+      } else {
+        detailedTooltipLines.push(`✗ MCP (${mcpNames.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+      }
+      features.mcp = {
+        present: true,
+        count: mcpNames.length,
+        workable: isSupported,
+        items: mcpNames,
+        reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+      };
+    }
+
+    // 4. Rules Check (only if present inside plugin)
+    if (hasRulesInside) {
+      presentTypeCount++;
+      const ruleNames = rawRules.map((r) => (typeof r === "string" ? r : r.name || ""));
+      const isSupported = capabilities.rules === true;
+      if (isSupported) {
+        workableCount++;
+        actionParts.push("Rules active");
+        detailedTooltipLines.push(`✓ Rules (${ruleNames.length}): ${ruleNames.join(", ")} active`);
+      } else {
+        detailedTooltipLines.push(`✗ Rules (${ruleNames.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+      }
+      features.rules = {
+        present: true,
+        count: ruleNames.length,
+        workable: isSupported,
+        items: ruleNames,
+        reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+      };
+    }
+
+    // 5. Hooks Check (only if present inside plugin)
+    if (hasHooksInside) {
+      presentTypeCount++;
+      const hookCount = rawHooks.length > 0 ? rawHooks.length : 1;
+      const isSupported = capabilities.hooks === true;
+      if (isSupported) {
+        workableCount++;
+        actionParts.push("Hooks active");
+        detailedTooltipLines.push(`✓ Hooks (${hookCount}): Active`);
+      } else {
+        detailedTooltipLines.push(`✗ Hooks (${hookCount}): Skipped (unsupported by ${ide.name || ide.id})`);
+      }
+      features.hooks = {
+        present: true,
+        count: hookCount,
+        workable: isSupported,
+        items: rawHooks,
+        reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+      };
+    }
+
+    // If component has types present but NONE of them are supported by this agent
+    if (presentTypeCount > 0 && workableCount === 0) {
+      return {
+        workable: false,
+        color: "red",
+        status: "unsupported",
+        features,
+        quickActions: { slashCommands, mentions, hasSlash: false, hasMention: false, hasMcp: false, hasRules: false, hasHooks: false },
+        summary: `Incompatible with ${ide.name || ide.id}`,
+        tooltip: `🔴 Incompatible with ${ide.name || ide.id}: All component types in "${plugin.name || plugin.id}" are unsupported.`,
+        reason: `All component types in "${plugin.name || plugin.id}" are unsupported by ${ide.name || ide.id}`,
+      };
+    }
+
+    const hasSlash = slashCommands.length > 0 && capabilities.skills === true;
+    const hasMention = mentions.length > 0 && capabilities.agents === true;
+    const hasMcp = hasMcpInside && capabilities.mcp === true;
+    const hasRules = hasRulesInside && capabilities.rules === true;
+    const hasHooks = hasHooksInside && capabilities.hooks === true;
 
     const summary = `Workable in ${ide.name || ide.id}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
-    const tooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+    const baseTooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+    const tooltip = detailedTooltipLines.length > 0 ? `${baseTooltip}\n${detailedTooltipLines.join("\n")}` : baseTooltip;
 
-    return { workable: true, color: "green", status: "workable", summary, tooltip };
+    return {
+      workable: true,
+      color: "green",
+      status: "workable",
+      features,
+      quickActions: {
+        slashCommands,
+        mentions,
+        hasSlash,
+        hasMention,
+        hasMcp,
+        hasRules,
+        hasHooks,
+      },
+      summary,
+      tooltip,
+    };
   }
 
   function evaluateComponentProjectWorkability(plugin, project, parentIde) {
     if (!project || !project.repoPath) {
-      return { workable: false, color: "red", status: "failed", summary: "Project repository path missing", tooltip: "🔴 Connection failed: Repository path does not exist" };
+      return { workable: false, color: "red", status: "failed", features: {}, summary: "Project repository path missing", tooltip: "🔴 Connection failed: Repository path does not exist" };
     }
     const isEnabled = project.plugins && project.plugins[plugin.id] !== undefined
       ? project.plugins[plugin.id] === true
       : Boolean(parentIde?.plugins && parentIde.plugins[plugin.id] === true);
     if (!isEnabled) {
-      return { workable: false, color: "red", status: "disabled", summary: `Disabled for project "${project.name}"`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for project "${project.name}"` };
+      return { workable: false, color: "red", status: "disabled", features: {}, summary: `Disabled for project "${project.name}"`, tooltip: `🔴 Connection failed / Disabled: Component is toggled OFF for project "${project.name}"` };
     }
-    const rawSkills = Array.isArray(plugin.skills) ? plugin.skills : [];
-    const slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
-    const hasSlash = slashCommands.length > 0;
 
+    const rawSkills = Array.isArray(plugin.skills) ? plugin.skills : [];
+    const hasSkillsInside = rawSkills.length > 0;
+
+    const rawAgents = Array.isArray(plugin.agents) ? plugin.agents : [];
+    const hasAgentsInside = rawAgents.length > 0;
+
+    const rawMcps = Array.isArray(plugin.mcps) ? plugin.mcps : [];
+    const hasMcpInside = Boolean(plugin.hasMcp || rawMcps.length > 0);
+
+    const rawRules = Array.isArray(plugin.rules) ? plugin.rules : [];
+    const hasRulesInside = rawRules.length > 0;
+
+    const rawHooks = Array.isArray(plugin.hooks) ? plugin.hooks : [];
+    const hasHooksInside = Boolean(plugin.hasHooks || rawHooks.length > 0);
+
+    const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || (plugin.filesCount && plugin.filesCount > 0);
+    if (!hasAnyFeature && !plugin.path) {
+      return { workable: false, color: "red", status: "failed", features: {}, summary: "Empty component", tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"` };
+    }
+
+    const agentType = String(parentIde?.agentType || parentIde?.id || "").toLowerCase();
+    const profile = agentProfiles.find((p) => p.id === agentType) || { capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true } };
+    const capabilities = {
+      skills: true,
+      mcp: true,
+      rules: true,
+      agents: profile?.capabilities?.agents ?? true,
+      hooks: profile?.capabilities?.hooks ?? false,
+    };
+
+    const features = {};
     const actionParts = [];
-    if (hasSlash) actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
-    if (plugin.hasMcp) actionParts.push("MCP tools active");
-    if (plugin.rules?.length > 0) actionParts.push("Rules active");
+    const detailedTooltipLines = [];
+
+    // 1. Skills
+    if (hasSkillsInside) {
+      const slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
+      actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
+      detailedTooltipLines.push(`✓ Skills (${slashCommands.length}): ${slashCommands.join(" ")}`);
+      features.skills = { present: true, count: slashCommands.length, workable: true, items: slashCommands, reason: "Active" };
+    }
+
+    // 2. Agents
+    if (hasAgentsInside) {
+      const mentions = rawAgents.map((a) => {
+        const rawName = typeof a === "string" ? a : a.name || "";
+        return `@${rawName.replace(/\.md$/i, "")}`;
+      });
+      const isSupported = capabilities.agents === true;
+      if (isSupported) {
+        actionParts.push(`Quick action: ${mentions.join(" ")}`);
+        detailedTooltipLines.push(`✓ Agents (${mentions.length}): ${mentions.join(" ")}`);
+      } else {
+        detailedTooltipLines.push(`✗ Agents (${mentions.length}): Skipped (unsupported in workspace repository)`);
+      }
+      features.agents = { present: true, count: mentions.length, workable: isSupported, items: mentions, reason: isSupported ? "Active" : "Unsupported" };
+    }
+
+    // 3. MCP
+    if (hasMcpInside) {
+      const mcpNames = rawMcps.length > 0 ? rawMcps : [plugin.id || "mcp"];
+      actionParts.push("MCP tools active");
+      detailedTooltipLines.push(`✓ MCP (${mcpNames.length}): ${mcpNames.join(", ")} active`);
+      features.mcp = { present: true, count: mcpNames.length, workable: true, items: mcpNames, reason: "Active" };
+    }
+
+    // 4. Rules
+    if (hasRulesInside) {
+      const ruleNames = rawRules.map((r) => (typeof r === "string" ? r : r.name || ""));
+      actionParts.push("Rules active");
+      detailedTooltipLines.push(`✓ Rules (${ruleNames.length}): ${ruleNames.join(", ")} active`);
+      features.rules = { present: true, count: ruleNames.length, workable: true, items: ruleNames, reason: "Active" };
+    }
+
+    // 5. Hooks
+    if (hasHooksInside) {
+      const hookCount = rawHooks.length > 0 ? rawHooks.length : 1;
+      const isSupported = capabilities.hooks === true;
+      if (isSupported) {
+        actionParts.push("Hooks active");
+        detailedTooltipLines.push(`✓ Hooks (${hookCount}): Active`);
+      } else {
+        detailedTooltipLines.push(`✗ Hooks (${hookCount}): Skipped (unsupported in workspace repo)`);
+      }
+      features.hooks = { present: true, count: hookCount, workable: isSupported, items: rawHooks, reason: isSupported ? "Active" : "Unsupported" };
+    }
 
     const summary = `Workable in ${project.name}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
-    const tooltip = `🟢 Workable in Project "${project.name}": Repository linked & protected (.git/info/exclude).${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+    const baseTooltip = `🟢 Workable in Project "${project.name}": Repository linked & protected (.git/info/exclude).${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+    const tooltip = detailedTooltipLines.length > 0 ? `${baseTooltip}\n${detailedTooltipLines.join("\n")}` : baseTooltip;
 
-    return { workable: true, color: "green", status: "workable", summary, tooltip };
+    return { workable: true, color: "green", status: "workable", features, summary, tooltip };
   }
 
   function evaluateComponentWorkability(plugin) {
@@ -1637,6 +1880,36 @@
               badgeColor = "#059669";
             }
 
+            let workabilityBadge = "";
+            if (workability.workable) {
+              if (it.type === "skill") {
+                const isW = workability.features?.skills?.workable ?? true;
+                workabilityBadge = isW
+                  ? `<span style="font-size:9.5px; color:#10b981; font-weight:600;" title="Skill active via slash command">✓ Workable</span>`
+                  : `<span style="font-size:9.5px; color:#f59e0b; font-weight:600;" title="Agent does not support skills">⚠️ Unsupported</span>`;
+              } else if (it.type === "mcp") {
+                const isW = workability.features?.mcp?.workable ?? true;
+                workabilityBadge = isW
+                  ? `<span style="font-size:9.5px; color:#10b981; font-weight:600;" title="MCP server active">✓ Workable</span>`
+                  : `<span style="font-size:9.5px; color:#f59e0b; font-weight:600;" title="Agent does not support MCP tools">⚠️ Unsupported</span>`;
+              } else if (it.type === "agent") {
+                const isW = workability.features?.agents?.workable ?? true;
+                workabilityBadge = isW
+                  ? `<span style="font-size:9.5px; color:#10b981; font-weight:600;" title="Subagent active via @ mention">✓ Workable</span>`
+                  : `<span style="font-size:9.5px; color:#f59e0b; font-weight:600;" title="Agent does not support subagents">⚠️ Unsupported</span>`;
+              } else if (it.type === "rule") {
+                const isW = workability.features?.rules?.workable ?? true;
+                workabilityBadge = isW
+                  ? `<span style="font-size:9.5px; color:#10b981; font-weight:600;" title="Rule active in agent memory">✓ Workable</span>`
+                  : `<span style="font-size:9.5px; color:#f59e0b; font-weight:600;" title="Agent does not support rules">⚠️ Unsupported</span>`;
+              } else if (it.type === "hook") {
+                const isW = workability.features?.hooks?.workable ?? true;
+                workabilityBadge = isW
+                  ? `<span style="font-size:9.5px; color:#10b981; font-weight:600;" title="Lifecycle hook active">✓ Workable</span>`
+                  : `<span style="font-size:9.5px; color:#f59e0b; font-weight:600;" title="Agent does not support lifecycle hooks">⚠️ Unsupported</span>`;
+              }
+            }
+
             return `
               <div class="cat-item-row file-tree-item" style="display:flex; justify-content:space-between; align-items:center; padding:3.5px 8px; border-radius:4px; margin-bottom:2px; font-size:11px; background:var(--magpie-surface, rgba(128,128,128,0.04));">
                 <div class="cat-item-title" style="display:flex; align-items:center; gap:6px; overflow:hidden;">
@@ -1644,7 +1917,8 @@
                   <span style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(it.name)}</span>
                   ${it.sub ? `<span style="opacity:0.65; font-size:10px; flex-shrink:0;">(${escapeHtml(it.sub)})</span>` : ""}
                 </div>
-                <div class="cat-item-meta" style="display:flex; align-items:center; gap:8px; opacity:0.65; font-size:10px; flex-shrink:0; margin-left:12px;">
+                <div class="cat-item-meta" style="display:flex; align-items:center; gap:8px; opacity:0.85; font-size:10px; flex-shrink:0; margin-left:12px;">
+                  ${workabilityBadge}
                   <span>${escapeHtml(it.relPath)}</span>
                   ${it.sizeStr ? `<span>${it.sizeStr}</span>` : ""}
                 </div>
@@ -1679,7 +1953,7 @@
         <td style="vertical-align:top; padding-top:10px;">
           <div><strong>${escapeHtml(plugin.name)}</strong> ${plugin.version ? `<span style="font-size:10.5px; opacity:0.7;">v${escapeHtml(plugin.version)}</span>` : ""}</div>
           <button type="button" class="btn-files-toggle" data-plugin-files="${escapeHtml(plugin.id)}">
-            <span>${isFilesExpanded ? "▲ Hide" : "📁 View"} (${filesCount})</span>
+            <span>${isFilesExpanded ? "▲ Hide" : "View"} (${filesCount})</span>
           </button>
           ${filesListHtml}
         </td>
@@ -1868,7 +2142,7 @@
         try {
           $("btnPickHubFolder").textContent = "Opening...";
           const res = await apiClient.browseFileSystem("folder");
-          $("btnPickHubFolder").textContent = "📁 Browse...";
+          $("btnPickHubFolder").textContent = "Browse...";
           if (res && !res.cancelled && res.realPath) {
             hubConfig.hubRoot = res.realPath;
             if ($("hubPathInput")) $("hubPathInput").value = res.realPath;
@@ -1877,7 +2151,7 @@
             triggerAutoSync();
           }
         } catch (err) {
-          $("btnPickHubFolder").textContent = "📁 Browse...";
+          $("btnPickHubFolder").textContent = "Browse...";
           console.warn("Browse Hub folder error:", err);
         }
       });
@@ -1937,10 +2211,10 @@
         allFilesExpanded = !allFilesExpanded;
         if (allFilesExpanded) {
           discoveredPlugins.forEach((p) => expandedFiles.add(p.id));
-          btnToggleAll.textContent = "📁 Collapse All Files";
+          btnToggleAll.textContent = "Collapse All Files";
         } else {
           expandedFiles.clear();
-          btnToggleAll.textContent = "📁 Expand All Files";
+          btnToggleAll.textContent = "Expand All Files";
         }
         renderPluginTable();
       });
@@ -1986,6 +2260,70 @@
         if ($("maxToolsInput")) $("maxToolsInput").value = 96;
         if ($("capSubtitle")) $("capSubtitle").textContent = "Capping at 96 safe tools for Smart Middleware";
         triggerAutoSync();
+      });
+    }
+
+    // Standardize Storage Structure Prompt Copy Button (no icon)
+    const btnCopyPrompt = $("btnCopyStoragePrompt");
+    if (btnCopyPrompt) {
+      btnCopyPrompt.addEventListener("click", async () => {
+        const effectiveHub = computeEffectiveHubPath();
+        const storagePath = effectiveHub?.path || "";
+        const targetPathHeader = storagePath ? `Components Storage Target Path: ${storagePath}\n\n` : "";
+
+        const promptText = `Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification:
+
+${targetPathHeader}Directory structure:
+A plugin is a directory containing a required manifest file (plugin.json) and optional subdirectories for different customization types:
+
+plugins/<plugin-name>/
+├── plugin.json       # Required marker and manifest file
+├── mcp_config.json   # Optional MCP server definitions
+├── hooks.json        # Optional hooks definition
+├── skills/           # Optional skills directory
+│   └── <upstream GitHub name/self (if self created)-skill-name>/
+│       └── SKILL.md
+├── agents/           # Optional subagent definition templates
+│   └── <upstream GitHub name/self  (if self created)-agent-name>.md
+└── rules/            # Optional rules directory
+    └── <upstream GitHub name/self  (if self created)-rule-name>.md
+
+Guidelines:
+1. Ensure each plugin has a valid plugin.json manifest.
+2. Group related skills into skills/<upstream GitHub name/self (if self created)-skill-name>/SKILL.md.
+3. Put subagent definitions under agents/<upstream GitHub name/self (if self created)-agent-name>.md.
+4. Put rule definitions under rules/<upstream GitHub name/self (if self created)-rule-name>.md.
+5. Place MCP server configurations in mcp_config.json and hooks in hooks.json where applicable.
+6. Clean up any loose, misplaced, or non-conforming files or folders.`;
+
+        let copied = false;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(promptText);
+            copied = true;
+          } catch {}
+        }
+        if (!copied) {
+          try {
+            const ta = document.createElement("textarea");
+            ta.value = promptText;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            copied = true;
+          } catch {}
+        }
+
+        const originalText = "Copy Prompt";
+        btnCopyPrompt.textContent = copied ? "Copied!" : "Copy Failed";
+        btnCopyPrompt.classList.add("copied");
+        setTimeout(() => {
+          btnCopyPrompt.textContent = originalText;
+          btnCopyPrompt.classList.remove("copied");
+        }, 2000);
       });
     }
 
@@ -2098,62 +2436,6 @@
       });
     }
 
-    // Drag and Drop Zone for Add IDE Modal
-    const ideDropZone = $("ideDropZone");
-    if (ideDropZone) {
-      ["dragenter", "dragover"].forEach((eventName) => {
-        ideDropZone.addEventListener(eventName, (e) => {
-          e.preventDefault();
-          ideDropZone.classList.add("dragover");
-        });
-      });
-      ["dragleave", "drop"].forEach((eventName) => {
-        ideDropZone.addEventListener(eventName, (e) => {
-          e.preventDefault();
-          ideDropZone.classList.remove("dragover");
-        });
-      });
-      ideDropZone.addEventListener("drop", async (e) => {
-        e.preventDefault();
-        ideDropZone.classList.remove("dragover");
-
-        let raw = "";
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-          raw = files[0].path || files[0].name;
-        }
-        if (!raw) {
-          const uri = e.dataTransfer.getData("text/uri-list");
-          if (uri && uri.startsWith("file://")) {
-            raw = decodeURIComponent(uri.replace(/^file:\/\/\/?/, "").replace(/\//g, "\\"));
-          }
-        }
-        if (!raw) {
-          raw = e.dataTransfer.getData("text/plain") || "";
-        }
-        if (!raw) return;
-
-        // Call backend resolver for real target and accurate name
-        let result = await apiClient.resolveDroppedTarget(raw, "ide");
-
-        if (result && result.success && result.realPath && (result.realPath.includes("\\") || result.realPath.includes("/"))) {
-          if (ideExeInput) ideExeInput.value = result.realPath;
-          if (ideNameInput) ideNameInput.value = result.name;
-          if (result.agentType && agentTypeSelect) {
-            agentTypeSelect.value = result.agentType;
-            renderSelectedAgentMeta(result.agentType);
-          }
-          if (ideConfigInput) ideConfigInput.value = result.configPath;
-        } else {
-          const rawBase = raw.split(/[/\\]/).pop();
-          const guessedName = inferClientName(rawBase);
-          if (ideExeInput) ideExeInput.value = raw;
-          if (ideNameInput) ideNameInput.value = guessedName;
-          await updateAutoDetectState();
-        }
-      });
-    }
-
     // Native HTML5 file picker for Agent Executable
     const ideExePicker = $("ideExePicker");
     if (ideExePicker) {
@@ -2191,7 +2473,7 @@
         try {
           $("btnBrowseIdeExe").textContent = "Opening...";
           const res = await apiClient.browseFileSystem("file");
-          $("btnBrowseIdeExe").textContent = "📁 Browse...";
+          $("btnBrowseIdeExe").textContent = "Browse...";
           if (res && !res.cancelled && res.realPath) {
             if (ideExeInput) ideExeInput.value = res.realPath;
             const resolved = await apiClient.resolveDroppedTarget(res.realPath, "ide");
@@ -2205,62 +2487,8 @@
             }
           }
         } catch (err) {
-          $("btnBrowseIdeExe").textContent = "📁 Browse...";
+          $("btnBrowseIdeExe").textContent = "Browse...";
           console.warn("Browse IDE binary error:", err);
-        }
-      });
-    }
-
-    // Drag and Drop Zone for Add Project Modal
-    const projectDropZone = $("projectDropZone");
-    if (projectDropZone) {
-      ["dragenter", "dragover"].forEach((eventName) => {
-        projectDropZone.addEventListener(eventName, (e) => {
-          e.preventDefault();
-          projectDropZone.classList.add("dragover");
-        });
-      });
-      ["dragleave", "drop"].forEach((eventName) => {
-        projectDropZone.addEventListener(eventName, (e) => {
-          e.preventDefault();
-          projectDropZone.classList.remove("dragover");
-        });
-      });
-      projectDropZone.addEventListener("drop", async (e) => {
-        e.preventDefault();
-        projectDropZone.classList.remove("dragover");
-
-        let raw = "";
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-          raw = files[0].path || files[0].name;
-        }
-        if (!raw) {
-          const uri = e.dataTransfer.getData("text/uri-list");
-          if (uri && uri.startsWith("file://")) {
-            raw = decodeURIComponent(uri.replace(/^file:\/\/\/?/, "").replace(/\//g, "\\"));
-          }
-        }
-        if (!raw) {
-          raw = e.dataTransfer.getData("text/plain") || "";
-        }
-        if (!raw) return;
-
-        // Call backend resolver for real repository directory path
-        let result = await apiClient.resolveDroppedTarget(raw, "project");
-
-        if (result && result.success && result.realPath && (result.realPath.includes("\\") || result.realPath.includes("/"))) {
-          if ($("projectPathInput")) $("projectPathInput").value = result.realPath;
-          if ($("projectNameInput")) $("projectNameInput").value = result.name;
-        } else {
-          // Client fallback
-          const folderName = raw.split(/[/\\]/).pop();
-          let guessedFolder = "";
-          if (folderName.toLowerCase().includes("trainingstatuswidget")) {
-            guessedFolder = "D:\\Software\\Garmin SDK\\TrainingStatusWidget";
-          }
-          if ($("projectPathInput")) $("projectPathInput").value = guessedFolder || raw;
-          if ($("projectNameInput")) $("projectNameInput").value = folderName;
         }
       });
     }
@@ -2312,13 +2540,13 @@
         try {
           $("btnBrowseProjectPath").textContent = "Opening...";
           const res = await apiClient.browseFileSystem("folder");
-          $("btnBrowseProjectPath").textContent = "📁 Browse...";
+          $("btnBrowseProjectPath").textContent = "Browse...";
           if (res && !res.cancelled && res.realPath) {
             if ($("projectPathInput")) $("projectPathInput").value = res.realPath;
             if ($("projectNameInput")) $("projectNameInput").value = res.name;
           }
         } catch (err) {
-          $("btnBrowseProjectPath").textContent = "📁 Browse...";
+          $("btnBrowseProjectPath").textContent = "Browse...";
           console.warn("Browse project repository error:", err);
         }
       });
@@ -2467,7 +2695,7 @@
         }
 
         connectBtn.disabled = true;
-        const origText = "⚡ Connect";
+        const origText = "Connect";
         connectBtn.textContent = "Connecting...";
         const indicator = $("syncIndicator");
         if (indicator) {
@@ -2593,7 +2821,7 @@
 
         let scanResult = null;
         try {
-          const resp = await fetch("http://127.0.0.1:41789/api/rescan", {
+          const resp = await fetch(`${API_BASE}/api/rescan`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubRoot: effectivePath }),
@@ -2642,7 +2870,7 @@
               <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:rgba(34,197,94,0.15); color:#22c55e; font-weight:600;">🟢 Active</span>
             </div>
             <div style="color:var(--magpie-muted); font-size:11px;">Bridge Manifest: agent-space-bridge.json · Connectors: shared/agent-connectors.json</div>
-            <div style="font-size:11px; color:#10b981; margin-top:2px;">Status: All connected agents synchronized with live handoff inboxes in D:\\Software\\AI Agent Space</div>
+            <div style="font-size:11px; color:#10b981; margin-top:2px;">Status: All connected agents synchronized with live handoff inboxes in ${escapeHtml(effectivePath || "Components Storage")}</div>
           `;
           cards.appendChild(bridgeCard);
 

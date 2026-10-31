@@ -121,4 +121,4 @@ plugins/<plugin-name>/
 
 ## License
 
-MIT © Terence Ooi Teng Wei
+MIT © Terence Ooi

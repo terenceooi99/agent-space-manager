@@ -40,9 +40,9 @@
       </div>
     </div>
     <div class="hub-path-input-row">
-      <input type="text" id="hubPathInput" class="hub-path-input" placeholder="Leave blank for default Hub (D:\Software\AI Agent Space)">
+      <input type="text" id="hubPathInput" class="hub-path-input" placeholder="Leave blank for default Hub (~/AI-Agent-Space)">
       <input type="file" id="hubFolderPicker" webkitdirectory directory style="display:none">
-      <button type="button" class="btn-sm" id="btnPickHubFolder" title="Browse for Components Storage Folder">📁 Browse...</button>
+      <button type="button" class="btn-sm" id="btnPickHubFolder" title="Browse for Components Storage Folder">Browse...</button>
       <button type="button" class="btn-sm" id="btnBrowseHubPath" title="Reset storage path to default Hub root">Reset Default</button>
     </div>
     <p class="field-hint" id="hubPathHint">If blank or reset, automatically uses the central Hub root directory.</p>
@@ -69,12 +69,12 @@
       <!-- Category Filter Tabs -->
       <div class="category-tabs" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
         <button type="button" class="cat-tab active" data-cat="all">All (<span id="cat-cnt-all">0</span>)</button>
-        <button type="button" class="cat-tab" data-cat="plugins">🧩 Plugins (<span id="cat-cnt-plugins">0</span>)</button>
-        <button type="button" class="cat-tab" data-cat="mcps">⚡ MCPs (<span id="cat-cnt-mcps">0</span>)</button>
-        <button type="button" class="cat-tab" data-cat="hooks">🪝 Hooks (<span id="cat-cnt-hooks">0</span>)</button>
-        <button type="button" class="cat-tab" data-cat="skills">🎯 Skills (<span id="cat-cnt-skills">0</span>)</button>
-        <button type="button" class="cat-tab" data-cat="agents">🤖 Agents (<span id="cat-cnt-agents">0</span>)</button>
-        <button type="button" class="cat-tab" data-cat="rules">📜 Rules (<span id="cat-cnt-rules">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="plugins">Plugins (<span id="cat-cnt-plugins">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="mcps">MCPs (<span id="cat-cnt-mcps">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="hooks">Hooks (<span id="cat-cnt-hooks">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="skills">Skills (<span id="cat-cnt-skills">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="agents">Agents (<span id="cat-cnt-agents">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="rules">Rules (<span id="cat-cnt-rules">0</span>)</button>
       </div>
 
       <!-- Search bar inside category expander -->
@@ -104,18 +104,23 @@
       </div>
     </div>
     
-    <!-- Tile 2: Connected IDEs -->
-    <div class="tile">
+    <!-- Tile 2: Connected IDEs & Registered Projects -->
+    <div class="tile tile-connected-stats">
       <span class="k">Connected IDEs</span>
-      <span class="v" id="ideCount">-</span>
+      <strong class="stat-val" id="ideCount">0</strong>
+      <span class="s">Drag & drop to reorder</span>
+      <span class="k" style="margin-top: 6px;">Registered Projects</span>
+      <strong class="stat-val" id="projectCount">0</strong>
       <span class="s">Drag & drop to reorder</span>
     </div>
     
-    <!-- Tile 3: Registered Projects -->
-    <div class="tile">
-      <span class="k">Registered Projects</span>
-      <span class="v" id="projectCount">-</span>
-      <span class="s">Drag & drop to reorder</span>
+    <!-- Tile 3: Standardize Components Storage Structure Prompt -->
+    <div class="tile tile-storage-structure">
+      <div class="k title-heading">Storage Structure</div>
+      <div class="prompt-desc">
+        Ask your AI agent to force Components Storage into standard plugin layout.
+      </div>
+      <button type="button" class="btn-copy-prompt" id="btnCopyStoragePrompt" title="Copy prompt for your AI agent to standardize Components Storage file structure">Copy Prompt</button>
     </div>
     
     <!-- Tile 4: Gateway Tool Optimization (Adjustable Cap with "Default" button) -->
@@ -165,9 +170,9 @@
       <div class="card-head">
         <h2>Components & Plugins</h2>
         <div style="display:flex; gap:8px;">
-          <button type="button" class="btn-sm" id="btnToggleAllFiles" title="Expand or collapse file tree for all plugins">📁 Expand All Files</button>
+          <button type="button" class="btn-sm" id="btnToggleAllFiles" title="Expand or collapse file tree for all plugins">Expand All Files</button>
           <button type="button" class="btn-sm" id="rescanBtn">Rescan Hub</button>
-          <button type="button" class="btn-sm btn-primary" id="connectBtn" title="Manually connect and synchronize enabled components to target agent">⚡ Connect</button>
+          <button type="button" class="btn-sm btn-primary" id="connectBtn" title="Manually connect and synchronize enabled components to target agent">Connect</button>
         </div>
       </div>
       <p class="hint">Toggle components to configure preferences. Click "Connect" to link and synchronize components with the active target agent.</p>
@@ -203,13 +208,6 @@
         <button type="button" class="btn-danger-text" id="closeIdeModal">✕</button>
       </div>
       <div class="modal-body">
-        <!-- Drop Zone for IDE / exe / shortcut / folder -->
-        <div class="drop-zone" id="ideDropZone">
-          <div class="drop-icon">📁</div>
-          <div class="drop-text">Drag & drop your Agent IDE executable (.exe), shortcut, or config folder here</div>
-          <div class="drop-subtext">Automatically detects name, binary path, and plugin link directory</div>
-        </div>
-
         <label>
           Major Agent / IDE Profile
           <select id="agentTypeSelect">
@@ -248,7 +246,7 @@
           <div class="input-with-button">
             <input type="text" id="ideExeInput" placeholder="e.g. C:\Users\username\AppData\Local\Programs\cursor\cursor.exe">
             <input type="file" id="ideExePicker" accept=".exe,.lnk" style="display:none">
-            <button type="button" class="btn-browse" id="btnBrowseIdeExe" title="Browse for executable or shortcut">📁 Browse...</button>
+            <button type="button" class="btn-browse" id="btnBrowseIdeExe" title="Browse for executable or shortcut">Browse...</button>
           </div>
         </label>
         
@@ -329,13 +327,6 @@
         <button type="button" class="btn-danger-text" id="closeProjectModal">✕</button>
       </div>
       <div class="modal-body">
-        <!-- Drop Zone for Project Folder -->
-        <div class="drop-zone" id="projectDropZone">
-          <div class="drop-icon">📂</div>
-          <div class="drop-text">Drag & drop your Project Repository folder here</div>
-          <div class="drop-subtext">Auto-fills project name and absolute repository path</div>
-        </div>
-
         <label>
           Project Name
           <input type="text" id="projectNameInput" placeholder="My Flutter App">
@@ -349,9 +340,9 @@
         <label>
           Repository Path
           <div class="input-with-button">
-            <input type="text" id="projectPathInput" placeholder="D:\Software\Projects\MyFlutterApp">
+            <input type="text" id="projectPathInput" placeholder="e.g. ~/projects/my-app or C:\Projects\MyApp">
             <input type="file" id="projectFolderPicker" webkitdirectory directory style="display:none">
-            <button type="button" class="btn-browse" id="btnBrowseProjectPath" title="Browse for project folder">📁 Browse...</button>
+            <button type="button" class="btn-browse" id="btnBrowseProjectPath" title="Browse for project folder">Browse...</button>
           </div>
         </label>
       </div>

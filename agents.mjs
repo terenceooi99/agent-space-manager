@@ -10,9 +10,14 @@ export function getHomeDir() {
 }
 
 export function getAppDataDir(home = getHomeDir()) {
-  return process.env.APPDATA || (process.platform === "darwin"
-    ? path.join(home, "Library", "Application Support")
-    : path.join(home, "AppData", "Roaming"));
+  if (process.env.APPDATA) return process.env.APPDATA;
+  if (process.platform === "darwin") {
+    return path.join(home, "Library", "Application Support");
+  }
+  if (process.platform === "linux") {
+    return process.env.XDG_CONFIG_HOME || path.join(home, ".config");
+  }
+  return path.join(home, "AppData", "Roaming");
 }
 
 /**

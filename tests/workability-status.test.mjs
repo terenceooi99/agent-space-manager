@@ -125,4 +125,59 @@ test("Feature 13: Component Workability Status Dots & Quick Actions Detection", 
     assert.equal(ipcRes.workable, true);
     assert.equal(ipcRes.color, "green");
   });
+
+  await t.test("strictly skips evaluation for component types not inside the plugin", () => {
+    const skillsOnlyPlugin = {
+      id: "skills-only",
+      name: "Skills Only Plugin",
+      skills: ["linter"],
+      mcps: [],
+      rules: [],
+      agents: [],
+      hasMcp: false,
+      hasHooks: false,
+    };
+    const ide = {
+      ...activeIde,
+      plugins: { "skills-only": true },
+    };
+    const res = evaluateComponentAgentWorkability(skillsOnlyPlugin, ide);
+    assert.equal(res.workable, true);
+    assert.equal(res.features.skills.present, true);
+    assert.equal(res.features.skills.workable, true);
+    // Explicitly skipped: hooks, mcp, rules, agents are not in features
+    assert.equal(res.features.mcp, undefined);
+    assert.equal(res.features.hooks, undefined);
+    assert.equal(res.features.rules, undefined);
+    assert.equal(res.features.agents, undefined);
+    // Tooltip contains only skills, not mentions of hooks/rules/mcps
+    assert.match(res.tooltip, /✓ Skills \(1\): \/linter/);
+    assert.doesNotMatch(res.tooltip, /Hooks/);
+    assert.doesNotMatch(res.tooltip, /Rules/);
+  });
+
+  await t.test("evaluates partial compatibility and flags unsupported features while keeping workable", () => {
+    const pluginWithHooks = {
+      id: "multi-feature",
+      name: "Multi Feature Plugin",
+      skills: ["audit"],
+      hasHooks: true,
+      hooks: ["pre-tool-call"],
+    };
+    // Codex CLI has capabilities.hooks: false
+    const codexIde = {
+      id: "codex-cli",
+      name: "Codex CLI",
+      agentType: "codex",
+      configPath: "C:\\Users\\test\\.codex\\skills",
+      enabled: true,
+      plugins: { "multi-feature": true },
+    };
+    const res = evaluateComponentAgentWorkability(pluginWithHooks, codexIde);
+    assert.equal(res.workable, true);
+    assert.equal(res.features.skills.workable, true);
+    assert.equal(res.features.hooks.workable, false);
+    assert.match(res.tooltip, /✓ Skills \(1\): \/audit/);
+    assert.match(res.tooltip, /✗ Hooks \(1\): Skipped \(unsupported by Codex CLI\)/);
+  });
 });

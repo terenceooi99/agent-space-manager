@@ -45,6 +45,9 @@ temp/
 tmp/
 *.tmp
 *.bak
+*.asm-bak
+.asm-state/
+LAST_ERROR.json
 *.swp
 *.sqlite
 *.sqlite3

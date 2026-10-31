@@ -34,10 +34,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MAGPIE_PLUGINS_JSON = path.join(os.homedir(), ".config", "magpie", "plugins.json");
 const SIBLING_DIRS = [
   __dirname,
-  "D:\\Software\\Magpie\\agent-space-manager",
 ];
 
-export const API_PORT = 41789;
+export const API_PORT = process.env.ASM_PORT ? parseInt(process.env.ASM_PORT, 10) : 41789;
 let activeServer = null;
 let magpieWatchInterval = null;
 let lastMagpieStateSig = "";
@@ -80,7 +79,7 @@ export function updatePluginsCache(hubRoot, plugins, categories = null) {
     const targetDirs = new Set();
     if (process.env.ASM_CACHE_DIR) {
       targetDirs.add(process.env.ASM_CACHE_DIR);
-    } else {
+    } else if (process.env.ASM_TEST !== "1" && process.env.NODE_ENV !== "test") {
       for (const base of SIBLING_DIRS) {
         const pDir = path.join(base, "page");
         if (fs.existsSync(pDir)) targetDirs.add(pDir);

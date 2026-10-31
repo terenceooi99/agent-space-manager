@@ -71,8 +71,12 @@ export function resolveHubRoot() {
   if (fs.existsSync(homeHub)) {
     return homeHub;
   }
-  if (!process.env.ASM_HOME_OVERRIDE && fs.existsSync("D:\\Software\\AI Agent Space")) {
-    return "D:\\Software\\AI Agent Space";
+  if (!process.env.ASM_HOME_OVERRIDE && process.platform === "win32") {
+    try {
+      if (fs.existsSync("D:\\Software\\AI Agent Space")) {
+        return "D:\\Software\\AI Agent Space";
+      }
+    } catch {}
   }
   return homeHub;
 }
@@ -555,6 +559,7 @@ export function loadHubConfig(configFile = null) {
       if (!parsed.hubRoot || parsed.hubRoot.trim() === "") {
         parsed.hubRoot = resolveHubRoot();
       }
+      parsed.defaultHubRoot = resolveHubRoot();
       return parsed;
     }
   } catch (err) {
@@ -562,8 +567,10 @@ export function loadHubConfig(configFile = null) {
   }
 
   const defaultHome = getHomeDir();
+  const defaultHub = resolveHubRoot();
   return {
-    hubRoot: resolveHubRoot(),
+    hubRoot: defaultHub,
+    defaultHubRoot: defaultHub,
     smartMiddleware: {
       enabled: true,
       maxTools: 96,
@@ -2800,52 +2807,205 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
     };
   }
 
-  // 5. Inspect quick action capabilities:
-  // Skills -> `/` quick action
+  // 5. Granular per-feature check:
+  // Identify component types ACTUALLY INSIDE the plugin.
+  // Explicitly SKIP any component type that is NOT present in the plugin.
   const rawSkills = Array.isArray(plugin.skills) ? plugin.skills : [];
-  const slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
-  const hasSlash = slashCommands.length > 0;
+  const hasSkillsInside = rawSkills.length > 0;
 
-  // Subagents -> `@` mention quick action
   const rawAgents = Array.isArray(plugin.agents) ? plugin.agents : [];
-  const mentions = rawAgents.map((a) => {
-    const rawName = typeof a === "string" ? a : a.name || "";
-    return `@${rawName.replace(/\.md$/i, "")}`;
-  });
-  const hasMention = mentions.length > 0;
+  const hasAgentsInside = rawAgents.length > 0;
 
-  const hasMcp = Boolean(plugin.hasMcp || (plugin.mcps && plugin.mcps.length > 0));
-  const hasRules = Boolean(plugin.rules && plugin.rules.length > 0);
-  const hasHooks = Boolean(plugin.hasHooks || (plugin.hooks && plugin.hooks.length > 0));
+  const rawMcps = Array.isArray(plugin.mcps) ? plugin.mcps : [];
+  const hasMcpInside = Boolean(plugin.hasMcp || rawMcps.length > 0);
 
-  const hasAnyFeature = hasSlash || hasMention || hasMcp || hasRules || hasHooks || (plugin.filesCount && plugin.filesCount > 0);
+  const rawRules = Array.isArray(plugin.rules) ? plugin.rules : [];
+  const hasRulesInside = rawRules.length > 0;
+
+  const rawHooks = Array.isArray(plugin.hooks) ? plugin.hooks : [];
+  const hasHooksInside = Boolean(plugin.hasHooks || rawHooks.length > 0);
+
+  const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || (plugin.filesCount && plugin.filesCount > 0);
   if (!hasAnyFeature && !plugin.path) {
     return {
       workable: false,
       color: "red",
       status: "failed",
-      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false },
+      features: {},
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false, hasHooks: false },
       summary: "Empty component (no skills, MCP, rules, or agents found)",
       tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"`,
       reason: "No workable components discovered in plugin",
     };
   }
 
-  // Green dot! Workable in connected agent
+  // Resolve agent profile capabilities
+  const agentType = String(ide.agentType || ide.id || "").toLowerCase();
+  const profile = AGENT_PROFILES[agentType] || AGENT_PROFILES.custom;
+  const isBundle = profile?.mode === "bundle";
+  const customPaths = ide.componentPaths || {};
+
+  const capabilities = {
+    skills: isBundle || customPaths.skills ? true : (profile?.capabilities?.skills ?? true),
+    mcp: isBundle || customPaths.mcp ? true : (profile?.capabilities?.mcp ?? true),
+    rules: isBundle || customPaths.rules ? true : (profile?.capabilities?.rules ?? true),
+    agents: isBundle || customPaths.agents ? true : (profile?.capabilities?.agents ?? true),
+    hooks: isBundle || customPaths.hooks ? true : (profile?.capabilities?.hooks ?? true),
+  };
+
+  const features = {};
   const actionParts = [];
-  if (hasSlash) actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
-  if (hasMention) actionParts.push(`Quick action: ${mentions.join(" ")}`);
-  if (hasMcp) actionParts.push(`MCP tools active`);
-  if (hasRules) actionParts.push(`Rules active`);
-  if (hasHooks) actionParts.push(`Hooks active`);
+  const detailedTooltipLines = [];
+  let workableCount = 0;
+  let presentTypeCount = 0;
+
+  // 1. Skills Check (only if present inside plugin)
+  let slashCommands = [];
+  if (hasSkillsInside) {
+    presentTypeCount++;
+    slashCommands = rawSkills.map((s) => (typeof s === "string" ? `/${s}` : `/${s.name}`));
+    const isSupported = capabilities.skills === true;
+    if (isSupported) {
+      workableCount++;
+      actionParts.push(`Quick action: ${slashCommands.join(" ")}`);
+      detailedTooltipLines.push(`✓ Skills (${slashCommands.length}): ${slashCommands.join(" ")}`);
+    } else {
+      detailedTooltipLines.push(`✗ Skills (${slashCommands.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+    }
+    features.skills = {
+      present: true,
+      count: slashCommands.length,
+      workable: isSupported,
+      items: slashCommands,
+      reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+    };
+  }
+
+  // 2. Agents / Subagents Check (only if present inside plugin)
+  let mentions = [];
+  if (hasAgentsInside) {
+    presentTypeCount++;
+    mentions = rawAgents.map((a) => {
+      const rawName = typeof a === "string" ? a : a.name || "";
+      return `@${rawName.replace(/\.md$/i, "")}`;
+    });
+    const isSupported = capabilities.agents === true;
+    if (isSupported) {
+      workableCount++;
+      actionParts.push(`Quick action: ${mentions.join(" ")}`);
+      detailedTooltipLines.push(`✓ Agents (${mentions.length}): ${mentions.join(" ")}`);
+    } else {
+      detailedTooltipLines.push(`✗ Agents (${mentions.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+    }
+    features.agents = {
+      present: true,
+      count: mentions.length,
+      workable: isSupported,
+      items: mentions,
+      reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+    };
+  }
+
+  // 3. MCP Servers Check (only if present inside plugin)
+  if (hasMcpInside) {
+    presentTypeCount++;
+    const mcpNames = rawMcps.length > 0 ? rawMcps : [plugin.id || "mcp"];
+    const isSupported = capabilities.mcp === true;
+    if (isSupported) {
+      workableCount++;
+      actionParts.push("MCP tools active");
+      detailedTooltipLines.push(`✓ MCP (${mcpNames.length}): ${mcpNames.join(", ")} active`);
+    } else {
+      detailedTooltipLines.push(`✗ MCP (${mcpNames.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+    }
+    features.mcp = {
+      present: true,
+      count: mcpNames.length,
+      workable: isSupported,
+      items: mcpNames,
+      reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+    };
+  }
+
+  // 4. Rules Check (only if present inside plugin)
+  if (hasRulesInside) {
+    presentTypeCount++;
+    const ruleNames = rawRules.map((r) => (typeof r === "string" ? r : r.name || ""));
+    const isSupported = capabilities.rules === true;
+    if (isSupported) {
+      workableCount++;
+      actionParts.push("Rules active");
+      detailedTooltipLines.push(`✓ Rules (${ruleNames.length}): ${ruleNames.join(", ")} active`);
+    } else {
+      detailedTooltipLines.push(`✗ Rules (${ruleNames.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+    }
+    features.rules = {
+      present: true,
+      count: ruleNames.length,
+      workable: isSupported,
+      items: ruleNames,
+      reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+    };
+  }
+
+  // 5. Hooks Check (only if present inside plugin)
+  if (hasHooksInside) {
+    presentTypeCount++;
+    const hookCount = rawHooks.length > 0 ? rawHooks.length : 1;
+    const isSupported = capabilities.hooks === true;
+    if (isSupported) {
+      workableCount++;
+      actionParts.push("Hooks active");
+      detailedTooltipLines.push(`✓ Hooks (${hookCount}): Active`);
+    } else {
+      detailedTooltipLines.push(`✗ Hooks (${hookCount}): Skipped (unsupported by ${ide.name || ide.id})`);
+    }
+    features.hooks = {
+      present: true,
+      count: hookCount,
+      workable: isSupported,
+      items: rawHooks,
+      reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+    };
+  }
+
+  // If component has types present but NONE of them are supported by this agent
+  if (presentTypeCount > 0 && workableCount === 0) {
+    return {
+      workable: false,
+      color: "red",
+      status: "unsupported",
+      features,
+      quickActions: {
+        slashCommands,
+        mentions,
+        hasSlash: false,
+        hasMention: false,
+        hasMcp: false,
+        hasRules: false,
+        hasHooks: false,
+      },
+      summary: `Incompatible with ${ide.name || ide.id}`,
+      tooltip: `🔴 Incompatible with ${ide.name || ide.id}: All component types in "${plugin.name || plugin.id}" are unsupported.`,
+      reason: `All component types in "${plugin.name || plugin.id}" are unsupported by ${ide.name || ide.id}`,
+    };
+  }
+
+  const hasSlash = slashCommands.length > 0 && capabilities.skills === true;
+  const hasMention = mentions.length > 0 && capabilities.agents === true;
+  const hasMcp = hasMcpInside && capabilities.mcp === true;
+  const hasRules = hasRulesInside && capabilities.rules === true;
+  const hasHooks = hasHooksInside && capabilities.hooks === true;
 
   const summary = `Workable in ${ide.name || ide.id}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
-  const tooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+  const baseTooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
+  const tooltip = detailedTooltipLines.length > 0 ? `${baseTooltip}\n${detailedTooltipLines.join("\n")}` : baseTooltip;
 
   return {
     workable: true,
     color: "green",
     status: "workable",
+    features,
     quickActions: {
       slashCommands,
       mentions,
@@ -2853,6 +3013,7 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
       hasMention,
       hasMcp,
       hasRules,
+      hasHooks,
     },
     summary,
     tooltip,
