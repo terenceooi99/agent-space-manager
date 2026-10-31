@@ -30,6 +30,9 @@ import {
   getComponentsStorageSnapshot,
   recheckConnectedAgentsStatus,
   verifyPluginWorkabilityOnDisk,
+  removeComponentUpdateMechanisms,
+  checkCentralizedUpstreamUpdates,
+  loadCentralizedUpstreamUpdateState,
 } from "./manager.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -68,7 +71,7 @@ export function updatePluginsCache(hubRoot, plugins, categories = null) {
     const cats = categories || buildCategoriesRegistry(plugins, hubRoot);
     const payload = JSON.stringify(
       {
-        path: String(hubRoot || ""),
+        path: "",
         count: plugins.length,
         updatedAt: Date.now(),
         plugins,
@@ -305,6 +308,49 @@ export function startApiServer(port = API_PORT) {
             res.end(JSON.stringify({ success: false, error: err.message }));
           }
         });
+        return;
+      }
+
+      if (pathname === "/api/central-update-check" && (req.method === "GET" || req.method === "POST")) {
+        const handleCheck = (force, reqPath) => {
+          try {
+            const cleanPath = reqPath || resolveHubRoot();
+            const result = checkCentralizedUpstreamUpdates(cleanPath, { force });
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        };
+
+        if (req.method === "POST") {
+          let body = "";
+          req.on("data", (chunk) => { body += chunk; });
+          req.on("end", () => {
+            try {
+              const data = body ? JSON.parse(body) : {};
+              handleCheck(Boolean(data.force), data.hubRoot);
+            } catch (err) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        } else {
+          const rawPath = query.path !== undefined ? String(query.path).trim() : "";
+          const force = query.force === "true" || query.force === "1";
+          handleCheck(force, rawPath);
+          return;
+        }
+      }
+
+      if (pathname === "/api/central-update-status" && req.method === "GET") {
+        const rawPath = query.path !== undefined ? String(query.path).trim() : "";
+        const cleanPath = rawPath || resolveHubRoot();
+        const state = loadCentralizedUpstreamUpdateState(cleanPath);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, state: state || null }));
         return;
       }
 
@@ -598,6 +644,9 @@ export function startApiServer(port = API_PORT) {
         console.log(`[Startup] Components Storage Path: ${startupRes.summary}`);
         if (startupRes.autoReconnected) {
           console.log(`[Startup] Auto-reconnected ${startupRes.connectedAgentsCount} connected agent(s).`);
+        }
+        if (startupRes.centralUpdates?.checked) {
+          console.log(`[Startup] Central Upstream Update: ${startupRes.centralUpdates.summary}`);
         }
       }
     } catch {}

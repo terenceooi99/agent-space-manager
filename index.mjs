@@ -29,6 +29,10 @@ import {
   evaluateComponentAgentWorkability,
   verifyPluginWorkabilityOnDisk,
   recheckConnectedAgentsStatus,
+  removeComponentUpdateMechanisms,
+  checkCentralizedUpstreamUpdates,
+  loadCentralizedUpstreamUpdateState,
+  collectAllComponentsUpstream,
 } from "./manager.mjs";
 
 if (!process.env.ASM_NO_SERVER) {
@@ -95,6 +99,13 @@ export const AgentSpaceManagerPlugin = {
       return connectAgent(hubConfig, targetIde, opts);
     },
     getPlugins: async (customHubRoot) => {
+      if (customHubRoot !== undefined && customHubRoot !== null && customHubRoot !== "") {
+        return scanPlugins(customHubRoot);
+      }
+      const cfg = loadHubConfig();
+      return scanPlugins(getEffectiveHubRoot(cfg));
+    },
+    scanPlugins: async (customHubRoot) => {
       if (customHubRoot !== undefined && customHubRoot !== null && customHubRoot !== "") {
         return scanPlugins(customHubRoot);
       }
@@ -192,6 +203,18 @@ export const AgentSpaceManagerPlugin = {
     },
     verifyPluginWorkabilityOnDisk: (plugin, ide, options) => {
       return verifyPluginWorkabilityOnDisk(plugin, ide, options);
+    },
+    removeComponentUpdateMechanisms: async (customHubRoot) => {
+      return removeComponentUpdateMechanisms(customHubRoot);
+    },
+    checkCentralizedUpdates: async (customHubRoot, options) => {
+      return checkCentralizedUpstreamUpdates(customHubRoot, options);
+    },
+    getCentralizedUpdateStatus: async (customHubRoot) => {
+      return loadCentralizedUpstreamUpdateState(customHubRoot);
+    },
+    collectUpstreams: async (customHubRoot) => {
+      return collectAllComponentsUpstream(customHubRoot);
     },
   },
 };

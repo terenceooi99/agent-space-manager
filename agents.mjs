@@ -26,7 +26,10 @@ export function getAppDataDir(home = getHomeDir()) {
  */
 export function expandHomePath(inputPath, home = getHomeDir(), appData = getAppDataDir(home)) {
   if (!inputPath || typeof inputPath !== "string") return inputPath;
-  const trimmed = inputPath.trim();
+  let trimmed = inputPath.trim();
+  if (!trimmed) return "";
+  // Strip surrounding quotes if user copied path with quotes (e.g. "D:\Path" or 'D:\Path')
+  trimmed = trimmed.replace(/^["']+|["']+$/g, "").trim();
   if (!trimmed) return "";
   if (trimmed === "~" || trimmed === "$HOME" || /^%USERPROFILE%$/i.test(trimmed)) {
     return home;
@@ -42,6 +45,10 @@ export function expandHomePath(inputPath, home = getHomeDir(), appData = getAppD
   }
   if (/^%APPDATA%[\\/]/i.test(trimmed)) {
     return path.join(appData, trimmed.replace(/^%APPDATA%[\\/]/i, ""));
+  }
+  // Strip trailing slashes unless root like C:\ or /
+  if (trimmed.length > 3 && (trimmed.endsWith("/") || trimmed.endsWith("\\"))) {
+    trimmed = trimmed.replace(/[\\\/]+$/, "");
   }
   return trimmed;
 }

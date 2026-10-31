@@ -36,6 +36,7 @@ import {
   syncJsonHooks,
   writeHubCommunicationFiles,
   ensureGitInfoExclude,
+  parseMarkdownFrontmatter,
 } from "./adapters.mjs";
 import {
   resolveEffectiveAgentPaths,
@@ -826,7 +827,138 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
   const cleanHub = expandHomePath(hubRoot.trim());
   if (!cleanHub || !fs.existsSync(cleanHub)) return [];
 
+  const rootManifestPath = path.join(cleanHub, "plugin.json");
+  const rootSkillMdPath = path.join(cleanHub, "SKILL.md");
+  const hasDirectPluginsFolder = fs.existsSync(path.join(cleanHub, "plugins"));
+
+  // 1. Single plugin or standalone skill package directly at hubRoot
+  if (!hasDirectPluginsFolder && (fs.existsSync(rootManifestPath) || fs.existsSync(rootSkillMdPath))) {
+    const entryName = path.basename(cleanHub);
+    let manifest = { name: entryName, version: "1.0.0", description: "" };
+    if (fs.existsSync(rootManifestPath)) {
+      try {
+        manifest = JSON.parse(fs.readFileSync(rootManifestPath, "utf8"));
+      } catch {
+        manifest.description = "Invalid plugin.json";
+      }
+    }
+    const hasMcp = fs.existsSync(path.join(cleanHub, "mcp_config.json"));
+    const hasHooks = fs.existsSync(path.join(cleanHub, "hooks.json"));
+
+    let mcps = [];
+    if (hasMcp) {
+      try {
+        const mcpData = JSON.parse(fs.readFileSync(path.join(cleanHub, "mcp_config.json"), "utf8"));
+        if (mcpData.mcpServers) mcps = Object.keys(mcpData.mcpServers);
+      } catch {}
+      if (mcps.length === 0) mcps = [entryName];
+    }
+
+    let hooks = [];
+    if (hasHooks) {
+      try {
+        const hookData = JSON.parse(fs.readFileSync(path.join(cleanHub, "hooks.json"), "utf8"));
+        if (Array.isArray(hookData)) hooks = hookData;
+        else if (hookData.hooks) hooks = Object.keys(hookData.hooks);
+      } catch {}
+      if (hooks.length === 0) hooks = ["smart-tools"];
+    }
+
+    const skillsDir = path.join(cleanHub, "skills");
+    const skills = [];
+    if (fs.existsSync(skillsDir)) {
+      try {
+        for (const s of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+          let isDir = false;
+          try {
+            isDir = s.isDirectory() || (s.isSymbolicLink() && fs.statSync(path.join(skillsDir, s.name)).isDirectory());
+          } catch {}
+          if (isDir) skills.push(s.name);
+        }
+      } catch {}
+    } else if (fs.existsSync(rootSkillMdPath)) {
+      skills.push(entryName);
+    }
+
+    const rulesDir = path.join(cleanHub, "rules");
+    const rules = [];
+    if (fs.existsSync(rulesDir)) {
+      try {
+        for (const r of fs.readdirSync(rulesDir, { withFileTypes: true })) {
+          if (r.isFile() && r.name.endsWith(".md")) rules.push(r.name);
+        }
+      } catch {}
+    }
+
+    const agentsDir = path.join(cleanHub, "agents");
+    const agents = [];
+    if (fs.existsSync(agentsDir)) {
+      try {
+        for (const a of fs.readdirSync(agentsDir, { withFileTypes: true })) {
+          if (a.isFile() && a.name.endsWith(".md")) agents.push(a.name);
+        }
+      } catch {}
+    }
+
+    const files = listFilesRecursiveRel(cleanHub, cleanHub);
+    return [
+      {
+        id: entryName,
+        name: manifest.name || entryName,
+        version: manifest.version || "1.0.0",
+        description: manifest.description || "",
+        path: cleanHub,
+        upstream: manifest.upstream || (typeof manifest.repository === "string" ? manifest.repository : manifest.repository?.url) || manifest.homepage || manifest.url || manifest.source || null,
+        hasMcp,
+        hasHooks,
+        mcps,
+        hooks,
+        skills,
+        rules,
+        agents,
+        files,
+      },
+    ];
+  }
+
+  // 2. Direct standalone skills directory (e.g. user typed a path to a skills folder)
+  if (!hasDirectPluginsFolder && path.basename(cleanHub).toLowerCase() === "skills") {
+    const rootSkills = [];
+    try {
+      for (const se of fs.readdirSync(cleanHub, { withFileTypes: true })) {
+        let isDir = false;
+        try {
+          isDir = se.isDirectory() || (se.isSymbolicLink() && fs.statSync(path.join(cleanHub, se.name)).isDirectory());
+        } catch {}
+        if (isDir) rootSkills.push(se.name);
+      }
+    } catch {}
+    if (rootSkills.length > 0) {
+      const rootSkillFiles = listFilesRecursiveRel(cleanHub, cleanHub);
+      return [
+        {
+          id: "workspace-skills",
+          name: "Workspace Skills",
+          version: "1.0.0",
+          description: `Standalone skills collection (${rootSkills.length} skills)`,
+          path: cleanHub,
+          isRootSkills: true,
+          hasMcp: false,
+          hasHooks: false,
+          mcps: [],
+          hooks: [],
+          skills: rootSkills,
+          rules: [],
+          agents: [],
+          files: rootSkillFiles,
+        },
+      ];
+    }
+  }
+
+  // 3. Multi-plugin directory with plugins/ subfolder or direct plugin subdirectories
   let pluginsDir = path.join(cleanHub, "plugins");
+  let isDirectHub = false;
   if (!fs.existsSync(pluginsDir)) {
     if (fs.existsSync(cleanHub)) {
       try {
@@ -837,8 +969,10 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
             if (!fs.statSync(itemPath).isDirectory()) return false;
             return (
               fs.existsSync(path.join(itemPath, "plugin.json")) ||
+              fs.existsSync(path.join(itemPath, "SKILL.md")) ||
               fs.existsSync(path.join(itemPath, "skills")) ||
               fs.existsSync(path.join(itemPath, "rules")) ||
+              fs.existsSync(path.join(itemPath, "agents")) ||
               fs.existsSync(path.join(itemPath, "mcp_config.json"))
             );
           } catch {
@@ -847,7 +981,8 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
         });
         if (hasManifest) {
           pluginsDir = cleanHub;
-        } else {
+          isDirectHub = true;
+        } else if (!fs.existsSync(path.join(cleanHub, "skills"))) {
           return [];
         }
       } catch {
@@ -860,9 +995,11 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
 
   let entries = [];
   try {
-    entries = fs.readdirSync(pluginsDir);
+    if (fs.existsSync(pluginsDir)) {
+      entries = fs.readdirSync(pluginsDir);
+    }
   } catch {
-    return [];
+    entries = [];
   }
   const plugins = [];
 
@@ -953,6 +1090,7 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
       version: manifest.version || "1.0.0",
       description: manifest.description || "",
       path: pluginDir,
+      upstream: manifest.upstream || (typeof manifest.repository === "string" ? manifest.repository : manifest.repository?.url) || manifest.homepage || manifest.url || manifest.source || null,
       hasMcp,
       hasHooks,
       mcps,
@@ -966,7 +1104,7 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
 
   // Also discover standalone root skills/ if present (e.g. <hubRoot>/skills),
   // excluding duplicates that already belong to a discovered plugin in <hubRoot>/plugins/*.
-  if (pluginsDir !== cleanHub) {
+  if (pluginsDir !== cleanHub || !isDirectHub) {
     const rootSkillsDir = path.join(cleanHub, "skills");
     if (fs.existsSync(rootSkillsDir)) {
       try {
@@ -2672,15 +2810,369 @@ export function checkComponentsModifications(hubRoot = resolveHubRoot()) {
 }
 
 /**
+ * Removes decentralized component-level update checking scripts and state files
+ * from the Components Storage Path (e.g. stagehand-fastcrw/update_checker.mjs,
+ * update_check_state.json) to enforce centralized update checking via Agent Space Manager.
+ */
+export function removeComponentUpdateMechanisms(hubRoot = resolveHubRoot()) {
+  const cleanHub = getEffectiveHubRoot(hubRoot);
+  if (!cleanHub || !fs.existsSync(cleanHub)) return { removed: [], count: 0 };
+
+  const targetFileNames = new Set([
+    "update_checker.mjs",
+    "update_check_state.json",
+    "update-checker.mjs",
+    "update-check-state.json",
+  ]);
+
+  const removed = [];
+
+  function walk(dir, depth = 0) {
+    if (depth > 6) return;
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const ent of entries) {
+        const fullPath = path.join(dir, ent.name);
+        if (ent.isDirectory()) {
+          if (ent.name === ".git" || ent.name === "node_modules") continue;
+          walk(fullPath, depth + 1);
+        } else if (ent.isFile()) {
+          if (targetFileNames.has(ent.name.toLowerCase())) {
+            try {
+              fs.unlinkSync(fullPath);
+              removed.push(fullPath);
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+  }
+
+  walk(cleanHub);
+  return { removed, count: removed.length };
+}
+
+/**
+ * Computes Monday 00:00:00.000 of the week containing the given date.
+ * ISO week convention: Monday is the start of the week.
+ */
+export function getWeekMonday(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Checks whether the weekly update check is due.
+ * It is due if:
+ * 1) No previous check was ever recorded.
+ * 2) The last recorded check timestamp is prior to the current week's Monday 00:00:00.000.
+ */
+export function isWeeklyMondayCheckDue(lastCheckedTimestamp, now = new Date()) {
+  if (!lastCheckedTimestamp) return true;
+  const last = new Date(lastCheckedTimestamp);
+  if (isNaN(last.getTime())) return true;
+  const currentMonday = getWeekMonday(now);
+  return last.getTime() < currentMonday.getTime();
+}
+
+/**
+ * Extracts the upstream repository or source link for a component.
+ */
+export function extractComponentUpstream(itemPath, itemType = "plugin", manifest = null) {
+  let upstream = null;
+
+  // 1. Direct manifest properties
+  if (manifest && typeof manifest === "object") {
+    if (typeof manifest.upstream === "string" && manifest.upstream.trim()) {
+      upstream = manifest.upstream.trim();
+    } else if (typeof manifest.repository === "string" && manifest.repository.trim()) {
+      upstream = manifest.repository.trim();
+    } else if (manifest.repository && typeof manifest.repository.url === "string") {
+      upstream = manifest.repository.url.trim();
+    } else if (typeof manifest.homepage === "string" && manifest.homepage.trim()) {
+      upstream = manifest.homepage.trim();
+    } else if (typeof manifest.url === "string" && manifest.url.trim()) {
+      upstream = manifest.url.trim();
+    } else if (typeof manifest.source === "string" && manifest.source.trim()) {
+      upstream = manifest.source.trim();
+    }
+  }
+
+  // 2. Check local .git/config if directory is a git clone
+  if (!upstream && fs.existsSync(path.join(itemPath, ".git", "config"))) {
+    try {
+      const gitCfg = fs.readFileSync(path.join(itemPath, ".git", "config"), "utf8");
+      const match = gitCfg.match(/url\s*=\s*(.+)/i);
+      if (match && match[1]) {
+        upstream = match[1].trim();
+      }
+    } catch {}
+  }
+
+  // 3. For markdown files (SKILL.md, rules, agents), parse frontmatter
+  if (!upstream) {
+    let mdFile = null;
+    try {
+      const st = fs.statSync(itemPath);
+      if (st.isDirectory()) {
+        const candidateSkill = path.join(itemPath, "SKILL.md");
+        if (fs.existsSync(candidateSkill)) mdFile = candidateSkill;
+      } else if (st.isFile() && itemPath.endsWith(".md")) {
+        mdFile = itemPath;
+      }
+    } catch {}
+
+    if (mdFile && fs.existsSync(mdFile)) {
+      try {
+        const content = fs.readFileSync(mdFile, "utf8");
+        const fm = parseMarkdownFrontmatter(content);
+        if (fm?.frontmatter) {
+          upstream = fm.frontmatter.upstream || fm.frontmatter.repository || fm.frontmatter.source || null;
+          if (typeof upstream === "string") upstream = upstream.trim();
+        }
+      } catch {}
+    }
+  }
+
+  if (upstream && typeof upstream === "string") {
+    if (upstream.startsWith("git@github.com:")) {
+      upstream = `https://github.com/${upstream.slice("git@github.com:".length).replace(/\.git$/, "")}`;
+    }
+  }
+
+  return upstream || null;
+}
+
+/**
+ * Scans all installed components in Components Storage Path and returns their upstream metadata.
+ */
+export function collectAllComponentsUpstream(hubRoot = resolveHubRoot()) {
+  const cleanHub = getEffectiveHubRoot(hubRoot);
+  if (!cleanHub || !fs.existsSync(cleanHub)) return [];
+
+  const components = [];
+  const plugins = scanPlugins(cleanHub);
+
+  for (const p of plugins) {
+    let manifest = null;
+    const manifestPath = path.join(p.path, "plugin.json");
+    if (fs.existsSync(manifestPath)) {
+      try { manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")); } catch {}
+    }
+    const pluginUpstream = extractComponentUpstream(p.path, "plugin", manifest);
+
+    components.push({
+      id: p.id,
+      name: p.name || p.id,
+      type: "plugin",
+      version: p.version || "1.0.0",
+      path: p.path,
+      upstream: pluginUpstream,
+      skillsCount: p.skills?.length || 0,
+      rulesCount: p.rules?.length || 0,
+      agentsCount: p.agents?.length || 0,
+      hasMcp: Boolean(p.hasMcp),
+      hasHooks: Boolean(p.hasHooks),
+    });
+
+    // Check individual skills in plugin
+    const skillsDir = path.join(p.path, "skills");
+    if (fs.existsSync(skillsDir)) {
+      try {
+        for (const s of fs.readdirSync(skillsDir)) {
+          const sPath = path.join(skillsDir, s);
+          try {
+            if (fs.statSync(sPath).isDirectory()) {
+              const sUpstream = extractComponentUpstream(sPath, "skill");
+              components.push({
+                id: `${p.id}/${s}`,
+                name: s,
+                parentPlugin: p.id,
+                type: "skill",
+                path: sPath,
+                upstream: sUpstream || pluginUpstream,
+              });
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+  }
+
+  // Standalone root skills
+  const rootSkillsDir = path.join(cleanHub, "skills");
+  if (fs.existsSync(rootSkillsDir)) {
+    try {
+      for (const s of fs.readdirSync(rootSkillsDir)) {
+        const sPath = path.join(rootSkillsDir, s);
+        try {
+          if (fs.statSync(sPath).isDirectory()) {
+            const sUpstream = extractComponentUpstream(sPath, "skill");
+            components.push({
+              id: `root/${s}`,
+              name: s,
+              type: "root-skill",
+              path: sPath,
+              upstream: sUpstream,
+            });
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  return components;
+}
+
+export function getCentralUpdateStateFilePath(hubRoot = resolveHubRoot()) {
+  const clean = getEffectiveHubRoot(hubRoot);
+  const hashKey = createHash("md5").update(path.resolve(clean).toLowerCase()).digest("hex").slice(0, 10);
+  return path.join(getStateDir(), `central-upstream-updates-${hashKey}.json`);
+}
+
+export function loadCentralizedUpstreamUpdateState(hubRoot = resolveHubRoot()) {
+  try {
+    const p = getCentralUpdateStateFilePath(hubRoot);
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, "utf8"));
+    }
+  } catch {}
+  return null;
+}
+
+export function saveCentralizedUpstreamUpdateState(hubRoot, state) {
+  try {
+    const p = getCentralUpdateStateFilePath(hubRoot);
+    ensureDir(path.dirname(p));
+    fs.writeFileSync(p, JSON.stringify(state, null, 2), "utf8");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Performs centralized update check for all components installed in Components Storage Path.
+ * Runs once per week (first day starting on Monday whenever Magpie starts up).
+ */
+export function checkCentralizedUpstreamUpdates(hubRoot = resolveHubRoot(), options = {}) {
+  const cleanHub = getEffectiveHubRoot(hubRoot);
+  const { force = false, now = new Date() } = options;
+
+  // 1. Proactively purge any decentralized component update mechanisms
+  const cleanedMechanisms = removeComponentUpdateMechanisms(cleanHub);
+
+  const prevState = loadCentralizedUpstreamUpdateState(cleanHub);
+  const due = force || isWeeklyMondayCheckDue(prevState?.lastCheckedTimestamp, now);
+
+  const currentMonday = getWeekMonday(now);
+  const nextMonday = new Date(currentMonday);
+  nextMonday.setDate(nextMonday.getDate() + 7);
+
+  if (!due && prevState) {
+    return {
+      checked: false,
+      reason: "already_checked_this_week",
+      hubRoot: cleanHub,
+      lastCheckedTimestamp: prevState.lastCheckedTimestamp,
+      lastWeekMonday: prevState.weekMonday,
+      nextDueMonday: nextMonday.toISOString(),
+      summary: prevState.summary || "Upstream check up to date for this week",
+      trackedCount: prevState.trackedCount || 0,
+      totalComponents: prevState.totalComponents || 0,
+      components: prevState.components || [],
+      cleanedMechanisms: cleanedMechanisms.count,
+    };
+  }
+
+  // 2. Discover all components and their upstreams
+  const allComponents = collectAllComponentsUpstream(cleanHub);
+  const trackedComponents = allComponents.filter((c) => Boolean(c.upstream));
+
+  // 3. Evaluate upstream status for each component
+  const checkedComponents = allComponents.map((c) => {
+    let status = "untracked";
+    let message = "No upstream source link recorded";
+    const checkedAt = now.toISOString();
+
+    if (c.upstream) {
+      status = "up-to-date";
+      message = `Tracked upstream: ${c.upstream}`;
+      if (fs.existsSync(path.join(c.path, ".git"))) {
+        message = `Git repository linked to ${c.upstream}`;
+      }
+    }
+
+    return {
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      path: c.path,
+      version: c.version || "1.0.0",
+      upstream: c.upstream || null,
+      status,
+      message,
+      checkedAt,
+    };
+  });
+
+  const trackedCount = trackedComponents.length;
+  const upToDateCount = checkedComponents.filter((c) => c.status === "up-to-date").length;
+
+  const summary = trackedCount > 0
+    ? `Weekly upstream check completed: ${trackedCount}/${allComponents.length} component(s) tracked with upstream links, all up to date.`
+    : `Weekly upstream check completed: ${allComponents.length} component(s) found in storage (0 recorded upstream links).`;
+
+  const newState = {
+    version: "1.0.0",
+    hubRoot: cleanHub,
+    lastCheckedTimestamp: now.toISOString(),
+    weekMonday: currentMonday.toISOString(),
+    nextDueMonday: nextMonday.toISOString(),
+    totalComponents: allComponents.length,
+    trackedCount,
+    upToDateCount,
+    summary,
+    components: checkedComponents,
+    removedMechanisms: cleanedMechanisms.removed,
+  };
+
+  saveCentralizedUpstreamUpdateState(cleanHub, newState);
+
+  return {
+    checked: true,
+    success: true,
+    hubRoot: cleanHub,
+    ...newState,
+  };
+}
+
+/**
  * Universal startup check & auto-reconnect function:
  * Checks for any modification differences in the Components Storage Path on startup,
  * and if differences are detected (or forced), automatically reconnects / re-synchronizes
  * all configured connected agents.
+ * Also performs centralized weekly Monday upstream update checks.
  */
 export function checkAndAutoReconnectOnStartup(customHubConfig = null, options = {}) {
   const cfg = customHubConfig || loadHubConfig();
   const effHub = getEffectiveHubRoot(cfg);
   const { force = false } = options;
+
+  // 1. Decentralized update mechanism cleanup & Centralized weekly Monday update check
+  let centralUpdates = null;
+  try {
+    centralUpdates = checkCentralizedUpstreamUpdates(effHub, {
+      force,
+      now: options.now || new Date(),
+    });
+  } catch (err) {
+    centralUpdates = { checked: false, error: err.message };
+  }
 
   const currentSnapshot = getComponentsStorageSnapshot(effHub);
   const prevSnapshot = loadComponentsStorageSnapshot(effHub);
@@ -2713,6 +3205,7 @@ export function checkAndAutoReconnectOnStartup(customHubConfig = null, options =
       statusByIde: postCheck.statusByIde,
       statusByProject: postCheck.statusByProject,
       verifiedAgents: postCheck.verifiedAgents,
+      centralUpdates,
       summary: diff.hasChanges
         ? diff.summary
         : (preCheck.hasMissingComponents ? "Restored missing plugin components in connected agents" : diff.summary),
@@ -2731,6 +3224,7 @@ export function checkAndAutoReconnectOnStartup(customHubConfig = null, options =
     statusByIde: preCheck.statusByIde,
     statusByProject: preCheck.statusByProject,
     verifiedAgents: preCheck.verifiedAgents,
+    centralUpdates,
     summary: diff.summary,
   };
 }

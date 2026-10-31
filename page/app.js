@@ -268,15 +268,38 @@
 
   const apiClient = {
     async getPlugins(path, forceReloadScript = false) {
-      const targetPath = (path || "").trim();
+      const rawTarget = (path || "").trim();
+      const targetPath = rawTarget.replace(/^["']+|["']+$/g, "").trim();
       const norm = normalizePathForCompare(targetPath);
+
+      // Helper to check if cache matches target path
+      const isCacheMatch = (cPath, cPlugins) => {
+        if (!Array.isArray(cPlugins) || cPlugins.length === 0) return false;
+        const cachePathNorm = normalizePathForCompare(cPath);
+        if (cachePathNorm && cachePathNorm === norm) return true;
+        // Universal baseline cache: matches when targetPath is empty, default hub, or cached plugins reside inside targetPath
+        const eff = computeEffectiveHubPath();
+        const effNorm = normalizePathForCompare(eff.path);
+        if (!targetPath || norm === effNorm || norm === normalizePathForCompare("D:/Software/AI Agent Space")) {
+          return true;
+        }
+        const firstPluginPath = cPlugins[0]?.path;
+        if (firstPluginPath) {
+          const firstNorm = normalizePathForCompare(firstPluginPath);
+          if (firstNorm.startsWith(norm)) return true;
+        }
+        return false;
+      };
 
       // 1. Magpie host IPC bridge (if available)
       try {
         const magpieApi = getMagpieApi();
-        if (typeof magpieApi?.getPlugins === "function") {
-          const mPlugins = await magpieApi.getPlugins(targetPath);
-          if (Array.isArray(mPlugins)) {
+        const scanFn = typeof magpieApi?.scanPlugins === "function"
+          ? magpieApi.scanPlugins
+          : (typeof magpieApi?.getPlugins === "function" ? magpieApi.getPlugins : null);
+        if (scanFn) {
+          const mPlugins = await scanFn(targetPath);
+          if (Array.isArray(mPlugins) && mPlugins.length > 0) {
             mPlugins.forEach(ensurePluginFiles);
             try {
               localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(mPlugins));
@@ -288,10 +311,10 @@
 
       // 2. Local API server dynamically with cache-busting timestamp (when running outside CSP connect-src 'none')
       try {
-        const res = await fetch(`${API_BASE}/api/plugins?path=${encodeURIComponent(targetPath)}&t=${Date.now()}`, { signal: AbortSignal.timeout(1200) });
+        const res = await fetch(`${API_BASE}/api/plugins?path=${encodeURIComponent(targetPath)}&t=${Date.now()}`, { signal: AbortSignal.timeout(10000) });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.plugins)) {
+          if (Array.isArray(data.plugins) && data.plugins.length > 0) {
             data.plugins.forEach(ensurePluginFiles);
             try {
               localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(data.plugins));
@@ -310,29 +333,25 @@
         await reloadPluginsCacheScript();
       }
 
-      // 4. Synchronous in-memory / script-injected cache (__PLUGINS_CACHE__) strictly if path matches!
-      if (globalThis.__PLUGINS_CACHE__ && Array.isArray(globalThis.__PLUGINS_CACHE__.plugins)) {
-        const cachePathNorm = normalizePathForCompare(globalThis.__PLUGINS_CACHE__.path);
-        if (cachePathNorm === norm) {
-          const cached = globalThis.__PLUGINS_CACHE__.plugins;
-          cached.forEach(ensurePluginFiles);
-          try {
-            localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(cached));
-          } catch {}
-          if (globalThis.__PLUGINS_CACHE__.categories) {
-            discoveredCategories = globalThis.__PLUGINS_CACHE__.categories;
-          }
-          return cached;
+      // 4. Synchronous in-memory / script-injected cache (__PLUGINS_CACHE__)
+      if (globalThis.__PLUGINS_CACHE__ && isCacheMatch(globalThis.__PLUGINS_CACHE__.path, globalThis.__PLUGINS_CACHE__.plugins)) {
+        const cached = globalThis.__PLUGINS_CACHE__.plugins;
+        cached.forEach(ensurePluginFiles);
+        try {
+          localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(cached));
+        } catch {}
+        if (globalThis.__PLUGINS_CACHE__.categories) {
+          discoveredCategories = globalThis.__PLUGINS_CACHE__.categories;
         }
+        return cached;
       }
 
-      // 5. Same-origin static cache file strictly if path matches!
+      // 5. Same-origin static cache file
       try {
-        const cRes = await fetch(`./plugins-cache.json?t=${Date.now()}`, { signal: AbortSignal.timeout(1000) });
+        const cRes = await fetch(`./plugins-cache.json?t=${Date.now()}`, { signal: AbortSignal.timeout(2000) });
         if (cRes.ok) {
           const cData = await cRes.json();
-          const jsonPathNorm = normalizePathForCompare(cData?.path);
-          if (jsonPathNorm === norm && Array.isArray(cData.plugins)) {
+          if (isCacheMatch(cData?.path, cData?.plugins)) {
             cData.plugins.forEach(ensurePluginFiles);
             if (cData.categories) {
               discoveredCategories = cData.categories;
@@ -347,7 +366,7 @@
         const local = localStorage.getItem("magpie_plugins_" + norm);
         if (local !== null && local !== undefined) {
           const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             parsed.forEach(ensurePluginFiles);
             return parsed;
           }
@@ -573,6 +592,36 @@
       } catch (err) {
         console.warn("apiClient.connectTarget error:", err);
       }
+      return null;
+    },
+
+    async checkCentralUpdates(customHubRoot, force = false) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.checkCentralizedUpdates === "function") {
+          const res = await magpieApi.checkCentralizedUpdates(customHubRoot, { force });
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/central-update-check?path=${encodeURIComponent(customHubRoot || "")}&force=${force ? "true" : "false"}&t=${Date.now()}`, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
+
+    async getCentralUpdateStatus(customHubRoot) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.getCentralizedUpdateStatus === "function") {
+          const res = await magpieApi.getCentralizedUpdateStatus(customHubRoot);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/central-update-status?path=${encodeURIComponent(customHubRoot || "")}&t=${Date.now()}`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) return await res.json();
+      } catch {}
       return null;
     },
   };
@@ -1031,9 +1080,10 @@
 
   function computeEffectiveHubPath() {
     if (hubConfig.hubRoot && hubConfig.hubRoot.trim() !== "") {
-      return { path: hubConfig.hubRoot.trim(), isAuto: false };
+      const cleaned = hubConfig.hubRoot.trim().replace(/^["']+|["']+$/g, "").trim();
+      return { path: cleaned, isAuto: false };
     }
-    const fallback = hubConfig.defaultHubRoot || "~/AI-Agent-Space";
+    const fallback = (hubConfig.defaultHubRoot || "~/AI-Agent-Space").trim().replace(/^["']+|["']+$/g, "").trim();
     return { path: fallback, isAuto: true };
   }
 
@@ -2290,7 +2340,8 @@
     if ($("hubPathInput")) {
       $("hubPathInput").addEventListener("input", (e) => {
         clearTimeout(hubInputTimer);
-        hubConfig.hubRoot = e.target.value.trim();
+        const cleanVal = (e.target.value || "").trim().replace(/^["']+|["']+$/g, "").trim();
+        hubConfig.hubRoot = cleanVal;
         hubInputTimer = setTimeout(async () => {
           await reloadPluginsFromHub();
           renderAll();
@@ -2299,7 +2350,8 @@
       });
       $("hubPathInput").addEventListener("change", async (e) => {
         clearTimeout(hubInputTimer);
-        hubConfig.hubRoot = e.target.value.trim();
+        const cleanVal = (e.target.value || "").trim().replace(/^["']+|["']+$/g, "").trim();
+        hubConfig.hubRoot = cleanVal;
         await reloadPluginsFromHub();
         renderAll();
         triggerAutoSync();
@@ -2474,38 +2526,57 @@
       });
     }
 
-    // Standardize Storage Structure Prompt Copy Button (no icon)
+    // Standardize Storage Structure Prompt Copy Button (with version display)
+    const STORAGE_PROMPT_VERSION = "V1.0";
     const btnCopyPrompt = $("btnCopyStoragePrompt");
     if (btnCopyPrompt) {
+      const originalText = `Copy Prompt (${STORAGE_PROMPT_VERSION})`;
+      btnCopyPrompt.textContent = originalText;
       btnCopyPrompt.addEventListener("click", async () => {
         const effectiveHub = computeEffectiveHubPath();
         const storagePath = effectiveHub?.path || "";
         const targetPathHeader = storagePath ? `Components Storage Target Path: ${storagePath}\n\n` : "";
 
-        const promptText = `Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification:
+        const promptText = `[Components Storage Specification & Upstream Rules Prompt ${STORAGE_PROMPT_VERSION}]
 
-${targetPathHeader}Directory structure:
-A plugin is a directory containing a required manifest file (plugin.json) and optional subdirectories for different customization types:
+Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, and install a persistent agent rule:
+
+${targetPathHeader}1. Directory Structure Specification:
+A plugin is a directory containing a required manifest file (plugin.json) and optional subdirectories for customizations:
 
 plugins/<plugin-name>/
-├── plugin.json       # Required marker and manifest file
+├── plugin.json       # Required manifest file (must include "upstream" source URL)
 ├── mcp_config.json   # Optional MCP server definitions
 ├── hooks.json        # Optional hooks definition
 ├── skills/           # Optional skills directory
 │   └── <upstream GitHub name/self (if self created)-skill-name>/
-│       └── SKILL.md
+│       └── SKILL.md  # Must include upstream: <url> in YAML frontmatter
 ├── agents/           # Optional subagent definition templates
-│   └── <upstream GitHub name/self  (if self created)-agent-name>.md
+│   └── <upstream GitHub name/self (if self created)-agent-name>.md  # Must include upstream in frontmatter
 └── rules/            # Optional rules directory
-    └── <upstream GitHub name/self  (if self created)-rule-name>.md
+    └── <upstream GitHub name/self (if self created)-rule-name>.md    # Must include upstream in frontmatter
 
-Guidelines:
-1. Ensure each plugin has a valid plugin.json manifest.
-2. Group related skills into skills/<upstream GitHub name/self (if self created)-skill-name>/SKILL.md.
-3. Put subagent definitions under agents/<upstream GitHub name/self (if self created)-agent-name>.md.
-4. Put rule definitions under rules/<upstream GitHub name/self (if self created)-rule-name>.md.
-5. Place MCP server configurations in mcp_config.json and hooks in hooks.json where applicable.
-6. Clean up any loose, misplaced, or non-conforming files or folders.`;
+2. Mandatory Upstream Links:
+For EVERY component (plugin, skill, rule, agent, MCP) installed in Components Storage Path:
+- Identify and record the upstream source link (GitHub repository URL, official documentation URL, or author registry link) where the component was saved or fetched from:
+  * In plugin.json: Include "upstream": "https://github.com/<owner>/<repo>" (or source repository URL).
+  * In SKILL.md: Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
+  * In rules (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
+  * In agents (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
+
+3. Centralized Weekly Update Checking (No Decentralized Scripts):
+- Remove and DO NOT create individual, local, or decentralized update scripts (such as update_checker.mjs or update_check_state.json) inside component folders.
+- Update checking for all components in Components Storage Path is centralized once per week in this Agent Space Manager plugin (running automatically on the first day starting on Monday whenever the user starts up Magpie).
+- Prune any obsolete local component update checking scripts or decentralized state files.
+
+4. Mandatory Persistent Agent Rule:
+Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, or edit is made to any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
+- Rule Trigger: Addendum, creation, or edit of any component in Components Storage Path.
+- Rule Invariant 1: Ensure strict compliance with the plugin directory structure above.
+- Rule Invariant 2: Always add and preserve the upstream link in the component's manifest or frontmatter.
+- Rule Invariant 3: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
+
+Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, purge any decentralized update checking scripts, and persist the rule into your agent's rules.`;
 
         let copied = false;
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -2528,7 +2599,6 @@ Guidelines:
           } catch {}
         }
 
-        const originalText = "Copy Prompt";
         btnCopyPrompt.textContent = copied ? "Copied!" : "Copy Failed";
         btnCopyPrompt.classList.add("copied");
         setTimeout(() => {
@@ -3022,7 +3092,7 @@ Guidelines:
         if (cards) cards.innerHTML = `<div style="font-size:12px; color:var(--magpie-muted); padding:8px;">Initializing scan...</div>`;
 
         if ($("hubPathInput")) {
-          hubConfig.hubRoot = $("hubPathInput").value.trim();
+          hubConfig.hubRoot = ($("hubPathInput").value || "").trim().replace(/^["']+|["']+$/g, "").trim();
         }
         const effectivePath = computeEffectiveHubPath().path;
         const norm = normalizePathForCompare(effectivePath);
@@ -3159,9 +3229,23 @@ Guidelines:
       banner.className = "startup-reconnect-banner active";
       if (title) title.textContent = "⚡ Auto-reconnected Connected Agents";
       if (icon) icon.textContent = "⚡";
-      msg.textContent = `Detected changes in Components Storage Path: ${result.summary}. Auto-reconnected ${result.connectedAgentsCount || 0} agent(s).`;
+      let text = `Detected changes in Components Storage Path: ${result.summary}. Auto-reconnected ${result.connectedAgentsCount || 0} agent(s).`;
+      if (result.centralUpdates?.checked) {
+        text += ` • ${result.centralUpdates.summary}`;
+      }
+      msg.textContent = text;
       if (badge && !badge.classList.contains("disabled")) {
         badge.textContent = "✓ Auto-Synced on Startup";
+        badge.className = "hub-path-badge auto";
+      }
+    } else if (result?.centralUpdates?.checked) {
+      banner.style.display = "flex";
+      banner.className = "startup-reconnect-banner active";
+      if (title) title.textContent = "📅 Centralized Weekly Upstream Check";
+      if (icon) icon.textContent = "📅";
+      msg.textContent = `${result.centralUpdates.summary} (Centralized Monday weekly check)`;
+      if (badge && !badge.classList.contains("disabled") && (!hubConfig.hubRoot || hubConfig.hubRoot.trim() === "")) {
+        badge.textContent = "✓ Upstream Verified";
         badge.className = "hub-path-badge auto";
       }
     } else if (result && result.hasChanges === false) {

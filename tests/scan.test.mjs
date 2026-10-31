@@ -60,6 +60,33 @@ describe("Feature 1: Hub Component Discovery & Categories Registry", () => {
     }
   });
 
+  test("scanPlugins universally resolves quoted paths, single plugin dirs, and direct skills folders", async () => {
+    const sb = makeSandbox();
+    try {
+      const m = await import("../manager.mjs");
+      // 1. Quoted path input
+      const quotedHub = `"${sb.hub}"`;
+      const pluginsQuoted = m.scanPlugins(quotedHub);
+      assert.equal(pluginsQuoted.length >= 3, true);
+
+      // 2. Single plugin directory path
+      const alphaPath = path.join(sb.hub, "plugins", "alpha-plugin");
+      const alphaScan = m.scanPlugins(alphaPath);
+      assert.equal(alphaScan.length, 1);
+      assert.equal(alphaScan[0].id, "alpha-plugin");
+      assert.equal(alphaScan[0].name, "Alpha Suite");
+
+      // 3. Direct skills directory path
+      const skillsPath = path.join(sb.hub, "skills");
+      const skillsScan = m.scanPlugins(skillsPath);
+      assert.equal(skillsScan.length, 1);
+      assert.equal(skillsScan[0].id, "workspace-skills");
+      assert.equal(skillsScan[0].skills.includes("standalone-skill"), true);
+    } finally {
+      sb.cleanup();
+    }
+  });
+
   test("buildCategoriesRegistry aggregates plugins, mcps, hooks, skills, agents, and rules including standalone root items", async () => {
     const sb = makeSandbox();
     try {
