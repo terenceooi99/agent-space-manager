@@ -21,6 +21,7 @@
   ],
   "author": "Terence Ooi",
   "license": "MIT",
+  "funding": "https://wise.com/pay/me/terenceooit",
   "engines": {
     "node": ">=18.0.0"
   },

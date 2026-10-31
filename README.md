@@ -119,6 +119,13 @@ plugins/<plugin-name>/
 
 ---
 
+## Support & Sponsorship
+
+If you find Agent Space Manager valuable for your workflow, you can support development via:
+- [Wise - Terence Ooi Teng Wei @terenceooit](https://wise.com/pay/me/terenceooit)
+
+---
+
 ## License
 
 MIT © Terence Ooi
