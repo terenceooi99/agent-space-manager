@@ -33,6 +33,14 @@ import {
   removeComponentUpdateMechanisms,
   checkCentralizedUpstreamUpdates,
   loadCentralizedUpstreamUpdateState,
+  getOmniroutePort,
+  isOmnirouteInstalled,
+  checkOmnirouteStatus,
+  startOmniroute,
+  openUrlInBrowser,
+  scanAgentForeignComponents,
+  cleanAgentForeignComponents,
+  autoEnableHubComponents,
 } from "./manager.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -48,7 +56,20 @@ let lastMagpieStateSig = "";
 
 function isAllowedOrigin(origin) {
   if (!origin || origin === "null") return true;
-  if (origin.startsWith("file://") || origin.startsWith("magpie://") || origin.startsWith("app://")) return true;
+  if (
+    origin.startsWith("file://") ||
+    origin.startsWith("magpie://") ||
+    origin.startsWith("app://") ||
+    origin.startsWith("wails://") ||
+    origin.startsWith("tauri://") ||
+    origin.startsWith("vscode-webview://") ||
+    origin.startsWith("vscode-file://") ||
+    origin.startsWith("ms-appx-web://") ||
+    origin.includes("htmlplatform.net") ||
+    origin.startsWith("chrome-extension://")
+  ) {
+    return true;
+  }
   if (/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(origin)) return true;
   return false;
 }
@@ -118,6 +139,7 @@ export function syncFromMagpiePluginsJson(force = false) {
     if (!entry || !entry.options) return false;
 
     const opts = entry.options;
+    handleOmnirouteRequest(opts.omnirouteRequest);
     const sig = JSON.stringify({
       toolsRoot: opts.toolsRoot,
       hubConfig: opts.hubConfig,
@@ -172,8 +194,92 @@ export function syncFromMagpiePluginsJson(force = false) {
   }
 }
 
-function startMagpieConfigWatcher() {
+// --- OmniRoute bridge for the sandboxed Magpie page ---
+// The page frame has no network and no popups, so it posts a request via
+// magpie.options.set({ omnirouteRequest: { action, nonce, port } }); this
+// watcher runs it and answers in page/omniroute-status.js (script-src 'self').
+let lastOmnirouteNonce = null;
+let omnirouteBusy = false;
+let pendingOmnirouteRequest = null;
+
+export function writeOmnirouteStatusFile(payload) {
+  try {
+    const targetDirs = new Set();
+    if (process.env.ASM_CACHE_DIR) {
+      targetDirs.add(process.env.ASM_CACHE_DIR);
+    } else if (process.env.ASM_TEST !== "1" && process.env.NODE_ENV !== "test") {
+      for (const base of SIBLING_DIRS) {
+        const pDir = path.join(base, "page");
+        if (fs.existsSync(pDir)) targetDirs.add(pDir);
+      }
+    }
+    targetDirs.add(path.join(__dirname, "page"));
+
+    const content = `window.__OMNIROUTE_STATUS__ = ${JSON.stringify(payload)};\n`;
+    for (const dir of targetDirs) {
+      try {
+        const file = path.join(dir, "omniroute-status.js");
+        const tmp = `${file}.tmp`;
+        fs.writeFileSync(tmp, content, "utf8");
+        fs.renameSync(tmp, file);
+      } catch {}
+    }
+  } catch {}
+}
+
+export async function runOmnirouteAction(action = "status", port = null, nonce = null) {
+  const cfg = loadHubConfig();
+  let status;
+  if (action === "start") {
+    const started = await startOmniroute(port, cfg);
+    status = await checkOmnirouteStatus(port, cfg);
+    if (!status.running && started?.error) status.error = started.error;
+  } else if (action === "open") {
+    status = await checkOmnirouteStatus(port, cfg);
+    if (!status.running) {
+      startOmniroute(port, cfg).catch(() => {});
+    }
+    const targetUrl = status.url || `http://localhost:${port || getOmniroutePort(cfg)}`;
+    status.opened = openUrlInBrowser(targetUrl);
+  } else {
+    status = await checkOmnirouteStatus(port, cfg);
+  }
+  const payload = { ...status, action, nonce, checkedAt: Date.now() };
+  writeOmnirouteStatusFile(payload);
+  return payload;
+}
+
+function handleOmnirouteRequest(req) {
+  if (!req || typeof req !== "object" || !req.nonce) return;
+  if (req.nonce === lastOmnirouteNonce) return;
+  if (omnirouteBusy) {
+    pendingOmnirouteRequest = req;
+    return;
+  }
+  lastOmnirouteNonce = req.nonce;
+  omnirouteBusy = true;
+  const port = Number.isInteger(Number(req.port)) && Number(req.port) > 0 ? Number(req.port) : null;
+  runOmnirouteAction(String(req.action || "status"), port, req.nonce)
+    .catch(() => {})
+    .finally(() => {
+      omnirouteBusy = false;
+      if (pendingOmnirouteRequest) {
+        const next = pendingOmnirouteRequest;
+        pendingOmnirouteRequest = null;
+        handleOmnirouteRequest(next);
+      }
+    });
+}
+
+export function startMagpieConfigWatcher() {
   if (magpieWatchInterval || process.env.ASM_NO_SERVER) return;
+  // Requests already in plugins.json before startup are stale: answer with a fresh status only
+  try {
+    const parsed = JSON.parse(fs.readFileSync(MAGPIE_PLUGINS_JSON, "utf8"));
+    const entry = (parsed?.plugins || []).find((p) => String(p?.spec || "").toLowerCase().includes("agent-space-manager"));
+    lastOmnirouteNonce = entry?.options?.omnirouteRequest?.nonce || null;
+  } catch {}
+  runOmnirouteAction("status").catch(() => {});
   syncFromMagpiePluginsJson(true);
   magpieWatchInterval = setInterval(() => {
     syncFromMagpiePluginsJson(false);
@@ -244,6 +350,103 @@ export function startApiServer(port = API_PORT) {
         const cfg = loadHubConfig();
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(cfg));
+        return;
+      }
+
+      if (pathname === "/api/omniroute/status" && req.method === "GET") {
+        const portParam = query.port ? parseInt(query.port, 10) : null;
+        const cfg = loadHubConfig();
+        const status = await checkOmnirouteStatus(portParam, cfg);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, ...status }));
+        return;
+      }
+
+      if (pathname === "/api/omniroute/start" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", async () => {
+          try {
+            const data = body ? JSON.parse(body) : {};
+            const cfg = loadHubConfig();
+            const result = await startOmniroute(data.port, cfg);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
+      if (pathname === "/api/omniroute/open") {
+        if (req.method === "GET") {
+          const cfg = loadHubConfig();
+          const port = query.port ? parseInt(query.port, 10) : getOmniroutePort(cfg);
+          const targetUrl = query.url || `http://localhost:${port}`;
+          const ok = openUrlInBrowser(targetUrl);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: ok, url: targetUrl }));
+          return;
+        }
+        if (req.method === "POST") {
+          let body = "";
+          req.on("data", (chunk) => { body += chunk; });
+          req.on("end", () => {
+            try {
+              const data = body ? JSON.parse(body) : {};
+              const cfg = loadHubConfig();
+              const port = data.port || getOmniroutePort(cfg);
+              const targetUrl = data.url || query.url || `http://localhost:${port}`;
+              const ok = openUrlInBrowser(targetUrl);
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: ok, url: targetUrl }));
+            } catch (err) {
+              res.writeHead(500, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+      }
+
+      if (pathname === "/api/agent/scan-foreign" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          try {
+            const data = body ? JSON.parse(body) : {};
+            const agentDef = data.agent || data.ide || data;
+            const cfg = loadHubConfig();
+            const effHub = getEffectiveHubRoot(cfg);
+            const plugins = scanPlugins(effHub);
+            const scan = scanAgentForeignComponents(agentDef, cfg, plugins);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true, ...scan }));
+          } catch (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
+      if (pathname === "/api/agent/clean-foreign" && req.method === "POST") {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          try {
+            const data = body ? JSON.parse(body) : {};
+            const components = Array.isArray(data.components) ? data.components : [];
+            const result = cleanAgentForeignComponents(components);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
         return;
       }
 
@@ -623,7 +826,7 @@ export function startApiServer(port = API_PORT) {
 
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
-      console.log(`Port ${port} already in use, reusing active daemon.`);
+      console.error(`Port ${port} already in use, reusing active daemon.`);
     } else {
       console.error("API Server error:", err);
     }
@@ -632,7 +835,7 @@ export function startApiServer(port = API_PORT) {
   server.listen(port, "127.0.0.1", () => {
     const actualPort = server.address()?.port || port;
     if (!process.env.ASM_NO_SERVER) {
-      console.log(`Agent Space Manager API Server listening on http://127.0.0.1:${actualPort}`);
+      console.error(`Agent Space Manager API Server listening on http://127.0.0.1:${actualPort}`);
     }
   });
 
@@ -641,12 +844,12 @@ export function startApiServer(port = API_PORT) {
     try {
       const startupRes = checkAndAutoReconnectOnStartup();
       if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env.ASM_TEST !== "1") {
-        console.log(`[Startup] Components Storage Path: ${startupRes.summary}`);
+        console.error(`[Startup] Components Storage Path: ${startupRes.summary}`);
         if (startupRes.autoReconnected) {
-          console.log(`[Startup] Auto-reconnected ${startupRes.connectedAgentsCount} connected agent(s).`);
+          console.error(`[Startup] Auto-reconnected ${startupRes.connectedAgentsCount} connected agent(s).`);
         }
         if (startupRes.centralUpdates?.checked) {
-          console.log(`[Startup] Central Upstream Update: ${startupRes.centralUpdates.summary}`);
+          console.error(`[Startup] Central Upstream Update: ${startupRes.centralUpdates.summary}`);
         }
       }
     } catch {}

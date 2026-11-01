@@ -202,7 +202,7 @@
   }
 
   // Non-blocking toast notifications (Desktop WebView2 Dialog Safety Invariant)
-  function showToast(message, type = "info", duration = 4000) {
+  function showToast(message, type = "info", duration = 4000, options = {}) {
     try {
       let container = $("toastContainer");
       if (!container) {
@@ -215,8 +215,14 @@
       toast.className = `toast toast-${type}`;
       const bg = type === "error" ? "#dc2626" : type === "success" ? "#16a34a" : "#2563eb";
       toast.style.cssText = `background: ${bg}; color: #ffffff; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.25); pointer-events: auto; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; transform: translateY(8px); display: flex; align-items: center; gap: 8px;`;
-      const icon = type === "error" ? "⚠️" : type === "success" ? "✓" : "ℹ️";
-      toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+
+      const isOmniroute = options.noEmoji === true || String(message || "").toLowerCase().includes("omniroute");
+      let iconHtml = "";
+      if (!isOmniroute) {
+        const icon = type === "error" ? "⚠️" : type === "success" ? "✓" : "ℹ️";
+        iconHtml = `<span>${icon}</span>`;
+      }
+      toast.innerHTML = `${iconHtml}<span>${escapeHtml(message)}</span>`;
       container.appendChild(toast);
 
       requestAnimationFrame(() => {
@@ -624,6 +630,285 @@
       } catch {}
       return null;
     },
+
+    // Magpie page frames are sandboxed (no network, no popups): ask the plugin
+    // backend through magpie.options and read its answer from omniroute-status.js
+    async omnirouteViaOptions(action, port, timeoutMs) {
+      const opt = globalThis.magpie?.options;
+      if (typeof opt?.get !== "function" || typeof opt?.set !== "function") return null;
+      const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const requestStartTime = Date.now();
+      try {
+        const saved = (await opt.get()) || {};
+        await opt.set({ ...saved, omnirouteRequest: { action, port, nonce } });
+      } catch {
+        return null;
+      }
+      const loadStatus = () => new Promise((resolve) => {
+        const s = document.createElement("script");
+        s.src = `omniroute-status.js?t=${Date.now()}`;
+        s.onload = () => {
+          s.remove();
+          resolve(globalThis.__OMNIROUTE_STATUS__ || null);
+        };
+        s.onerror = () => {
+          s.remove();
+          resolve(null);
+        };
+        document.head.appendChild(s);
+      });
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 500));
+        const st = await loadStatus();
+        if (st && (st.nonce === nonce || (st.action === action && st.checkedAt && st.checkedAt >= requestStartTime))) {
+          return st;
+        }
+      }
+      return null;
+    },
+
+    async getOmnirouteStatus(customPort = null) {
+      const targetPort = customPort || omniroutePort || 20128;
+
+      // 1. In-memory / initial script status cache if fresh (< 8 seconds old)
+      if (globalThis.__OMNIROUTE_STATUS__?.checkedAt && (Date.now() - globalThis.__OMNIROUTE_STATUS__.checkedAt < 8000)) {
+        return globalThis.__OMNIROUTE_STATUS__;
+      }
+
+      // 2. Fast reload of omniroute-status.js via script tag (allowed under CSP script-src 'self')
+      try {
+        const scriptStatus = await new Promise((resolve) => {
+          const s = document.createElement("script");
+          s.src = `omniroute-status.js?t=${Date.now()}`;
+          s.onload = () => {
+            s.remove();
+            resolve(globalThis.__OMNIROUTE_STATUS__ || null);
+          };
+          s.onerror = () => {
+            s.remove();
+            resolve(null);
+          };
+          document.head.appendChild(s);
+        });
+        if (scriptStatus?.checkedAt && (Date.now() - scriptStatus.checkedAt < 12000)) {
+          return scriptStatus;
+        }
+      } catch {}
+
+      // 3. Magpie host IPC bridge
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.getOmnirouteStatus === "function") {
+          const res = await magpieApi.getOmnirouteStatus(customPort);
+          if (res) return res;
+        }
+      } catch {}
+
+      // 4. Local API server endpoint
+      try {
+        const query = customPort ? `?port=${customPort}&t=${Date.now()}` : `?t=${Date.now()}`;
+        const res = await fetch(`${API_BASE}/api/omniroute/status${query}`, { signal: AbortSignal.timeout(2000) });
+        if (res.ok) return await res.json();
+      } catch {}
+
+      // 5. Sandboxed Magpie options watcher bridge
+      const viaOptions = await this.omnirouteViaOptions("status", customPort, 8000);
+      if (viaOptions) return viaOptions;
+
+      // 6. Direct multi-probe fallback to detect if local port is active (bypasses 307 redirect CORS issues)
+      const probeEndpoints = ["/api/health", "/login", "/favicon.ico", "/"];
+
+      for (const host of ["127.0.0.1", "localhost"]) {
+        for (const ep of probeEndpoints) {
+          try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 1000);
+            await fetch(`http://${host}:${targetPort}${ep}`, {
+              mode: "no-cors",
+              cache: "no-store",
+              signal: controller.signal,
+            });
+            clearTimeout(timer);
+            return {
+              installed: true,
+              running: true,
+              port: targetPort,
+              url: `http://localhost:${targetPort}`,
+            };
+          } catch {}
+        }
+      }
+
+      // Secondary fallback: image probe on favicon.ico
+      try {
+        const imgOk = await new Promise((resolve) => {
+          const img = new Image();
+          const timer = setTimeout(() => {
+            img.onload = null;
+            img.onerror = null;
+            img.src = "";
+            resolve(false);
+          }, 1000);
+          img.onload = () => {
+            clearTimeout(timer);
+            resolve(true);
+          };
+          img.onerror = () => {
+            clearTimeout(timer);
+            resolve(false);
+          };
+          img.src = `http://127.0.0.1:${targetPort}/favicon.ico?t=${Date.now()}`;
+        });
+        if (imgOk) {
+          return { installed: true, running: true, port: targetPort, url: `http://localhost:${targetPort}` };
+        }
+      } catch {}
+
+      // If omniroute-status.js has a recorded state, use it rather than assuming dead
+      if (globalThis.__OMNIROUTE_STATUS__) {
+        return globalThis.__OMNIROUTE_STATUS__;
+      }
+
+      return { installed: false, running: false, port: targetPort, url: `http://localhost:${targetPort}` };
+    },
+
+    async startOmniroute(customPort = null) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.startOmniroute === "function") {
+          const res = await magpieApi.startOmniroute(customPort);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/omniroute/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ port: customPort }),
+          signal: AbortSignal.timeout(16000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+      return await this.omnirouteViaOptions("start", customPort, 16000);
+    },
+
+    async openOmnirouteUrl(targetUrl = null, customPort = null) {
+      const port = customPort || omniroutePort || 20128;
+      const url = targetUrl || `http://localhost:${port}`;
+
+      // 1. Direct window.open (synchronous user gesture if possible)
+      try {
+        const win = window.open(url, "_blank", "noopener,noreferrer");
+        if (win) {
+          // Opened successfully in browser window
+        }
+      } catch {}
+
+      // 2. Direct fast call to local API server endpoint (GET query format avoids preflight)
+      try {
+        const getRes = await fetch(`${API_BASE}/api/omniroute/open?url=${encodeURIComponent(url)}&port=${port}`, {
+          method: "GET",
+          signal: AbortSignal.timeout(2000),
+        });
+        if (getRes.ok) return await getRes.json();
+      } catch {}
+
+      // 3. Wails v2 runtime Go shell open (standard in Magpie desktop host)
+      try {
+        if (typeof window.runtime?.BrowserOpenURL === "function") {
+          window.runtime.BrowserOpenURL(url);
+          return { success: true, url, method: "wails-runtime" };
+        }
+        if (typeof window.wails?.runtime?.BrowserOpenURL === "function") {
+          window.wails.runtime.BrowserOpenURL(url);
+          return { success: true, url, method: "wails-runtime" };
+        }
+      } catch {}
+
+      // 4. Magpie host IPC bridge shell open
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.openOmnirouteUrl === "function") {
+          const res = await magpieApi.openOmnirouteUrl(url, port);
+          if (res) return res;
+        }
+        const magpie = globalThis.magpie;
+        if (typeof magpie?.openExternal === "function") {
+          magpie.openExternal(url);
+          return { success: true, url, method: "magpie-openExternal" };
+        }
+        if (typeof magpie?.shell?.openExternal === "function") {
+          magpie.shell.openExternal(url);
+          return { success: true, url, method: "magpie-shell" };
+        }
+        if (typeof magpie?.openUrl === "function") {
+          magpie.openUrl(url);
+          return { success: true, url, method: "magpie-openUrl" };
+        }
+      } catch {}
+
+      // 5. Local API server POST
+      try {
+        const res = await fetch(`${API_BASE}/api/omniroute/open`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, port }),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+
+      // 6. Sandboxed Magpie frame: the plugin backend opens the OS default browser
+      try {
+        const viaOptions = await this.omnirouteViaOptions("open", port, 15000);
+        if (viaOptions && (viaOptions.opened || viaOptions.action === "open")) {
+          return { ...viaOptions, success: true, url };
+        }
+      } catch {}
+
+      return { success: true, url, method: "fallback" };
+    },
+
+    async scanForeignComponents(agent) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.scanForeignComponents === "function") {
+          const res = await magpieApi.scanForeignComponents(agent);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/agent/scan-foreign`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agent }),
+          signal: AbortSignal.timeout(6000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
+
+    async cleanForeignComponents(components) {
+      try {
+        const magpieApi = getMagpieApi();
+        if (typeof magpieApi?.cleanForeignComponents === "function") {
+          const res = await magpieApi.cleanForeignComponents(components);
+          if (res) return res;
+        }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/agent/clean-foreign`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ components }),
+          signal: AbortSignal.timeout(6000),
+        });
+        if (res.ok) return await res.json();
+      } catch {}
+      return null;
+    },
   };
 
   const FALLBACK_AGENT_PROFILES = [
@@ -650,6 +935,8 @@
   let hubConfig = { ...DEFAULTS };
   let discoveredPlugins = [];
   let discoveredCategories = { plugins: [], mcps: [], hooks: [], skills: [], agents: [], rules: [] };
+  let omniroutePort = 20128;
+  let isOmnirouteRunning = false;
   let expandedFiles = new Set();
   let allFilesExpanded = false;
   let activeCategoryTab = "all";
@@ -988,6 +1275,8 @@
   renderAll();
   setupEventListeners();
   renderStartupReconnectStatus(startupSyncResult);
+  setupOmnirouteCapsule();
+  checkOmniroute(false);
 
   // 6. Post-Startup Status Dot Rechecker:
   // Rechecks the workability status dot for each enabled plugin across all connected agents after startup,
@@ -2334,6 +2623,156 @@
     return clean.charAt(0).toUpperCase() + clean.slice(1);
   }
 
+  // --- OmniRoute AI Gateway State & Controller ---
+
+  async function checkOmniroute(manual = false) {
+    const dot = $("omnirouteStatusDot");
+    const portLink = $("omniroutePortLink");
+
+    if (manual && dot) {
+      dot.className = "status-dot dot-blue";
+      dot.title = "Checking OmniRoute status...";
+    }
+
+    try {
+      const res = await apiClient.getOmnirouteStatus(omniroutePort);
+      if (res && res.port) {
+        omniroutePort = res.port;
+        if (portLink) {
+          portLink.textContent = String(res.port);
+          portLink.href = res.url || `http://localhost:${res.port}`;
+          portLink.title = `Open OmniRoute on port ${res.port} in default browser (Default password: CHANGEME)`;
+        }
+      }
+
+      isOmnirouteRunning = Boolean(res?.running);
+
+      if (dot) {
+        if (isOmnirouteRunning) {
+          dot.className = "status-dot dot-green";
+          dot.title = `OmniRoute is enabled & active on port ${omniroutePort} (Default password: CHANGEME) - click to refresh`;
+        } else {
+          dot.className = "status-dot dot-red";
+          dot.title = `OmniRoute is not enabled / stopped on port ${omniroutePort} (click port to start)`;
+        }
+      }
+
+      if (manual) {
+        if (isOmnirouteRunning) {
+          showToast(`OmniRoute: Active on port ${omniroutePort} (Default password: CHANGEME)`, "success", 4000, { noEmoji: true });
+        } else {
+          showToast(`OmniRoute: Not running / stopped on port ${omniroutePort}`, "warning", 4000, { noEmoji: true });
+        }
+      }
+    } catch {
+      if (dot) {
+        dot.className = "status-dot dot-red";
+        dot.title = "OmniRoute status check failed";
+      }
+    }
+  }
+
+  function setupOmnirouteCapsule() {
+    const dot = $("omnirouteStatusDot");
+    const portLink = $("omniroutePortLink");
+    const capsule = $("omnirouteCapsule");
+
+    const handleOpenClick = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const targetUrl = `http://localhost:${omniroutePort}`;
+
+      // Open in default browser immediately
+      showToast(`Opening OmniRoute on port ${omniroutePort} in browser...`, "info", 3000, { noEmoji: true });
+      apiClient.openOmnirouteUrl(targetUrl, omniroutePort);
+
+      // In background, ensure status is audited / daemon started if stopped
+      if (!isOmnirouteRunning) {
+        apiClient.startOmniroute(omniroutePort).then((res) => {
+          if (res?.running) {
+            isOmnirouteRunning = true;
+            if (dot) {
+              dot.className = "status-dot dot-green";
+              dot.title = `OmniRoute is active on port ${omniroutePort} (Default password: CHANGEME)`;
+            }
+          }
+        }).catch(() => {});
+      }
+    };
+
+    if (dot) {
+      dot.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        checkOmniroute(true);
+      });
+    }
+
+    if (portLink) {
+      portLink.addEventListener("click", handleOpenClick);
+    }
+
+    if (capsule) {
+      capsule.addEventListener("click", (e) => {
+        if (e.target === dot) return;
+        handleOpenClick(e);
+      });
+    }
+  }
+
+  // --- Foreign Components Modal Prompt (Invariant 5 Compliant) ---
+  function promptForeignComponentsModal(agentName, components) {
+    return new Promise((resolve) => {
+      const modal = $("foreignComponentsModal");
+      const nameEl = $("foreignAgentName");
+      const listEl = $("foreignComponentsList");
+      const btnDelete = $("btnDeleteForeignComponents");
+      const btnCancel = $("btnCancelForeignModal");
+      const btnClose = $("closeForeignModal");
+
+      if (!modal || !listEl) return resolve("cancel");
+
+      if (nameEl) nameEl.textContent = agentName || "Agent";
+      listEl.innerHTML = (components || [])
+        .map(
+          (c) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid rgba(128,128,128,0.15);">
+          <div>
+            <strong>${escapeHtml(c.name)}</strong>
+            <span style="font-size:10.5px; opacity:0.8; margin-left:4px; padding:1px 5px; border-radius:3px; background:rgba(239,68,68,0.15); color:#ef4444;">${escapeHtml(c.type || "foreign")}</span>
+          </div>
+          <span style="font-size:11px; color:var(--magpie-muted); max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(c.path)}">${escapeHtml(c.path)}</span>
+        </div>`
+        )
+        .join("");
+
+      modal.style.display = "flex";
+
+      const cleanup = () => {
+        modal.style.display = "none";
+        btnDelete?.removeEventListener("click", handleDelete);
+        btnCancel?.removeEventListener("click", handleCancel);
+        btnClose?.removeEventListener("click", handleCancel);
+      };
+
+      const handleDelete = () => {
+        cleanup();
+        resolve("delete");
+      };
+
+      const handleCancel = () => {
+        cleanup();
+        resolve("cancel");
+      };
+
+      btnDelete?.addEventListener("click", handleDelete);
+      btnCancel?.addEventListener("click", handleCancel);
+      btnClose?.addEventListener("click", handleCancel);
+    });
+  }
+
   function setupEventListeners() {
     // Hub Storage Path manual input with debounce
     let hubInputTimer = null;
@@ -2877,6 +3316,30 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
 
         const componentPaths = collectComponentPathsFromInputs();
 
+        const ideCandidate = {
+          name,
+          agentType,
+          exePath,
+          configPath,
+          componentPaths,
+        };
+
+        // Scan connected agent for foreign components not from Components Storage Path
+        let foreignScanRes = null;
+        try {
+          foreignScanRes = await apiClient.scanForeignComponents(ideCandidate);
+          if (foreignScanRes && foreignScanRes.hasForeign && foreignScanRes.foreignComponents?.length > 0) {
+            const userChoice = await promptForeignComponentsModal(name, foreignScanRes.foreignComponents);
+            if (userChoice === "delete") {
+              await apiClient.cleanForeignComponents(foreignScanRes.foreignComponents);
+              showToast(`Deleted ${foreignScanRes.foreignComponents.length} foreign components from ${name}`, "success");
+            }
+          }
+        } catch (err) {
+          console.warn("Foreign components scan error:", err);
+        }
+
+        let targetIdeEntry = null;
         if (editingIdeId) {
           const existing = hubConfig.ides.find((i) => i.id === editingIdeId);
           if (existing) {
@@ -2885,6 +3348,7 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
             existing.exePath = exePath;
             existing.configPath = configPath;
             existing.componentPaths = componentPaths;
+            targetIdeEntry = existing;
           }
         } else {
           const baseId = (agentType !== "custom" ? agentType : name).toLowerCase().replace(/[^a-z0-9]/g, "-");
@@ -2903,9 +3367,42 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
             existing.configPath = configPath;
             existing.componentPaths = componentPaths;
             currentSelection = { type: "ide", id: existing.id };
+            targetIdeEntry = existing;
           } else {
-            hubConfig.ides.push({ id: baseId, name, agentType, exePath, configPath, componentPaths, enabled: true, plugins: {} });
+            const newIde = { id: baseId, name, agentType, exePath, configPath, componentPaths, enabled: true, plugins: {} };
+            hubConfig.ides.push(newIde);
             currentSelection = { type: "ide", id: baseId };
+            targetIdeEntry = newIde;
+          }
+        }
+
+        // Auto-enable components from Components Storage Path in the Components & Plugins list
+        if (targetIdeEntry) {
+          if (!targetIdeEntry.plugins) targetIdeEntry.plugins = {};
+          let autoEnabledCount = 0;
+
+          if (foreignScanRes && foreignScanRes.hubComponents?.length > 0) {
+            for (const hc of foreignScanRes.hubComponents) {
+              if (hc.id && !targetIdeEntry.plugins[hc.id]) {
+                targetIdeEntry.plugins[hc.id] = true;
+                autoEnabledCount++;
+              }
+            }
+          }
+
+          if (discoveredPlugins.length > 0) {
+            for (const p of discoveredPlugins) {
+              if (targetIdeEntry.plugins[p.id]) continue;
+              const pName = p.name || p.id;
+              if (foreignScanRes?.hubComponents?.some((hc) => hc.name === pName || hc.id === p.id)) {
+                targetIdeEntry.plugins[p.id] = true;
+                autoEnabledCount++;
+              }
+            }
+          }
+
+          if (autoEnabledCount > 0) {
+            showToast(`Auto-enabled ${autoEnabledCount} component(s) from Components Storage Path for ${name}`, "success");
           }
         }
 
@@ -3280,7 +3777,8 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
       if (forceRescanNonce) {
         payload.rescanNonce = Date.now();
       }
-      await globalThis.magpie.options.set(payload);
+      const saved = (await globalThis.magpie.options.get?.()) || {};
+      await globalThis.magpie.options.set({ ...saved, ...payload });
     } catch (err) {
       console.warn("Failed to persist options to Magpie:", err);
     }

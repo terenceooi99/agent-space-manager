@@ -5,8 +5,10 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import http from "node:http";
+import net from "node:net";
 import { createHash } from "node:crypto";
-import { execSync, execFileSync, execFile } from "child_process";
+import { spawn, execSync, execFileSync, execFile, exec } from "child_process";
 import {
   AGENT_PROFILES,
   inferAgentType,
@@ -2053,6 +2055,11 @@ export function connectAgent(hubConfig, targetIde, options = {}) {
   // Persist aggregated state so syncIdePlugins diffs against all prior artifacts
   saveOwnershipState(canonicalOwnerKey, canonicalState);
 
+  // Auto-enable components from Components Storage Path if explicitly requested (e.g. on agent add)
+  if (options.autoEnable === true) {
+    autoEnableHubComponents(updatedIde, config, plugins);
+  }
+
   // Pre-sync directory sanitization (Safety Invariant 2)
   const primaryDir = updatedIde.configPath ? expandHomePath(updatedIde.configPath) : "";
   if (primaryDir && fs.existsSync(primaryDir)) {
@@ -3690,4 +3697,345 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
     tooltip,
     reason: "",
   };
+}
+
+// --- OmniRoute AI Gateway Functions ---
+
+export function getOmniroutePort(hubConfig = null) {
+  if (hubConfig?.omniroute?.port && Number.isInteger(Number(hubConfig.omniroute.port))) {
+    return Number(hubConfig.omniroute.port);
+  }
+  try {
+    const envPath = path.join(getHomeDir(), ".omniroute", ".env");
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf8");
+      for (const line of content.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("PORT=") || trimmed.startsWith("OMNIROUTE_PORT=")) {
+          const val = parseInt(trimmed.split("=")[1]?.trim(), 10);
+          if (val && !isNaN(val)) return val;
+        }
+      }
+    }
+  } catch {}
+  return 20128;
+}
+
+export function isOmnirouteInstalled() {
+  try {
+    const dataDir = path.join(getHomeDir(), ".omniroute");
+    if (fs.existsSync(dataDir)) return true;
+    if (process.platform === "win32") {
+      const npmGlobal = path.join(process.env.APPDATA || "", "npm", "omniroute.cmd");
+      if (fs.existsSync(npmGlobal)) return true;
+      const res = execSync("where omniroute 2>nul", { encoding: "utf8" });
+      if (res && res.trim().length > 0) return true;
+    } else {
+      const res = execSync("which omniroute 2>/dev/null", { encoding: "utf8" });
+      if (res && res.trim().length > 0) return true;
+    }
+  } catch {}
+  return false;
+}
+
+export async function checkOmnirouteStatus(customPort = null, hubConfig = null) {
+  const port = customPort || getOmniroutePort(hubConfig);
+  const installed = isOmnirouteInstalled();
+
+  // Fast TCP connectivity check to avoid hanging or slow probing when port is closed
+  const isTcpReachable = (host) =>
+    new Promise((resolve) => {
+      const socket = net.createConnection({ port, host, timeout: 400 });
+      socket.on("connect", () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.on("timeout", () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.on("error", () => {
+        resolve(false);
+      });
+    });
+
+  // Test reachability quickly on 127.0.0.1 and localhost
+  const [tcpIpv4, tcpLocal] = await Promise.all([
+    isTcpReachable("127.0.0.1"),
+    isTcpReachable("localhost"),
+  ]);
+
+  if (!tcpIpv4 && !tcpLocal) {
+    return {
+      installed,
+      running: false,
+      port,
+      url: `http://localhost:${port}`,
+      statusCode: null,
+    };
+  }
+
+  const checkHostAndPath = (host, testPath) =>
+    new Promise((resolve) => {
+      const req = http.get(`http://${host}:${port}${testPath}`, { timeout: 1200 }, (res) => {
+        res.resume();
+        resolve({
+          ok: res.statusCode >= 200 && res.statusCode < 600,
+          statusCode: res.statusCode,
+        });
+      });
+
+      req.on("timeout", () => {
+        req.destroy();
+        resolve({ ok: false, error: "timeout" });
+      });
+
+      req.on("error", (err) => {
+        resolve({ ok: false, error: err.message });
+      });
+    });
+
+  const hostsToProbe = tcpIpv4 ? ["127.0.0.1", "localhost"] : ["localhost", "127.0.0.1"];
+  const pathsToProbe = ["/api/health", "/login", "/", "/v1/models"];
+
+  let probe = { ok: false };
+  for (const host of hostsToProbe) {
+    for (const testPath of pathsToProbe) {
+      probe = await checkHostAndPath(host, testPath);
+      if (probe.ok) break;
+    }
+    if (probe.ok) break;
+  }
+
+  const running = Boolean(probe.ok);
+  return {
+    installed,
+    running,
+    port,
+    url: `http://localhost:${port}`,
+    statusCode: probe.statusCode || null,
+  };
+}
+
+export async function startOmniroute(customPort = null, hubConfig = null) {
+  const port = customPort || getOmniroutePort(hubConfig);
+  const statusBefore = await checkOmnirouteStatus(port, hubConfig);
+  if (statusBefore.running) {
+    return { success: true, running: true, port, url: statusBefore.url, alreadyRunning: true };
+  }
+
+  try {
+    const cmd = process.platform === "win32" ? "cmd.exe" : "sh";
+    const args = process.platform === "win32"
+      ? ["/c", "omniroute", "serve"]
+      : ["-c", "omniroute serve"];
+
+    const child = spawn(cmd, args, {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      env: { ...process.env, PORT: String(port) },
+    });
+    child.unref();
+
+    const startTime = Date.now();
+    while (Date.now() - startTime < 15000) {
+      await new Promise((r) => setTimeout(r, 400));
+      const s = await checkOmnirouteStatus(port, hubConfig);
+      if (s.running) {
+        return { success: true, running: true, port, url: s.url };
+      }
+    }
+  } catch (err) {
+    return { success: false, running: false, port, error: err.message };
+  }
+
+  return { success: false, running: false, port, error: "Omniroute failed to start within timeout" };
+}
+
+export function openUrlInBrowser(url) {
+  if (!url) return false;
+  try {
+    if (process.platform === "win32") {
+      try {
+        const child = spawn("cmd.exe", ["/c", "start", "", url], {
+          detached: true,
+          stdio: "ignore",
+          windowsHide: true,
+        });
+        child.unref();
+        return true;
+      } catch {
+        const ps = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `Start-Process "${url}"`], {
+          detached: true,
+          stdio: "ignore",
+          windowsHide: true,
+        });
+        ps.unref();
+        return true;
+      }
+    } else if (process.platform === "darwin") {
+      spawn("open", [url], { detached: true, stdio: "ignore" }).unref();
+      return true;
+    } else {
+      spawn("xdg-open", [url], { detached: true, stdio: "ignore" }).unref();
+      return true;
+    }
+  } catch {
+    return false;
+  }
+}
+
+// --- Foreign Components Scanning, Cleaning & Auto-Enabling ---
+
+export function scanAgentForeignComponents(agentDef, hubConfig = null, plugins = null) {
+  if (!agentDef) return { hasForeign: false, foreignComponents: [], hubComponents: [] };
+
+  const config = hubConfig || loadHubConfig();
+  const effHub = getEffectiveHubRoot(config);
+  const allPlugins = plugins || scanPlugins(effHub);
+
+  const normIde = normalizeIdeEntry(agentDef);
+  const agentType = normIde.agentType || inferAgentType(normIde);
+  const home = getHomeDir();
+  const appData = getAppDataDir(home);
+  const profile = AGENT_PROFILES[agentType] || AGENT_PROFILES.custom;
+  const paths = profile.resolvePaths ? profile.resolvePaths(home, appData, normIde.name) : { primary: normIde.configPath };
+
+  const checkDirs = new Set();
+  if (normIde.configPath && fs.existsSync(normIde.configPath)) checkDirs.add(normIde.configPath);
+  if (paths.primary && fs.existsSync(paths.primary)) checkDirs.add(paths.primary);
+  if (paths.skills && fs.existsSync(paths.skills)) checkDirs.add(paths.skills);
+  if (paths.rules && fs.existsSync(paths.rules)) checkDirs.add(paths.rules);
+  if (paths.agents && fs.existsSync(paths.agents)) checkDirs.add(paths.agents);
+
+  // Parent directories for plugins, skills, rules, agents subfolders
+  for (const d of Array.from(checkDirs)) {
+    const parent = path.dirname(d);
+    for (const sub of ["plugins", "skills", "rules", "agents"]) {
+      const subPath = path.join(parent, sub);
+      if (fs.existsSync(subPath)) checkDirs.add(subPath);
+    }
+  }
+
+  const foreignComponents = [];
+  const hubComponents = [];
+  const seenPaths = new Set();
+
+  const SYSTEM_DEFAULT_FILENAMES = new Set([
+    ".asm-owned.json",
+    ".git",
+    ".gitignore",
+    ".gitkeep",
+    "desktop.ini",
+    ".ds_store",
+    "thumbs.db",
+    "skills.json",
+    "settings.json",
+    "mcp_config.json",
+    "mcp.json",
+    "config.toml",
+    "opencode.json",
+    "claude_desktop_config.json",
+    "cline_mcp_settings.json",
+  ]);
+
+  for (const dir of checkDirs) {
+    try {
+      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) continue;
+      const entries = fs.readdirSync(dir);
+      for (const ent of entries) {
+        if (SYSTEM_DEFAULT_FILENAMES.has(ent.toLowerCase())) continue;
+        const fullPath = path.join(dir, ent);
+        if (seenPaths.has(fullPath)) continue;
+        seenPaths.add(fullPath);
+
+        let isSym = false;
+        let symTarget = "";
+        try {
+          const lstat = fs.lstatSync(fullPath);
+          isSym = lstat.isSymbolicLink();
+          if (isSym) symTarget = fs.readlinkSync(fullPath);
+        } catch {}
+
+        const insideHub = (isSym && isTargetInsideHub(symTarget, allPlugins, effHub)) ||
+          isTargetInsideHub(fullPath, allPlugins, effHub) ||
+          isAsmOwnedDirectory(fullPath);
+
+        const matchingPlugin = allPlugins.find((p) =>
+          p.id === ent ||
+          p.name === ent ||
+          (Array.isArray(p.skills) && p.skills.includes(ent)) ||
+          (Array.isArray(p.rules) && (p.rules.includes(ent) || p.rules.some((r) => r.name === ent || path.basename(r.file || "", ".md") === ent)))
+        );
+
+        if (insideHub || matchingPlugin) {
+          hubComponents.push({
+            id: matchingPlugin?.id || ent,
+            name: matchingPlugin?.name || ent,
+            path: fullPath,
+            type: isSym ? "link" : "directory",
+          });
+        } else {
+          let isDir = false;
+          try {
+            isDir = fs.statSync(fullPath).isDirectory();
+          } catch {}
+          foreignComponents.push({
+            name: ent,
+            path: fullPath,
+            type: isSym ? "foreign-link" : (isDir ? "directory" : "file"),
+          });
+        }
+      }
+    } catch {}
+  }
+
+  return {
+    hasForeign: foreignComponents.length > 0,
+    foreignComponents,
+    hubComponents,
+  };
+}
+
+export function cleanAgentForeignComponents(componentList = []) {
+  const removed = [];
+  for (const comp of componentList) {
+    const p = typeof comp === "string" ? comp : comp?.path;
+    if (!p || !fs.existsSync(p)) continue;
+    try {
+      const st = fs.lstatSync(p);
+      if (st.isSymbolicLink() || !st.isDirectory()) {
+        fs.unlinkSync(p);
+        removed.push(p);
+      } else if (st.isDirectory()) {
+        fs.rmSync(p, { recursive: true, force: true });
+        removed.push(p);
+      }
+    } catch (err) {
+      console.warn("Failed to remove foreign component:", p, err);
+    }
+  }
+  return { success: true, removedCount: removed.length, removed };
+}
+
+export function autoEnableHubComponents(agentDef, hubConfig = null, plugins = null) {
+  if (!agentDef) return { enabledCount: 0, enabledIds: [] };
+  const config = hubConfig || loadHubConfig();
+  const effHub = getEffectiveHubRoot(config);
+  const allPlugins = plugins || scanPlugins(effHub);
+
+  const scanRes = scanAgentForeignComponents(agentDef, config, allPlugins);
+  const enabledIds = [];
+
+  if (!agentDef.plugins) agentDef.plugins = {};
+
+  for (const hc of scanRes.hubComponents) {
+    if (hc.id && !agentDef.plugins[hc.id]) {
+      agentDef.plugins[hc.id] = true;
+      enabledIds.push(hc.id);
+    }
+  }
+
+  return { enabledCount: enabledIds.length, enabledIds };
 }

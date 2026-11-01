@@ -83,3 +83,6 @@ When extending Agent Space Manager, contributing adapters, or operating autonomo
    - Always verify that pre-existing configuration files have an active `.asm-bak` backup before applying changes.
 4. **Command Token Optimization**:
    - Prefix terminal execution commands with `rtk` (e.g., `rtk npm test`) in accordance with repository guidelines.
+5. **Selective/Relevant Test Execution**:
+   - When verifying changes during user requests, execute ONLY the specific test file(s) relevant to the modified features (e.g., `rtk node --test tests/<relevant-test>.test.mjs`), rather than running the full repository test suite (`npm test`).
+   - Run the full test suite (`npm test`) only when the user explicitly requests a full suite verification or release test audit.

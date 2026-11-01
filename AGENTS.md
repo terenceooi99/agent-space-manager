@@ -96,5 +96,6 @@ When modifying or extending multi-IDE adapters, synchronization pipelines, or UI
 4. **WebView2 Dialog Suppression**: Never use synchronous `window.confirm()` or `window.alert()` in desktop webviews; always employ 2-step inline confirmations or custom modals.
 5. **Clean Unlinking**: Always prune empty directories and dangling junctions cleanly upon component deactivation.
 6. **Watcher Throttling**: Configuration watchers must throttle polling to >= 2000ms with debounce.
+7. **Selective/Relevant Test Execution**: Always run only specific test file(s) corresponding to the changed feature(s) (e.g. `rtk node --test tests/<feature>.test.mjs`) rather than running the entire repository test suite on every edit, reserving full test runs only when explicitly requested.
 
 <!-- RTK_TOKEN_SAVER_END -->

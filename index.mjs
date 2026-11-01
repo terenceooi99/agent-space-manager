@@ -33,6 +33,14 @@ import {
   checkCentralizedUpstreamUpdates,
   loadCentralizedUpstreamUpdateState,
   collectAllComponentsUpstream,
+  getOmniroutePort,
+  isOmnirouteInstalled,
+  checkOmnirouteStatus,
+  startOmniroute,
+  openUrlInBrowser,
+  scanAgentForeignComponents,
+  cleanAgentForeignComponents,
+  autoEnableHubComponents,
 } from "./manager.mjs";
 
 if (!process.env.ASM_NO_SERVER) {
@@ -215,6 +223,36 @@ export const AgentSpaceManagerPlugin = {
     },
     collectUpstreams: async (customHubRoot) => {
       return collectAllComponentsUpstream(customHubRoot);
+    },
+    getOmnirouteStatus: async (customPort) => {
+      const cfg = loadHubConfig();
+      return checkOmnirouteStatus(customPort, cfg);
+    },
+    startOmniroute: async (customPort) => {
+      const cfg = loadHubConfig();
+      return startOmniroute(customPort, cfg);
+    },
+    openOmnirouteUrl: async (url, customPort) => {
+      const cfg = loadHubConfig();
+      const port = customPort || getOmniroutePort(cfg);
+      const targetUrl = url || `http://localhost:${port}`;
+      const ok = openUrlInBrowser(targetUrl);
+      return { success: ok, url: targetUrl };
+    },
+    scanForeignComponents: async (agent) => {
+      const cfg = loadHubConfig();
+      const effHub = getEffectiveHubRoot(cfg);
+      const plugins = scanPlugins(effHub);
+      return scanAgentForeignComponents(agent, cfg, plugins);
+    },
+    cleanForeignComponents: async (components) => {
+      return cleanAgentForeignComponents(components);
+    },
+    autoEnableHubComponents: async (agent) => {
+      const cfg = loadHubConfig();
+      const effHub = getEffectiveHubRoot(cfg);
+      const plugins = scanPlugins(effHub);
+      return autoEnableHubComponents(agent, cfg, plugins);
     },
   },
 };

@@ -166,6 +166,83 @@ h2 {
   flex: 1;
 }
 
+/* OmniRoute Capsule */
+.omniroute-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--magpie-border, rgba(128, 128, 128, 0.25));
+  background: var(--magpie-surface, rgba(128, 128, 128, 0.08));
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.omniroute-capsule:hover {
+  background: var(--magpie-surface-hover, rgba(128, 128, 128, 0.15));
+  border-color: var(--magpie-border-hover, rgba(128, 128, 128, 0.4));
+}
+
+.omniroute-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #000000;
+  cursor: pointer;
+}
+
+.omniroute-port {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--magpie-primary, #60a5fa);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.omniroute-port:hover {
+  opacity: 0.8;
+}
+
+.omniroute-port.loading {
+  opacity: 0.6;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+}
+
+.status-dot:hover {
+  transform: scale(1.35);
+}
+
+.status-dot.dot-green {
+  background-color: #22c55e;
+  box-shadow: 0 0 7px rgba(34, 197, 94, 0.55);
+}
+
+.status-dot.dot-red {
+  background-color: #ef4444;
+  box-shadow: 0 0 7px rgba(239, 68, 68, 0.5);
+}
+
+.status-dot.dot-gray {
+  background-color: #71717a;
+  box-shadow: none;
+}
+
+.status-dot.dot-blue {
+  background-color: #3b82f6;
+  box-shadow: 0 0 7px rgba(59, 130, 246, 0.6);
+}
+
 /* Feature Toggle Header Widget */
 .feature-toggle-widget {
   display: inline-flex;
