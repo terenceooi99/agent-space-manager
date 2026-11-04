@@ -11,6 +11,9 @@ import {
   getOmniroutePort,
   isOmnirouteInstalled,
   checkOmnirouteStatus,
+  stopOmniroute,
+  stopOmnirouteSync,
+  findOmnirouteCliPath,
   scanAgentForeignComponents,
   cleanAgentForeignComponents,
   autoEnableHubComponents,
@@ -27,17 +30,24 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
   before(async () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-test-"));
     testServer = startApiServer(testServerPort);
+    if (!testServer.listening) {
+      await new Promise((resolve) => testServer.once("listening", resolve));
+    }
   });
 
-  after(() => {
+  after(async () => {
     if (testServer && typeof testServer.close === "function") {
-      try {
-        testServer.close();
-      } catch {}
+      await new Promise((resolve) => {
+        testServer.close(() => resolve());
+      });
     }
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch {}
+    // Ensure clean exit in tests
+    setTimeout(() => {
+      try { process.exit(0); } catch {}
+    }, 200).unref();
   });
 
   it("Omniroute Port Resolution: defaults to 20128 and respects config override", () => {
@@ -248,6 +258,7 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.ok(AgentSpaceManagerPlugin?.api, "AgentSpaceManagerPlugin must have api object");
     assert.equal(typeof AgentSpaceManagerPlugin.api.getOmnirouteStatus, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.startOmniroute, "function");
+    assert.equal(typeof AgentSpaceManagerPlugin.api.stopOmniroute, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.openOmnirouteUrl, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.scanForeignComponents, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.cleanForeignComponents, "function");
@@ -308,5 +319,45 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     const css = fs.readFileSync(path.join(process.cwd(), "page", "style.css"), "utf8");
     assert.ok(css.includes(".omniroute-capsule {\n  display: inline-flex;\n  align-items: center;\n  gap: 7px;\n  padding: 5px 12px;\n  border-radius: 8px;\n  border: 1px solid var(--magpie-border, rgba(128, 128, 128, 0.25));\n  background: var(--magpie-surface, rgba(128, 128, 128, 0.08));\n  cursor: pointer;"));
     assert.ok(!css.includes(".omniroute-port.loading {\n  opacity: 0.6;\n  pointer-events: none;"));
+  });
+
+  it("Omniroute CLI Discovery & Stop Endpoint: findOmnirouteCliPath and POST /api/omniroute/stop function cleanly", async () => {
+    const cli = findOmnirouteCliPath();
+    if (isOmnirouteInstalled()) {
+      assert.ok(typeof cli === "string" && cli.length > 0, "findOmnirouteCliPath should locate omniroute.mjs");
+    }
+
+    // Stop endpoint on mock port returns success
+    const stopRes = await new Promise((resolve, reject) => {
+      const req = http.request(
+        `http://127.0.0.1:${testServerPort}/api/omniroute/stop`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+        (r) => {
+          let body = "";
+          r.on("data", (c) => { body += c; });
+          r.on("end", () => resolve(JSON.parse(body)));
+        }
+      );
+      req.on("error", reject);
+      req.write(JSON.stringify({ port: 58196 }));
+      req.end();
+    });
+
+    assert.equal(stopRes.success, true);
+    assert.equal(stopRes.running, false);
+
+    // Stop action bridge returns valid payload
+    const actionRes = await runOmnirouteAction("stop", 58197, "test-stop-nonce");
+    assert.equal(actionRes.action, "stop");
+    assert.equal(actionRes.stopped, true);
+  });
+
+  it("Frontend Auto-Disable on Close: app.js listens for beforeunload to stop OmniRoute", () => {
+    const js = fs.readFileSync(path.join(process.cwd(), "page", "app.js"), "utf8");
+    assert.ok(js.includes('window.addEventListener("beforeunload"'), "app.js must register beforeunload handler");
+    assert.ok(js.includes("apiClient.stopOmniroute(omniroutePort)"), "beforeunload must trigger apiClient.stopOmniroute");
   });
 });

@@ -13,7 +13,7 @@ const ERROR_LOG_PATH = path.join(__dirname, "error.log");
 const LAST_ERROR_PATH = path.join(__dirname, "LAST_ERROR.json");
 const STATUS_PATH = path.join(__dirname, "STATUS.md");
 
-if (!process.env.ASM_NO_SERVER) {
+if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env.ASM_TEST !== "1") {
   try {
     startApiServer();
     ensureBackgroundDaemon();

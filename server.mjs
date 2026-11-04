@@ -37,6 +37,8 @@ import {
   isOmnirouteInstalled,
   checkOmnirouteStatus,
   startOmniroute,
+  stopOmniroute,
+  stopOmnirouteSync,
   openUrlInBrowser,
   scanAgentForeignComponents,
   cleanAgentForeignComponents,
@@ -234,6 +236,10 @@ export async function runOmnirouteAction(action = "status", port = null, nonce =
     const started = await startOmniroute(port, cfg);
     status = await checkOmnirouteStatus(port, cfg);
     if (!status.running && started?.error) status.error = started.error;
+  } else if (action === "stop") {
+    const stopped = await stopOmniroute(port, cfg);
+    status = await checkOmnirouteStatus(port, cfg);
+    status.stopped = stopped.success;
   } else if (action === "open") {
     status = await checkOmnirouteStatus(port, cfg);
     if (!status.running) {
@@ -273,12 +279,13 @@ function handleOmnirouteRequest(req) {
 
 export function startMagpieConfigWatcher() {
   if (magpieWatchInterval || process.env.ASM_NO_SERVER) return;
-  // Requests already in plugins.json before startup are stale: answer with a fresh status only
+  // Initialize lastOmnirouteNonce from plugins.json on startup to avoid replaying any old requests
   try {
     const parsed = JSON.parse(fs.readFileSync(MAGPIE_PLUGINS_JSON, "utf8"));
     const entry = (parsed?.plugins || []).find((p) => String(p?.spec || "").toLowerCase().includes("agent-space-manager"));
     lastOmnirouteNonce = entry?.options?.omnirouteRequest?.nonce || null;
   } catch {}
+  // During startup, only check status health (never auto-enable/start omniroute or open browser)
   runOmnirouteAction("status").catch(() => {});
   syncFromMagpiePluginsJson(true);
   magpieWatchInterval = setInterval(() => {
@@ -370,6 +377,25 @@ export function startApiServer(port = API_PORT) {
             const data = body ? JSON.parse(body) : {};
             const cfg = loadHubConfig();
             const result = await startOmniroute(data.port, cfg);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+        return;
+      }
+
+      if (pathname === "/api/omniroute/stop" && (req.method === "POST" || req.method === "GET")) {
+        let body = "";
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", async () => {
+          try {
+            const data = body ? JSON.parse(body) : {};
+            const portParam = data.port || (query.port ? parseInt(query.port, 10) : null);
+            const cfg = loadHubConfig();
+            const result = await stopOmniroute(portParam, cfg);
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify(result));
           } catch (err) {
@@ -854,6 +880,18 @@ export function startApiServer(port = API_PORT) {
       }
     } catch {}
     startMagpieConfigWatcher();
+
+    if (process.env.NODE_ENV !== "test" && process.env.ASM_TEST !== "1") {
+      let cleanedUp = false;
+      const cleanupOnExit = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        try { stopOmnirouteSync(); } catch {}
+      };
+      process.once("exit", cleanupOnExit);
+      process.once("SIGINT", () => { cleanupOnExit(); process.exit(0); });
+      process.once("SIGTERM", () => { cleanupOnExit(); process.exit(0); });
+    }
   }
   return server;
 }

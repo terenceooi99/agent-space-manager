@@ -37,13 +37,14 @@ import {
   isOmnirouteInstalled,
   checkOmnirouteStatus,
   startOmniroute,
+  stopOmniroute,
   openUrlInBrowser,
   scanAgentForeignComponents,
   cleanAgentForeignComponents,
   autoEnableHubComponents,
 } from "./manager.mjs";
 
-if (!process.env.ASM_NO_SERVER) {
+if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env.ASM_TEST !== "1") {
   try {
     startApiServer();
     ensureBackgroundDaemon();
@@ -231,6 +232,10 @@ export const AgentSpaceManagerPlugin = {
     startOmniroute: async (customPort) => {
       const cfg = loadHubConfig();
       return startOmniroute(customPort, cfg);
+    },
+    stopOmniroute: async (customPort) => {
+      const cfg = loadHubConfig();
+      return stopOmniroute(customPort, cfg);
     },
     openOmnirouteUrl: async (url, customPort) => {
       const cfg = loadHubConfig();
