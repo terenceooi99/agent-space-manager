@@ -638,12 +638,23 @@
       if (typeof opt?.get !== "function" || typeof opt?.set !== "function") return null;
       const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const requestStartTime = Date.now();
-      try {
-        const saved = (await opt.get()) || {};
-        await opt.set({ ...saved, omnirouteRequest: { action, port, nonce } });
-      } catch {
-        return null;
+      const targetPort = port || omniroutePort || 20128;
+
+      // Magpie kernel limits options.set calls ("a page sets its options once a second at most")
+      // Retry up to 3 times with 1100ms spacing to guarantee delivery even under rate limiting
+      let setSucceeded = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const saved = (await opt.get()) || {};
+          await opt.set({ ...saved, omnirouteRequest: { action, port: targetPort, nonce } });
+          setSucceeded = true;
+          break;
+        } catch {
+          if (attempt < 2) await new Promise((r) => setTimeout(r, 1100));
+        }
       }
+      if (!setSucceeded) return null;
+
       const loadStatus = () => new Promise((resolve) => {
         const s = document.createElement("script");
         s.src = `omniroute-status.js?t=${Date.now()}`;
@@ -657,32 +668,56 @@
         };
         document.head.appendChild(s);
       });
+
+      // Secondary fast probe: ping local port favicon to detect listening state immediately
+      const probeDirectPort = () => new Promise((resolve) => {
+        const img = new Image();
+        const timer = setTimeout(() => {
+          img.onload = null;
+          img.onerror = null;
+          resolve(false);
+        }, 1000);
+        img.onload = () => {
+          clearTimeout(timer);
+          resolve(true);
+        };
+        img.onerror = () => {
+          clearTimeout(timer);
+          resolve(false);
+        };
+        img.src = `http://127.0.0.1:${targetPort}/favicon.ico?t=${Date.now()}`;
+      });
+
       const deadline = Date.now() + timeoutMs;
+      let lastProbeTime = 0;
       while (Date.now() < deadline) {
         await new Promise((r) => setTimeout(r, 500));
         const st = await loadStatus();
         if (st && (st.nonce === nonce || (st.action === action && st.checkedAt && st.checkedAt >= requestStartTime))) {
-          // Clear omnirouteRequest immediately after receiving response to prevent re-execution loops on Magpie restart
-          try {
-            const current = (await opt.get()) || {};
-            if (current.omnirouteRequest?.nonce === nonce) {
-              const cleaned = { ...current };
-              delete cleaned.omnirouteRequest;
-              await opt.set(cleaned);
-            }
-          } catch {}
-          return st;
+          // If status is still 'starting', continue waiting for final completion
+          if (st.running || st.state !== "starting" || (Date.now() - requestStartTime > 16000)) {
+            return st;
+          }
+        }
+
+        // Direct port detection as fallback for instant responsiveness
+        if (action === "start" && (Date.now() - lastProbeTime > 1500)) {
+          lastProbeTime = Date.now();
+          const isUp = await probeDirectPort();
+          if (isUp) {
+            return {
+              installed: true,
+              running: true,
+              port: targetPort,
+              url: `http://localhost:${targetPort}`,
+              action: "start",
+              nonce,
+              checkedAt: Date.now(),
+            };
+          }
         }
       }
-      // Timeout cleanup
-      try {
-        const current = (await opt.get()) || {};
-        if (current.omnirouteRequest?.nonce === nonce) {
-          const cleaned = { ...current };
-          delete cleaned.omnirouteRequest;
-          await opt.set(cleaned);
-        }
-      } catch {}
+
       return null;
     },
 
@@ -792,45 +827,98 @@
     },
 
     async startOmniroute(customPort = null) {
+      const targetPort = customPort || omniroutePort || 20128;
+      // 1. Magpie host API
       try {
         const magpieApi = getMagpieApi();
         if (typeof magpieApi?.startOmniroute === "function") {
-          const res = await magpieApi.startOmniroute(customPort);
-          if (res) return res;
+          const res = await magpieApi.startOmniroute(targetPort);
+          if (res?.running) return res;
         }
       } catch {}
+
+      // 2. Direct simple GET to API server (avoids CORS preflight)
+      try {
+        const res = await fetch(`${API_BASE}/api/omniroute/start?port=${targetPort}&t=${Date.now()}`, {
+          method: "GET",
+          signal: AbortSignal.timeout(28000),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.running) return json;
+        }
+      } catch {}
+
+      // 3. Direct POST to API server
       try {
         const res = await fetch(`${API_BASE}/api/omniroute/start`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ port: customPort }),
-          signal: AbortSignal.timeout(16000),
+          body: JSON.stringify({ port: targetPort }),
+          signal: AbortSignal.timeout(28000),
         });
-        if (res.ok) return await res.json();
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.running) return json;
+        }
       } catch {}
-      return await this.omnirouteViaOptions("start", customPort, 16000);
+
+      // 4. Dynamic script trigger (allowed under CSP script-src)
+      try {
+        const scriptRes = await new Promise((resolve) => {
+          const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          const s = document.createElement("script");
+          const timer = setTimeout(() => {
+            s.remove();
+            resolve(null);
+          }, 15000);
+          s.src = `${API_BASE}/action-omniroute.js?action=start&port=${targetPort}&nonce=${nonce}&t=${Date.now()}`;
+          s.onload = () => {
+            clearTimeout(timer);
+            s.remove();
+            resolve(globalThis.__OMNIROUTE_STATUS__ || null);
+          };
+          s.onerror = () => {
+            clearTimeout(timer);
+            s.remove();
+            resolve(null);
+          };
+          document.head.appendChild(s);
+        });
+        if (scriptRes?.running) return scriptRes;
+      } catch {}
+
+      // 5. Sandboxed Magpie options watcher bridge
+      return await this.omnirouteViaOptions("start", targetPort, 28000);
     },
 
     async stopOmniroute(customPort = null) {
-      const port = customPort || omniroutePort || 20128;
+      const targetPort = customPort || omniroutePort || 20128;
       try {
         const magpieApi = getMagpieApi();
         if (typeof magpieApi?.stopOmniroute === "function") {
-          const res = await magpieApi.stopOmniroute(port);
+          const res = await magpieApi.stopOmniroute(targetPort);
           if (res) return res;
         }
+      } catch {}
+      try {
+        const res = await fetch(`${API_BASE}/api/omniroute/stop?port=${targetPort}&t=${Date.now()}`, {
+          method: "GET",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) return await res.json();
       } catch {}
       try {
         const res = await fetch(`${API_BASE}/api/omniroute/stop`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ port }),
-          signal: AbortSignal.timeout(6000),
+          body: JSON.stringify({ port: targetPort }),
+          signal: AbortSignal.timeout(10000),
           keepalive: true,
         });
         if (res.ok) return await res.json();
       } catch {}
-      return await this.omnirouteViaOptions("stop", port, 6000);
+      return await this.omnirouteViaOptions("stop", targetPort, 10000);
     },
 
     async openOmnirouteUrl(targetUrl = null, customPort = null) {
@@ -2712,70 +2800,77 @@
     }
   }
 
+  async function copyTextToClipboard(text) {
+    if (navigator?.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {}
+    }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.left = "-9999px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return Boolean(ok);
+    } catch {
+      return false;
+    }
+  }
+
   function setupOmnirouteCapsule() {
     const dot = $("omnirouteStatusDot");
     const portLink = $("omniroutePortLink");
     const capsule = $("omnirouteCapsule");
 
-    const handleOpenClick = (e) => {
-      const targetUrl = `http://localhost:${omniroutePort}`;
-
-      // Open in default browser immediately
-      showToast(`Opening OmniRoute on port ${omniroutePort} in browser...`, "info", 3000, { noEmoji: true });
-      apiClient.openOmnirouteUrl(targetUrl, omniroutePort);
-
-      // When user clicks port link while stopped/red, enable OmniRoute daemon
-      if (!isOmnirouteRunning) {
-        if (dot) {
-          dot.className = "status-dot dot-blue";
-          dot.title = `Starting OmniRoute on port ${omniroutePort}...`;
-        }
-        apiClient.startOmniroute(omniroutePort).then((res) => {
-          if (res?.running) {
-            isOmnirouteRunning = true;
-            if (dot) {
-              dot.className = "status-dot dot-green";
-              dot.title = `OmniRoute is active on port ${omniroutePort} (Default password: CHANGEME)`;
-            }
-            showToast(`OmniRoute: Started & active on port ${omniroutePort}`, "success", 4000, { noEmoji: true });
-          } else {
-            if (dot) {
-              dot.className = "status-dot dot-red";
-              dot.title = `OmniRoute failed to start on port ${omniroutePort}`;
-            }
-          }
-        }).catch(() => {
-          if (dot) {
-            dot.className = "status-dot dot-red";
-          }
-        });
+    const handleCopyPortLink = async (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
       }
+      const targetUrl = `http://localhost:${omniroutePort}`;
+      await copyTextToClipboard(targetUrl);
+      showToast(`Copied port link to clipboard! Paste into your browser to enter: ${targetUrl}`, "info", 5000, { noEmoji: true });
     };
 
     if (dot) {
       dot.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // If stopped/red, clicking the status dot starts/enables OmniRoute; if running, it refreshes status
+        // If stopped/red, clicking the status dot starts/enables OmniRoute with a progress notification
         if (!isOmnirouteRunning) {
-          showToast(`Starting OmniRoute on port ${omniroutePort}...`, "info", 3000, { noEmoji: true });
+          showToast(`Enabling OmniRoute on port ${omniroutePort}... Please wait.`, "info", 8000, { noEmoji: true });
           dot.className = "status-dot dot-blue";
-          dot.title = `Starting OmniRoute on port ${omniroutePort}...`;
+          dot.title = `Enabling OmniRoute on port ${omniroutePort}...`;
           apiClient.startOmniroute(omniroutePort).then((res) => {
             if (res?.running) {
               isOmnirouteRunning = true;
               dot.className = "status-dot dot-green";
               dot.title = `OmniRoute is active on port ${omniroutePort} (Default password: CHANGEME)`;
-              showToast(`OmniRoute: Started & active on port ${omniroutePort}`, "success", 4000, { noEmoji: true });
+              showToast(`OmniRoute enabled & active on port ${omniroutePort}! (Default password: CHANGEME)`, "success", 4000, { noEmoji: true });
             } else {
+              isOmnirouteRunning = false;
               dot.className = "status-dot dot-red";
-              dot.title = `OmniRoute failed to start on port ${omniroutePort}`;
-              showToast(`OmniRoute: Failed to start on port ${omniroutePort}`, "error", 4000, { noEmoji: true });
+              const errMsg = res?.error ? `: ${res.error}` : "";
+              dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
+              showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
             }
-          }).catch(() => {
+          }).catch((err) => {
+            isOmnirouteRunning = false;
             dot.className = "status-dot dot-red";
+            const errMsg = err?.message ? `: ${err.message}` : "";
+            dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
+            showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
           });
         } else {
+          showToast(`OmniRoute is running on port ${omniroutePort}`, "info", 3000, { noEmoji: true });
           checkOmniroute(true);
         }
       });
@@ -2783,28 +2878,31 @@
 
     if (portLink) {
       portLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleOpenClick(e);
+        handleCopyPortLink(e);
       });
     }
 
     if (capsule) {
       capsule.addEventListener("click", (e) => {
         if (e.target === dot || e.target === portLink) return;
-        e.preventDefault();
-        e.stopPropagation();
-        handleOpenClick(e);
+        handleCopyPortLink(e);
       });
     }
 
-    // Auto-disable OmniRoute when Magpie window/host closes
+    // Auto disable running OmniRoute when user closes Magpie window/page
     window.addEventListener("beforeunload", () => {
-      try {
-        if (isOmnirouteRunning) {
+      if (isOmnirouteRunning) {
+        try {
           apiClient.stopOmniroute(omniroutePort);
-        }
-      } catch {}
+        } catch {}
+      }
+    });
+    window.addEventListener("pagehide", () => {
+      if (isOmnirouteRunning) {
+        try {
+          apiClient.stopOmniroute(omniroutePort);
+        } catch {}
+      }
     });
   }
 

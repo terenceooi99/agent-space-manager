@@ -2,7 +2,7 @@
 // Magpie Plugin Entrypoint for Agent Space Manager & Smart Middleware
 
 import { onRequest, onResponse } from "./smart-tools.middleware.js";
-import { startApiServer, ensureBackgroundDaemon } from "./server.mjs";
+import { startApiServer, ensureBackgroundDaemon, handleOmnirouteRequest, runOmnirouteAction } from "./server.mjs";
 import {
   loadHubConfig,
   saveHubConfig,
@@ -38,6 +38,8 @@ import {
   checkOmnirouteStatus,
   startOmniroute,
   stopOmniroute,
+  stopOmnirouteSync,
+  isMagpieRunning,
   openUrlInBrowser,
   scanAgentForeignComponents,
   cleanAgentForeignComponents,
@@ -49,6 +51,15 @@ if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env
     startApiServer();
     ensureBackgroundDaemon();
   } catch {}
+
+  const onProcessSignal = () => {
+    try {
+      stopOmnirouteSync();
+    } catch {}
+    process.exit(0);
+  };
+  process.on("SIGINT", onProcessSignal);
+  process.on("SIGTERM", onProcessSignal);
 }
 
 export {
@@ -226,16 +237,16 @@ export const AgentSpaceManagerPlugin = {
       return collectAllComponentsUpstream(customHubRoot);
     },
     getOmnirouteStatus: async (customPort) => {
-      const cfg = loadHubConfig();
-      return checkOmnirouteStatus(customPort, cfg);
+      return runOmnirouteAction("status", customPort);
     },
     startOmniroute: async (customPort) => {
-      const cfg = loadHubConfig();
-      return startOmniroute(customPort, cfg);
+      return runOmnirouteAction("start", customPort);
     },
     stopOmniroute: async (customPort) => {
-      const cfg = loadHubConfig();
-      return stopOmniroute(customPort, cfg);
+      return runOmnirouteAction("stop", customPort);
+    },
+    isMagpieRunning: async () => {
+      return isMagpieRunning();
     },
     openOmnirouteUrl: async (url, customPort) => {
       const cfg = loadHubConfig();
@@ -261,5 +272,15 @@ export const AgentSpaceManagerPlugin = {
     },
   },
 };
+
+export async function server(input = {}, rawOptions = {}) {
+  const opts = rawOptions || {};
+  if (opts.omnirouteRequest) {
+    handleOmnirouteRequest(opts.omnirouteRequest);
+  }
+  return {};
+}
+
+AgentSpaceManagerPlugin.server = server;
 
 export default AgentSpaceManagerPlugin;

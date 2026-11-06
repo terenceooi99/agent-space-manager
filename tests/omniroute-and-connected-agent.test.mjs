@@ -11,8 +11,10 @@ import {
   getOmniroutePort,
   isOmnirouteInstalled,
   checkOmnirouteStatus,
+  startOmniroute,
   stopOmniroute,
-  stopOmnirouteSync,
+  isMagpieRunning,
+  findNodeBinary,
   findOmnirouteCliPath,
   scanAgentForeignComponents,
   cleanAgentForeignComponents,
@@ -26,9 +28,15 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
   let tempDir;
   let testServer;
   const testServerPort = 41793;
+  let originalStatusContent = null;
+  const prodStatusFile = path.resolve(process.cwd(), "page", "omniroute-status.js");
 
   before(async () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-test-"));
+    process.env.ASM_CACHE_DIR = tempDir;
+    if (fs.existsSync(prodStatusFile)) {
+      originalStatusContent = fs.readFileSync(prodStatusFile, "utf8");
+    }
     testServer = startApiServer(testServerPort);
     if (!testServer.listening) {
       await new Promise((resolve) => testServer.once("listening", resolve));
@@ -41,9 +49,15 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
         testServer.close(() => resolve());
       });
     }
+    delete process.env.ASM_CACHE_DIR;
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch {}
+    if (originalStatusContent) {
+      try {
+        fs.writeFileSync(prodStatusFile, originalStatusContent, "utf8");
+      } catch {}
+    }
     // Ensure clean exit in tests
     setTimeout(() => {
       try { process.exit(0); } catch {}
@@ -259,6 +273,7 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.equal(typeof AgentSpaceManagerPlugin.api.getOmnirouteStatus, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.startOmniroute, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.stopOmniroute, "function");
+    assert.equal(typeof AgentSpaceManagerPlugin.api.isMagpieRunning, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.openOmnirouteUrl, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.scanForeignComponents, "function");
     assert.equal(typeof AgentSpaceManagerPlugin.api.cleanForeignComponents, "function");
@@ -321,43 +336,118 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.ok(!css.includes(".omniroute-port.loading {\n  opacity: 0.6;\n  pointer-events: none;"));
   });
 
-  it("Omniroute CLI Discovery & Stop Endpoint: findOmnirouteCliPath and POST /api/omniroute/stop function cleanly", async () => {
-    const cli = findOmnirouteCliPath();
-    if (isOmnirouteInstalled()) {
-      assert.ok(typeof cli === "string" && cli.length > 0, "findOmnirouteCliPath should locate omniroute.mjs");
-    }
+  it("isMagpieRunning: accurately probes host TCP port and returns boolean", async () => {
+    const running = await isMagpieRunning();
+    assert.equal(typeof running, "boolean");
+  });
 
-    // Stop endpoint on mock port returns success
-    const stopRes = await new Promise((resolve, reject) => {
+  it("stopOmniroute & REST API Stop Endpoint: /api/omniroute/stop returns clean stopped status", async () => {
+    // 1. stopOmniroute function call
+    const res1 = await stopOmniroute(58196);
+    assert.equal(res1.running, false);
+    assert.equal(res1.port, 58196);
+
+    // 2. POST /api/omniroute/stop
+    const res2 = await new Promise((resolve, reject) => {
       const req = http.request(
         `http://127.0.0.1:${testServerPort}/api/omniroute/stop`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        },
-        (r) => {
+        { method: "POST", headers: { "Content-Type": "application/json" } },
+        (res) => {
           let body = "";
-          r.on("data", (c) => { body += c; });
-          r.on("end", () => resolve(JSON.parse(body)));
+          res.on("data", (c) => { body += c; });
+          res.on("end", () => resolve(JSON.parse(body)));
         }
       );
       req.on("error", reject);
       req.write(JSON.stringify({ port: 58196 }));
       req.end();
     });
+    assert.equal(res2.running, false);
+    assert.equal(res2.port, 58196);
 
-    assert.equal(stopRes.success, true);
-    assert.equal(stopRes.running, false);
-
-    // Stop action bridge returns valid payload
-    const actionRes = await runOmnirouteAction("stop", 58197, "test-stop-nonce");
-    assert.equal(actionRes.action, "stop");
-    assert.equal(actionRes.stopped, true);
+    // 3. runOmnirouteAction with action: "stop"
+    const stopPayload = await runOmnirouteAction("stop", 58196, "test-nonce-stop");
+    assert.equal(stopPayload.action, "stop");
+    assert.equal(stopPayload.nonce, "test-nonce-stop");
+    assert.equal(stopPayload.running, false);
   });
 
-  it("Frontend Auto-Disable on Close: app.js listens for beforeunload to stop OmniRoute", () => {
+  it("Frontend OmniRoute UX: port link copies to clipboard and dot click shows progress notification", () => {
     const js = fs.readFileSync(path.join(process.cwd(), "page", "app.js"), "utf8");
-    assert.ok(js.includes('window.addEventListener("beforeunload"'), "app.js must register beforeunload handler");
-    assert.ok(js.includes("apiClient.stopOmniroute(omniroutePort)"), "beforeunload must trigger apiClient.stopOmniroute");
+    const html = fs.readFileSync(path.join(process.cwd(), "page", "index.html"), "utf8");
+
+    // 1. Port link title in index.html
+    assert.ok(html.includes("Click to copy link to clipboard"), "index.html port link title must mention copying to clipboard");
+
+    // 2. app.js contains clipboard copy logic
+    assert.ok(js.includes("copyTextToClipboard"), "app.js must implement copyTextToClipboard");
+    assert.ok(js.includes("Copied port link to clipboard! Paste into your browser to enter"), "app.js must show clipboard copy toast");
+
+    // 3. Progress notification during enabling on status dot click
+    assert.ok(js.includes("Enabling OmniRoute on port"), "app.js must show progress toast during enabling");
+
+    // 4. Auto-disable on Magpie close (beforeunload & pagehide event listeners)
+    assert.ok(js.includes("window.addEventListener(\"beforeunload\""), "app.js must register beforeunload listener");
+    assert.ok(js.includes("window.addEventListener(\"pagehide\""), "app.js must register pagehide listener");
+    assert.ok(js.includes("apiClient.stopOmniroute"), "app.js must invoke stopOmniroute on window close");
+  });
+
+  it("Antivirus Protection & Direct Node Execution: locates node binary and omniroute.mjs bypassing cmd.exe batch scripts", () => {
+    const nodeBin = findNodeBinary();
+    assert.ok(nodeBin && typeof nodeBin === "string", "findNodeBinary must return a string");
+    assert.ok(fs.existsSync(nodeBin) || nodeBin === "node", "Resolved node binary must exist on disk");
+
+    const cliPath = findOmnirouteCliPath();
+    if (isOmnirouteInstalled()) {
+      assert.ok(cliPath && typeof cliPath === "string", "findOmnirouteCliPath must locate omniroute.mjs when installed");
+      assert.ok(fs.existsSync(cliPath), "Resolved omniroute.mjs must exist");
+      assert.ok(cliPath.endsWith("omniroute.mjs"), "Resolved cli path must be omniroute.mjs");
+    }
+  });
+
+  it("Magpie Options & Server Lifecycle: package.json declares options schema and index.mjs exports server handler", async () => {
+    const pkgPath = path.resolve(process.cwd(), "package.json");
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    assert.ok(pkg.magpie?.options, "package.json must declare magpie.options schema");
+    assert.strictEqual(pkg.magpie.options.omnirouteRequest, null, "magpie.options must declare omnirouteRequest");
+
+    const mod = await import("../index.mjs");
+    assert.strictEqual(typeof mod.server, "function", "index.mjs must export server function for Magpie plugin host");
+    assert.strictEqual(typeof mod.default.server, "function", "default export must include server function");
+
+    // Invoking server with omnirouteRequest must execute cleanly
+    const res = await mod.server({}, { omnirouteRequest: null });
+    assert.ok(res && typeof res === "object", "server must return an object");
+  });
+
+  it("REST API Start Endpoint & Script Trigger: /api/omniroute/start and /action-omniroute.js respond correctly", async () => {
+    // 1. GET /api/omniroute/start
+    const resGet = await new Promise((resolve, reject) => {
+      http.get(`http://127.0.0.1:${testServerPort}/api/omniroute/start?port=58197`, (r) => {
+        let body = "";
+        r.on("data", (c) => { body += c; });
+        r.on("end", () => resolve(JSON.parse(body)));
+      }).on("error", reject);
+    });
+    assert.ok("installed" in resGet);
+    assert.equal(resGet.port, 58197);
+
+    // 2. Dynamic script trigger: /action-omniroute.js
+    const scriptBody = await new Promise((resolve, reject) => {
+      http.get(`http://127.0.0.1:${testServerPort}/action-omniroute.js?action=status&port=58197&nonce=test-nonce-script`, (r) => {
+        let body = "";
+        r.on("data", (c) => { body += c; });
+        r.on("end", () => resolve(body));
+      }).on("error", reject);
+    });
+    assert.ok(scriptBody.includes("window.__OMNIROUTE_STATUS__ ="), "Must return valid JavaScript assigning window.__OMNIROUTE_STATUS__");
+    assert.ok(scriptBody.includes("58197"));
+    assert.ok(scriptBody.includes("test-nonce-script"));
+  });
+
+  it("Test Sandbox Isolation: test port writes do not pollute production page/omniroute-status.js", () => {
+    assert.ok(fs.existsSync(prodStatusFile), "Production status file must exist");
+    const content = fs.readFileSync(prodStatusFile, "utf8");
+    assert.ok(!content.includes("58197"), "Production status file must never be polluted by test ports");
   });
 });

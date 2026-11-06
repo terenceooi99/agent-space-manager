@@ -36,6 +36,15 @@
       "icon": "page/icon.svg"
     },
     "hooks": "./smart-tools.middleware.js",
+    "options": {
+      "smartMiddlewareEnabled": true,
+      "maxTools": 96,
+      "autoFilter": true,
+      "logFailures": true,
+      "toolsRoot": "",
+      "hubConfig": null,
+      "omnirouteRequest": null
+    },
     "optionsExample": {
       "smartMiddlewareEnabled": true,
       "maxTools": 96,

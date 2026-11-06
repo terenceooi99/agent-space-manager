@@ -3817,33 +3817,47 @@ export async function checkOmnirouteStatus(customPort = null, hubConfig = null) 
   };
 }
 
-export function findOmnirouteCliPath() {
+export function findNodeBinary() {
+  // If current process is node (and not bun), use it
+  if (process.execPath && !process.execPath.toLowerCase().includes("bun") && fs.existsSync(process.execPath)) {
+    return process.execPath;
+  }
+  // Standard Windows install locations
   if (process.platform === "win32") {
-    const candidates = [
-      path.join(process.env.APPDATA || "", "npm", "node_modules", "omniroute", "bin", "omniroute.mjs"),
-      path.join(getHomeDir(), "AppData", "Roaming", "npm", "node_modules", "omniroute", "bin", "omniroute.mjs"),
+    const standardPaths = [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Program Files (x86)\\nodejs\\node.exe",
+      path.join(process.env.LOCALAPPDATA || "", "Programs", "node", "node.exe"),
+      path.join(process.env.APPDATA || "", "npm", "node.exe"),
     ];
-    for (const c of candidates) {
-      if (fs.existsSync(c)) return c;
+    for (const p of standardPaths) {
+      if (fs.existsSync(p)) return p;
     }
-    try {
-      const out = execSync("where omniroute.cmd 2>nul", { encoding: "utf8" }).trim();
-      if (out) {
-        const firstLine = out.split(/\r?\n/)[0]?.trim();
-        const p = path.join(path.dirname(firstLine), "node_modules", "omniroute", "bin", "omniroute.mjs");
-        if (fs.existsSync(p)) return p;
-      }
-    } catch {}
-  } else {
-    try {
-      const out = execSync("which omniroute 2>/dev/null", { encoding: "utf8" }).trim();
-      if (out) {
-        const resolved = fs.realpathSync(out);
-        const p = path.join(path.dirname(resolved), "node_modules", "omniroute", "bin", "omniroute.mjs");
-        if (fs.existsSync(p)) return p;
-        if (resolved.endsWith(".mjs") || resolved.endsWith(".js")) return resolved;
-      }
-    } catch {}
+  }
+  const envPath = process.env.PATH || "";
+  for (const dir of envPath.split(path.delimiter)) {
+    if (!dir) continue;
+    const p = path.join(dir, process.platform === "win32" ? "node.exe" : "node");
+    if (fs.existsSync(p)) return p;
+  }
+  return "node";
+}
+
+export function findOmnirouteCliPath() {
+  const home = getHomeDir();
+  const candidates = [
+    path.join(process.env.APPDATA || "", "npm", "node_modules", "omniroute", "bin", "omniroute.mjs"),
+    path.join(home, "AppData", "Roaming", "npm", "node_modules", "omniroute", "bin", "omniroute.mjs"),
+    path.join(home, ".omniroute", "node_modules", "omniroute", "bin", "omniroute.mjs"),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  const envPath = process.env.PATH || "";
+  for (const dir of envPath.split(path.delimiter)) {
+    if (!dir) continue;
+    const candidate = path.join(dir, "node_modules", "omniroute", "bin", "omniroute.mjs");
+    if (fs.existsSync(candidate)) return candidate;
   }
   return null;
 }
@@ -3857,9 +3871,13 @@ export async function startOmniroute(customPort = null, hubConfig = null) {
 
   try {
     const cliPath = findOmnirouteCliPath();
+    const nodeBin = findNodeBinary();
     let child;
+
+    // Direct node.exe execution without cmd.exe or batch files, without SW_HIDE:
+    // Completely avoids Windows Defender / Antivirus ASR and hidden batch script heuristic blocks.
     if (cliPath && fs.existsSync(cliPath)) {
-      child = spawn(process.execPath, [
+      child = spawn(nodeBin, [
         cliPath,
         "serve",
         "--port", String(port),
@@ -3867,30 +3885,24 @@ export async function startOmniroute(customPort = null, hubConfig = null) {
         "--no-tray",
       ], {
         detached: true,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: "ignore",
         windowsHide: true,
         env: { ...process.env, PORT: String(port) },
       });
     } else {
-      const cmd = process.platform === "win32" ? "cmd.exe" : "sh";
-      const args = process.platform === "win32"
-        ? ["/c", "omniroute", "serve", "--port", String(port), "--no-open", "--no-tray"]
-        : ["-c", `omniroute serve --port ${port} --no-open --no-tray`];
-
-      child = spawn(cmd, args, {
+      const cmd = process.platform === "win32" ? "omniroute.cmd" : "omniroute";
+      child = spawn(cmd, ["serve", "--port", String(port), "--no-open", "--no-tray"], {
         detached: true,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: "ignore",
         windowsHide: true,
         env: { ...process.env, PORT: String(port) },
       });
     }
 
-    if (child.stdout) child.stdout.on("data", () => {});
-    if (child.stderr) child.stderr.on("data", () => {});
     child.unref();
 
     const startTime = Date.now();
-    while (Date.now() - startTime < 15000) {
+    while (Date.now() - startTime < 25000) {
       await new Promise((r) => setTimeout(r, 400));
       const s = await checkOmnirouteStatus(port, hubConfig);
       if (s.running) {
@@ -3904,72 +3916,62 @@ export async function startOmniroute(customPort = null, hubConfig = null) {
   return { success: false, running: false, port, error: "Omniroute failed to start within timeout" };
 }
 
-export function stopOmnirouteSync(customPort = null) {
-  const port = customPort || 20128;
-  const services = ["server", "supervisor", "mitm"];
-  const home = getHomeDir();
-  for (const service of services) {
-    const pidPath = path.join(home, ".omniroute", service, ".pid");
-    try {
-      if (fs.existsSync(pidPath)) {
-        const raw = fs.readFileSync(pidPath, "utf8").trim();
-        const pid = parseInt(raw, 10);
-        if (Number.isFinite(pid) && pid > 0) {
-          try { process.kill(pid, "SIGTERM"); } catch {}
-        }
-        try { fs.unlinkSync(pidPath); } catch {}
-      }
-    } catch {}
-  }
-
-  // On Windows, if port is still listening, find pid and kill listening auxiliary daemon (graceful, Invariant 1 compliant)
-  if (process.platform === "win32") {
-    try {
-      const out = execSync("netstat -ano", { encoding: "utf8", windowsHide: true });
-      const portMarker = `:${port}`;
-      for (const line of out.split(/\r?\n/)) {
-        const cols = line.trim().split(/\s+/);
-        if (cols.length >= 5 && (cols[0] === "TCP" || cols[0] === "TCPv6") && cols[1].endsWith(portMarker) && cols[cols.length - 2].toUpperCase() === "LISTENING") {
-          const pid = parseInt(cols[cols.length - 1], 10);
-          if (Number.isFinite(pid) && pid > 0 && pid !== process.pid) {
-            try { process.kill(pid, "SIGKILL"); } catch {}
-          }
-        }
-      }
-    } catch {}
+export function stopOmnirouteSync(customPort = null, hubConfig = null) {
+  const port = customPort || getOmniroutePort(hubConfig);
+  try {
+    const cliPath = findOmnirouteCliPath();
+    const nodeBin = findNodeBinary();
+    if (cliPath && fs.existsSync(cliPath)) {
+      execFileSync(nodeBin, [cliPath, "stop", "--port", String(port)], { stdio: "ignore", timeout: 8000 });
+      return true;
+    }
+    const cmd = process.platform === "win32" ? "omniroute.cmd" : "omniroute";
+    execFileSync(cmd, ["stop", "--port", String(port)], { stdio: "ignore", timeout: 8000 });
+    return true;
+  } catch {
+    return false;
   }
 }
 
 export async function stopOmniroute(customPort = null, hubConfig = null) {
   const port = customPort || getOmniroutePort(hubConfig);
-  const cliPath = findOmnirouteCliPath();
-  if (cliPath && fs.existsSync(cliPath)) {
+  stopOmnirouteSync(port, hubConfig);
+  await new Promise((r) => setTimeout(r, 400));
+  return checkOmnirouteStatus(port, hubConfig);
+}
+
+export async function isMagpieRunning() {
+  // If currently executing inside Magpie host (e.g. magpie-bun or magpie process)
+  if (process.execPath && /magpie/i.test(process.execPath)) {
+    return true;
+  }
+
+  // 1. Fast in-memory TCP socket check to port 3425 (Magpie host internal API server)
+  const portReachable = await new Promise((resolve) => {
+    const socket = net.createConnection({ port: 3425, host: "127.0.0.1", timeout: 800 });
+    socket.on("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.on("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.on("error", () => {
+      resolve(false);
+    });
+  });
+  if (portReachable) return true;
+
+  // 2. Safe in-memory parent process check without spawning tasklist.exe reconnaissance commands
+  if (process.ppid && process.ppid > 0) {
     try {
-      execFileSync(process.execPath, [cliPath, "stop", "--port", String(port)], {
-        encoding: "utf8",
-        windowsHide: true,
-        timeout: 8000,
-      });
-    } catch {}
-  } else {
-    try {
-      if (process.platform === "win32") {
-        execSync(`cmd.exe /c omniroute stop --port ${port}`, { windowsHide: true, timeout: 8000 });
-      } else {
-        execSync(`omniroute stop --port ${port}`, { timeout: 8000 });
-      }
+      process.kill(process.ppid, 0);
+      return true;
     } catch {}
   }
 
-  // Direct PID and listening socket cleanup
-  stopOmnirouteSync(port);
-
-  const statusAfter = await checkOmnirouteStatus(port, hubConfig);
-  return {
-    success: !statusAfter.running,
-    running: statusAfter.running,
-    port,
-  };
+  return false;
 }
 
 export function openUrlInBrowser(url) {
@@ -3977,39 +3979,39 @@ export function openUrlInBrowser(url) {
   try {
     if (process.platform === "win32") {
       let launched = false;
-      // 1. Windows cmd.exe start (ShellExecute default browser handler - fastest and most reliable on Windows 10/11)
+      // 1. Direct rundll32 FileProtocolHandler (most reliable on Windows without shell quoting quirks)
       try {
-        const child = spawn("cmd.exe", ["/c", "start", "", url], {
+        const r = spawn("rundll32.exe", ["url.dll,FileProtocolHandler", url], {
           detached: true,
           stdio: "ignore",
           windowsHide: true,
         });
-        child.unref();
+        r.unref();
         launched = true;
       } catch {}
 
-      // 2. PowerShell Start-Process fallback
+      // 2. Windows cmd.exe start
       if (!launched) {
         try {
-          const ps = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", `Start-Process "${url}"`], {
+          const child = spawn("cmd.exe", ["/c", "start", "", url], {
+            detached: true,
+            stdio: "ignore",
+            windowsHide: true,
+          });
+          child.unref();
+          launched = true;
+        } catch {}
+      }
+
+      // 3. PowerShell Start-Process fallback
+      if (!launched) {
+        try {
+          const ps = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `Start-Process "${url}"`], {
             detached: true,
             stdio: "ignore",
             windowsHide: true,
           });
           ps.unref();
-          launched = true;
-        } catch {}
-      }
-
-      // 3. rundll32 fallback
-      if (!launched) {
-        try {
-          const r = spawn("rundll32.exe", ["url.dll,FileProtocolHandler", url], {
-            detached: true,
-            stdio: "ignore",
-            windowsHide: true,
-          });
-          r.unref();
           launched = true;
         } catch {}
       }

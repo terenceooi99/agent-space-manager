@@ -1,1 +1,1 @@
-window.__OMNIROUTE_STATUS__ = {"installed":true,"running":false,"port":58197,"url":"http://localhost:58197","statusCode":null,"stopped":true,"action":"stop","nonce":"test-stop-nonce","checkedAt":1793808800546};
+window.__OMNIROUTE_STATUS__ = {"installed":true,"running":true,"port":20128,"url":"http://localhost:20128","statusCode":200,"action":"status","nonce":null,"checkedAt":1793981665803};
