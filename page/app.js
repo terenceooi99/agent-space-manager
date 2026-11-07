@@ -818,8 +818,8 @@
         }
       } catch {}
 
-      // If omniroute-status.js has a recorded state, use it rather than assuming dead
-      if (globalThis.__OMNIROUTE_STATUS__) {
+      // If omniroute-status.js has a recently verified state (< 15s), use it
+      if (globalThis.__OMNIROUTE_STATUS__?.checkedAt && (Date.now() - globalThis.__OMNIROUTE_STATUS__.checkedAt < 15000)) {
         return globalThis.__OMNIROUTE_STATUS__;
       }
 
@@ -828,12 +828,12 @@
 
     async startOmniroute(customPort = null) {
       const targetPort = customPort || omniroutePort || 20128;
-      // 1. Magpie host API
+      // 1. Magpie host API (primary direct bridge)
       try {
         const magpieApi = getMagpieApi();
         if (typeof magpieApi?.startOmniroute === "function") {
           const res = await magpieApi.startOmniroute(targetPort);
-          if (res?.running) return res;
+          if (res && (res.running || res.error)) return res;
         }
       } catch {}
 
@@ -845,7 +845,7 @@
         });
         if (res.ok) {
           const json = await res.json();
-          if (json?.running) return json;
+          if (json && (json.running || json.error)) return json;
         }
       } catch {}
 
@@ -859,7 +859,7 @@
         });
         if (res.ok) {
           const json = await res.json();
-          if (json?.running) return json;
+          if (json && (json.running || json.error)) return json;
         }
       } catch {}
 
@@ -1462,14 +1462,21 @@
   setTimeout(() => recheckAllStatusDots(true), 1200);
 
   // Recheck status dots when Magpie window gains focus or visibility (e.g. after Magpie was reopened or un-minimized)
-  window.addEventListener("focus", () => recheckAllStatusDots(true));
+  window.addEventListener("focus", () => {
+    recheckAllStatusDots(true);
+    checkOmniroute(false);
+  });
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) recheckAllStatusDots(true);
+    if (!document.hidden) {
+      recheckAllStatusDots(true);
+      checkOmniroute(false);
+    }
   });
 
   // Background status dot watcher (throttled to >= 2000ms conforming to Safety Invariant 7)
   const statusWatcherInterval = setInterval(() => {
     recheckAllStatusDots(true);
+    checkOmniroute(false);
   }, 5000);
   if (typeof statusWatcherInterval.unref === "function") {
     statusWatcherInterval.unref();
@@ -2752,8 +2759,13 @@
   }
 
   // --- OmniRoute AI Gateway State & Controller ---
+  let isStartingOmniroute = false;
 
   async function checkOmniroute(manual = false) {
+    if (isStartingOmniroute && !manual) {
+      return;
+    }
+
     const dot = $("omnirouteStatusDot");
     const portLink = $("omniroutePortLink");
 
@@ -2775,13 +2787,13 @@
 
       isOmnirouteRunning = Boolean(res?.running);
 
-      if (dot) {
+      if (dot && !isStartingOmniroute) {
         if (isOmnirouteRunning) {
           dot.className = "status-dot dot-green";
           dot.title = `OmniRoute is enabled & active on port ${omniroutePort} (Default password: CHANGEME) - click to refresh`;
         } else {
           dot.className = "status-dot dot-red";
-          dot.title = `OmniRoute is not enabled / stopped on port ${omniroutePort} (click port to start)`;
+          dot.title = `OmniRoute is not enabled / stopped on port ${omniroutePort} (click dot to start)`;
         }
       }
 
@@ -2793,7 +2805,7 @@
         }
       }
     } catch {
-      if (dot) {
+      if (dot && !isStartingOmniroute) {
         dot.className = "status-dot dot-red";
         dot.title = "OmniRoute status check failed";
       }
@@ -2825,6 +2837,59 @@
     }
   }
 
+  async function triggerEnableOmniroute() {
+    const dot = $("omnirouteStatusDot");
+    if (isStartingOmniroute) {
+      showToast(`Enabling OmniRoute on port ${omniroutePort}... Please wait.`, "info", 3000, { noEmoji: true });
+      return;
+    }
+
+    isStartingOmniroute = true;
+    showToast(`Enabling OmniRoute on port ${omniroutePort}... Please wait.`, "info", 12000, { noEmoji: true });
+    if (dot) {
+      dot.className = "status-dot dot-blue";
+      dot.title = `Enabling OmniRoute on port ${omniroutePort}...`;
+    }
+
+    try {
+      const res = await apiClient.startOmniroute(omniroutePort);
+      let running = Boolean(res?.running);
+      if (!running) {
+        await new Promise((r) => setTimeout(r, 600));
+        const recheck = await apiClient.getOmnirouteStatus(omniroutePort);
+        running = Boolean(recheck?.running);
+      }
+      if (running) {
+        isOmnirouteRunning = true;
+        if (dot) {
+          dot.className = "status-dot dot-green";
+          dot.title = `OmniRoute is active on port ${omniroutePort} (Default password: CHANGEME)`;
+        }
+        showToast(`OmniRoute enabled & active on port ${omniroutePort}! (Default password: CHANGEME)`, "success", 4000, { noEmoji: true });
+      } else {
+        isOmnirouteRunning = false;
+        if (dot) {
+          dot.className = "status-dot dot-red";
+          const errMsg = res?.error ? `: ${res.error}` : "";
+          dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
+        }
+        const errMsg = res?.error ? `: ${res.error}` : "";
+        showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
+      }
+    } catch (err) {
+      isOmnirouteRunning = false;
+      if (dot) {
+        dot.className = "status-dot dot-red";
+        const errMsg = err?.message ? `: ${err.message}` : "";
+        dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
+      }
+      const errMsg = err?.message ? `: ${err.message}` : "";
+      showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
+    } finally {
+      isStartingOmniroute = false;
+    }
+  }
+
   function setupOmnirouteCapsule() {
     const dot = $("omnirouteStatusDot");
     const portLink = $("omniroutePortLink");
@@ -2845,30 +2910,9 @@
         e.preventDefault();
         e.stopPropagation();
         // If stopped/red, clicking the status dot starts/enables OmniRoute with a progress notification
-        if (!isOmnirouteRunning) {
-          showToast(`Enabling OmniRoute on port ${omniroutePort}... Please wait.`, "info", 8000, { noEmoji: true });
-          dot.className = "status-dot dot-blue";
-          dot.title = `Enabling OmniRoute on port ${omniroutePort}...`;
-          apiClient.startOmniroute(omniroutePort).then((res) => {
-            if (res?.running) {
-              isOmnirouteRunning = true;
-              dot.className = "status-dot dot-green";
-              dot.title = `OmniRoute is active on port ${omniroutePort} (Default password: CHANGEME)`;
-              showToast(`OmniRoute enabled & active on port ${omniroutePort}! (Default password: CHANGEME)`, "success", 4000, { noEmoji: true });
-            } else {
-              isOmnirouteRunning = false;
-              dot.className = "status-dot dot-red";
-              const errMsg = res?.error ? `: ${res.error}` : "";
-              dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
-              showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
-            }
-          }).catch((err) => {
-            isOmnirouteRunning = false;
-            dot.className = "status-dot dot-red";
-            const errMsg = err?.message ? `: ${err.message}` : "";
-            dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
-            showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
-          });
+        const isCurrentlyStopped = !isOmnirouteRunning || dot.classList.contains("dot-red") || dot.classList.contains("dot-gray");
+        if (isCurrentlyStopped) {
+          triggerEnableOmniroute();
         } else {
           showToast(`OmniRoute is running on port ${omniroutePort}`, "info", 3000, { noEmoji: true });
           checkOmniroute(true);
@@ -2884,7 +2928,15 @@
 
     if (capsule) {
       capsule.addEventListener("click", (e) => {
-        if (e.target === dot || e.target === portLink) return;
+        if (e.target === portLink) return;
+        const isCurrentlyStopped = !isOmnirouteRunning || dot?.classList.contains("dot-red") || dot?.classList.contains("dot-gray");
+        if (isCurrentlyStopped) {
+          e.preventDefault();
+          e.stopPropagation();
+          triggerEnableOmniroute();
+          return;
+        }
+        if (e.target === dot) return;
         handleCopyPortLink(e);
       });
     }
@@ -2893,6 +2945,9 @@
     window.addEventListener("beforeunload", () => {
       if (isOmnirouteRunning) {
         try {
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(`${API_BASE}/api/omniroute/stop?port=${omniroutePort}&t=${Date.now()}`);
+          }
           apiClient.stopOmniroute(omniroutePort);
         } catch {}
       }
@@ -2900,6 +2955,9 @@
     window.addEventListener("pagehide", () => {
       if (isOmnirouteRunning) {
         try {
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(`${API_BASE}/api/omniroute/stop?port=${omniroutePort}&t=${Date.now()}`);
+          }
           apiClient.stopOmniroute(omniroutePort);
         } catch {}
       }

@@ -40,6 +40,8 @@ import {
   stopOmniroute,
   stopOmnirouteSync,
   isMagpieRunning,
+  getLastOmnirouteStartAttempt,
+  resetOmnirouteStartAttemptForTest,
   openUrlInBrowser,
   scanAgentForeignComponents,
   cleanAgentForeignComponents,
@@ -317,6 +319,52 @@ export function handleOmnirouteRequest(req) {
 let magpieWasRunning = false;
 let magpieDeadTicks = 0;
 
+export function resetMagpieLivenessForTest() {
+  magpieWasRunning = false;
+  magpieDeadTicks = 0;
+  lastOmnirouteStartAttempt = 0;
+  if (typeof resetOmnirouteStartAttemptForTest === "function") {
+    resetOmnirouteStartAttemptForTest();
+  }
+}
+
+export async function handleMagpieLivenessCheck(magpieAlive, customPort = null, stopFn = stopOmniroute) {
+  if (magpieAlive) {
+    magpieWasRunning = true;
+    magpieDeadTicks = 0;
+    return { magpieAlive: true, omnirouteStopped: false };
+  }
+
+  // Prevent killing newly enabled OmniRoute during its startup window (30s)
+  const effectiveStartAttempt = Math.max(
+    lastOmnirouteStartAttempt,
+    typeof getLastOmnirouteStartAttempt === "function" ? getLastOmnirouteStartAttempt() : 0
+  );
+  const timeSinceStart = Date.now() - effectiveStartAttempt;
+  if (timeSinceStart < 30000) {
+    return { magpieAlive: false, omnirouteStopped: false, startingUp: true };
+  }
+
+  magpieDeadTicks++;
+  // Require at least 2 consecutive dead checks (approx 4 seconds) to prevent false positives from transient network jitter
+  if (magpieDeadTicks >= 2) {
+    magpieWasRunning = false;
+    const st = await checkOmnirouteStatus(customPort);
+    if (st.running) {
+      const stoppedSt = await stopFn(customPort);
+      writeOmnirouteStatusFile({
+        ...stoppedSt,
+        action: "stop",
+        stoppedReason: "magpie-not-running",
+        checkedAt: Date.now(),
+      });
+      return { magpieAlive: false, omnirouteStopped: true, status: stoppedSt };
+    }
+    return { magpieAlive: false, omnirouteStopped: false, alreadyStopped: true };
+  }
+  return { magpieAlive: false, omnirouteStopped: false, ticks: magpieDeadTicks };
+}
+
 export function startMagpieConfigWatcher() {
   if (magpieWatchInterval || process.env.ASM_NO_SERVER) return;
   // Initialize lastOmnirouteNonce from plugins.json on startup to avoid replaying any old requests
@@ -324,34 +372,44 @@ export function startMagpieConfigWatcher() {
     const parsed = JSON.parse(fs.readFileSync(MAGPIE_PLUGINS_JSON, "utf8"));
     const entry = (parsed?.plugins || []).find((p) => String(p?.spec || "").toLowerCase().includes("agent-space-manager"));
     lastOmnirouteNonce = entry?.options?.omnirouteRequest?.nonce || null;
+    clearOmnirouteRequestFromPluginsJson();
   } catch {}
-  // During startup, only check status health (never auto-enable/start omniroute or open browser)
+  // During startup, check status health
   runOmnirouteAction("status").catch(() => {});
+  // If Magpie is not running on startup, shut down running OmniRoute immediately (after startup grace window)
+  if (process.env.ASM_TEST !== "1" && process.env.NODE_ENV !== "test") {
+    isMagpieRunning().then(async (alive) => {
+      if (!alive) {
+        const effectiveStartAttempt = Math.max(
+          lastOmnirouteStartAttempt,
+          typeof getLastOmnirouteStartAttempt === "function" ? getLastOmnirouteStartAttempt() : 0
+        );
+        if (Date.now() - effectiveStartAttempt < 30000) {
+          return;
+        }
+        magpieDeadTicks = 2;
+        const st = await checkOmnirouteStatus();
+        if (st.running) {
+          const stoppedSt = await stopOmniroute();
+          writeOmnirouteStatusFile({
+            ...stoppedSt,
+            action: "stop",
+            stoppedReason: "magpie-not-running",
+            checkedAt: Date.now(),
+          });
+        }
+      } else {
+        magpieWasRunning = true;
+        magpieDeadTicks = 0;
+      }
+    }).catch(() => {});
+  }
   syncFromMagpiePluginsJson(true);
   magpieWatchInterval = setInterval(() => {
     syncFromMagpiePluginsJson(false);
     if (process.env.ASM_TEST !== "1" && process.env.NODE_ENV !== "test") {
       isMagpieRunning().then((magpieAlive) => {
-        if (magpieAlive) {
-          magpieWasRunning = true;
-          magpieDeadTicks = 0;
-        } else if (magpieWasRunning) {
-          magpieDeadTicks++;
-          // Require at least 5 consecutive dead checks (10+ seconds) and at least 30s after startup attempt
-          // to prevent false positives or CPU spikes from killing newly enabled OmniRoute
-          const timeSinceStart = Date.now() - lastOmnirouteStartAttempt;
-          if (magpieDeadTicks >= 5 && timeSinceStart > 30000) {
-            magpieWasRunning = false;
-            magpieDeadTicks = 0;
-            checkOmnirouteStatus().then((st) => {
-              if (st.running) {
-                stopOmniroute().then((stoppedSt) => {
-                  writeOmnirouteStatusFile({ ...stoppedSt, action: "stop", stoppedReason: "magpie-closed", checkedAt: Date.now() });
-                }).catch(() => {});
-              }
-            }).catch(() => {});
-          }
-        }
+        handleMagpieLivenessCheck(magpieAlive).catch(() => {});
       }).catch(() => {});
     }
   }, 2000);

@@ -216,7 +216,18 @@ h2 {
   border-radius: 50%;
   flex-shrink: 0;
   cursor: pointer;
+  position: relative;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+}
+
+.status-dot::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  cursor: pointer;
 }
 
 .status-dot:hover {

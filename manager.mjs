@@ -3862,58 +3862,103 @@ export function findOmnirouteCliPath() {
   return null;
 }
 
-export async function startOmniroute(customPort = null, hubConfig = null) {
-  const port = customPort || getOmniroutePort(hubConfig);
-  const statusBefore = await checkOmnirouteStatus(port, hubConfig);
-  if (statusBefore.running) {
-    return { success: true, running: true, port, url: statusBefore.url, alreadyRunning: true };
+let lastOmnirouteStartAttemptTimestamp = 0;
+
+export function recordOmnirouteStartAttempt() {
+  lastOmnirouteStartAttemptTimestamp = Date.now();
+}
+
+export function resetOmnirouteStartAttemptForTest() {
+  lastOmnirouteStartAttemptTimestamp = 0;
+}
+
+export function getLastOmnirouteStartAttempt() {
+  return lastOmnirouteStartAttemptTimestamp;
+}
+
+let activeOmnirouteStartPromise = null;
+
+export function startOmniroute(customPort = null, hubConfig = null) {
+  if (activeOmnirouteStartPromise) {
+    return activeOmnirouteStartPromise;
   }
-
-  try {
-    const cliPath = findOmnirouteCliPath();
-    const nodeBin = findNodeBinary();
-    let child;
-
-    // Direct node.exe execution without cmd.exe or batch files, without SW_HIDE:
-    // Completely avoids Windows Defender / Antivirus ASR and hidden batch script heuristic blocks.
-    if (cliPath && fs.existsSync(cliPath)) {
-      child = spawn(nodeBin, [
-        cliPath,
-        "serve",
-        "--port", String(port),
-        "--no-open",
-        "--no-tray",
-      ], {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-        env: { ...process.env, PORT: String(port) },
-      });
-    } else {
-      const cmd = process.platform === "win32" ? "omniroute.cmd" : "omniroute";
-      child = spawn(cmd, ["serve", "--port", String(port), "--no-open", "--no-tray"], {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-        env: { ...process.env, PORT: String(port) },
-      });
+  activeOmnirouteStartPromise = (async () => {
+    recordOmnirouteStartAttempt();
+    const port = customPort || getOmniroutePort(hubConfig);
+    const statusBefore = await checkOmnirouteStatus(port, hubConfig);
+    if (statusBefore.running) {
+      return { success: true, running: true, port, url: statusBefore.url, alreadyRunning: true };
     }
 
-    child.unref();
+    try {
+      const cliPath = findOmnirouteCliPath();
+      const nodeBin = findNodeBinary();
+      const home = getHomeDir();
+      let child;
 
-    const startTime = Date.now();
-    while (Date.now() - startTime < 25000) {
-      await new Promise((r) => setTimeout(r, 400));
-      const s = await checkOmnirouteStatus(port, hubConfig);
-      if (s.running) {
-        return { success: true, running: true, port, url: s.url };
+      // Direct node.exe execution with --no-recovery, without cmd.exe batch wrappers:
+      // - Skips supervisor crash-loop so OmniRoute boots directly and binds port in < 1s
+      // - Eliminates windowsHide/CREATE_NO_WINDOW heuristics that trigger Windows Defender/Antivirus ASR rules
+      if (cliPath && fs.existsSync(cliPath)) {
+        child = spawn(nodeBin, [
+          cliPath,
+          "serve",
+          "--port", String(port),
+          "--no-open",
+          "--no-tray",
+          "--no-recovery",
+        ], {
+          cwd: home,
+          detached: true,
+          stdio: "ignore",
+          env: { ...process.env, PORT: String(port) },
+        });
+      } else {
+        const cmd = process.platform === "win32" ? "omniroute.cmd" : "omniroute";
+        child = spawn(cmd, ["serve", "--port", String(port), "--no-open", "--no-tray", "--no-recovery"], {
+          cwd: home,
+          detached: true,
+          stdio: "ignore",
+          env: { ...process.env, PORT: String(port) },
+        });
       }
-    }
-  } catch (err) {
-    return { success: false, running: false, port, error: err.message };
-  }
 
-  return { success: false, running: false, port, error: "Omniroute failed to start within timeout" };
+      let spawnErr = null;
+      child.on("error", (err) => {
+        spawnErr = err;
+      });
+
+      child.unref();
+
+      const startTime = Date.now();
+      while (Date.now() - startTime < 25000) {
+        if (spawnErr) {
+          return { success: false, running: false, port, error: spawnErr.message };
+        }
+        await new Promise((r) => setTimeout(r, 400));
+        const s = await checkOmnirouteStatus(port, hubConfig);
+        if (s.running) {
+          return { success: true, running: true, port, url: s.url };
+        }
+        if (child.exitCode !== null && child.exitCode !== 0) {
+          // Recheck once in case process spawned a worker daemon before exiting
+          const doubleCheck = await checkOmnirouteStatus(port, hubConfig);
+          if (doubleCheck.running) {
+            return { success: true, running: true, port, url: doubleCheck.url };
+          }
+          return { success: false, running: false, port, error: `Omniroute process exited with code ${child.exitCode}` };
+        }
+      }
+    } catch (err) {
+      return { success: false, running: false, port, error: err.message };
+    }
+
+    return { success: false, running: false, port, error: "Omniroute failed to start within timeout" };
+  })().finally(() => {
+    activeOmnirouteStartPromise = null;
+  });
+
+  return activeOmnirouteStartPromise;
 }
 
 export function stopOmnirouteSync(customPort = null, hubConfig = null) {
@@ -3940,15 +3985,26 @@ export async function stopOmniroute(customPort = null, hubConfig = null) {
   return checkOmnirouteStatus(port, hubConfig);
 }
 
+let lastTasklistProbeTime = 0;
+let lastTasklistProbeResult = false;
+
 export async function isMagpieRunning() {
-  // If currently executing inside Magpie host (e.g. magpie-bun or magpie process)
-  if (process.execPath && /magpie/i.test(process.execPath)) {
-    return true;
+  if (process.env.ASM_MOCK_MAGPIE === "1") return true;
+  if (process.env.ASM_MOCK_MAGPIE === "0") return false;
+
+  // 1. If executing as a child process of Magpie (e.g. magpie-bun spawned by magpie host)
+  if (process.execPath && /magpie/i.test(process.execPath) && process.ppid && process.ppid > 0) {
+    try {
+      process.kill(process.ppid, 0);
+      return true;
+    } catch {
+      // Parent process may have terminated or this daemon outlived it; fall through to port 3425 and process checks
+    }
   }
 
-  // 1. Fast in-memory TCP socket check to port 3425 (Magpie host internal API server)
+  // 2. Fast in-memory TCP socket check to port 3425 (Magpie host internal API server)
   const portReachable = await new Promise((resolve) => {
-    const socket = net.createConnection({ port: 3425, host: "127.0.0.1", timeout: 800 });
+    const socket = net.createConnection({ port: 3425, host: "127.0.0.1", timeout: 600 });
     socket.on("connect", () => {
       socket.destroy();
       resolve(true);
@@ -3963,12 +4019,25 @@ export async function isMagpieRunning() {
   });
   if (portReachable) return true;
 
-  // 2. Safe in-memory parent process check without spawning tasklist.exe reconnaissance commands
-  if (process.ppid && process.ppid > 0) {
-    try {
-      process.kill(process.ppid, 0);
-      return true;
-    } catch {}
+  // 3. Fallback check for running Magpie GUI process (throttled to >= 10s to avoid Antivirus process reconnaissance alarms)
+  const now = Date.now();
+  if (now - lastTasklistProbeTime < 10000) {
+    return lastTasklistProbeResult;
+  }
+  lastTasklistProbeTime = now;
+
+  try {
+    if (process.platform === "win32") {
+      const out = execFileSync("tasklist.exe", ["/NH", "/FI", "IMAGENAME eq magpie*"], { encoding: "utf8", timeout: 2000 });
+      lastTasklistProbeResult = /(magpie-windows|magpie\.exe)/i.test(out);
+      return lastTasklistProbeResult;
+    } else {
+      const out = execSync("pgrep -l -f magpie 2>/dev/null || ps -ef | grep magpie", { encoding: "utf8", timeout: 2000 });
+      lastTasklistProbeResult = /(magpie-linux|magpie-darwin|magpie)/i.test(out) && !/magpie-bun/i.test(out);
+      return lastTasklistProbeResult;
+    }
+  } catch {
+    lastTasklistProbeResult = false;
   }
 
   return false;
@@ -3984,7 +4053,6 @@ export function openUrlInBrowser(url) {
         const r = spawn("rundll32.exe", ["url.dll,FileProtocolHandler", url], {
           detached: true,
           stdio: "ignore",
-          windowsHide: true,
         });
         r.unref();
         launched = true;
@@ -3996,7 +4064,6 @@ export function openUrlInBrowser(url) {
           const child = spawn("cmd.exe", ["/c", "start", "", url], {
             detached: true,
             stdio: "ignore",
-            windowsHide: true,
           });
           child.unref();
           launched = true;
@@ -4009,7 +4076,6 @@ export function openUrlInBrowser(url) {
           const ps = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `Start-Process "${url}"`], {
             detached: true,
             stdio: "ignore",
-            windowsHide: true,
           });
           ps.unref();
           launched = true;
