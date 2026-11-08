@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.2.1] - 2026-11-08
+
+### Changed
+- **Copy Prompt V1.1 (Plugin Removal Cleanup)**: Updated Copy Prompt from `V1.0` to `V1.1` to enforce complete removal cleanup — when a user asks to remove a plugin, all associated components (skills, subagents, rules, MCP servers, and hooks) across Components Storage and connected agent configs are cleanly removed without leaving orphaned files or ghost settings.
+- **Components Storage Upstream & Removal Rule**: Updated [`.agents/rules/components-storage-upstream-rule.md`](file:///d:/Software/Magpie/agent-space-manager/.agents/rules/components-storage-upstream-rule.md) and the `pluginmanagement` skill to include invariant 3 for complete plugin removal cleanup and trigger on component removals.
+- **Dashboard UI Display**: Updated copy prompt button in `index.html` and `app.js` to show `Copy Prompt (V1.1)`.
+
+---
+
 ## [1.2.0] - 2026-10-31
 
 ### Added

@@ -226,7 +226,7 @@ test("Centralized Weekly Monday Upstream Update Suite", async (t) => {
     assert.ok(res.centralUpdates.summary.includes("Weekly upstream check completed"));
   });
 
-  await t.test("Copy Prompt Text: includes upstream links, centralized Monday check, persistent agent rule, and V1.0 version display", () => {
+  await t.test("Copy Prompt Text: includes upstream links, centralized Monday check, persistent agent rule, plugin removal cleanup, and V1.1 version display", () => {
     const appJsPath = path.resolve("page", "app.js");
     const content = fs.readFileSync(appJsPath, "utf8");
 
@@ -235,24 +235,28 @@ test("Centralized Weekly Monday Upstream Update Suite", async (t) => {
     assert.ok(content.includes('"upstream": "https://github.com/<owner>/<repo>"'), "Must specify upstream format in plugin.json");
     assert.ok(content.includes('upstream: "https://github.com/<owner>/<repo>"'), "Must specify upstream in YAML frontmatter");
 
-    // 2. Must include Centralized Weekly Update Checking instruction
+    // 2. Must include Complete Plugin Removal & Cleanup instruction
+    assert.ok(content.includes("Complete Plugin Removal & Cleanup:"), "Must include Complete Plugin Removal & Cleanup section");
+    assert.ok(content.includes("Concurrently remove ALL components related to that plugin"), "Must enforce removal of all related components");
+
+    // 3. Must include Centralized Weekly Update Checking instruction
     assert.ok(content.includes("Centralized Weekly Update Checking"), "Must include Centralized Weekly Update Checking section");
     assert.ok(content.includes("Monday whenever the user starts up Magpie"), "Must specify Monday startup check frequency");
     assert.ok(content.includes("Remove and DO NOT create individual, local, or decentralized update scripts"), "Must prohibit local updaters");
 
-    // 3. Must include Mandatory Persistent Agent Rule instruction triggered on addendum or edit
+    // 4. Must include Mandatory Persistent Agent Rule instruction triggered on addendum, edit, or removal
     assert.ok(content.includes("Mandatory Persistent Agent Rule:"), "Must include Mandatory Persistent Agent Rule section");
-    assert.ok(content.includes("ALWAYS TRIGGERED whenever an addendum, creation, modification, or edit is made to any component in the Components Storage Path"), "Must specify rule trigger on addendum or edit");
+    assert.ok(content.includes("ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path"), "Must specify rule trigger on addendum, edit, or removal");
 
-    // 4. Must declare and display V1.0 version
-    assert.ok(content.includes('STORAGE_PROMPT_VERSION = "V1.0"'), "Must declare STORAGE_PROMPT_VERSION = 'V1.0'");
-    assert.ok(content.includes("Prompt V1.0") || content.includes("${STORAGE_PROMPT_VERSION}"), "Prompt text must include V1.0 version");
-    assert.ok(content.includes("Copy Prompt (${STORAGE_PROMPT_VERSION})"), "Button must show Copy Prompt (V1.0)");
+    // 5. Must declare and display V1.1 version
+    assert.ok(content.includes('STORAGE_PROMPT_VERSION = "V1.1"'), "Must declare STORAGE_PROMPT_VERSION = 'V1.1'");
+    assert.ok(content.includes("Prompt V1.1") || content.includes("${STORAGE_PROMPT_VERSION}"), "Prompt text must include V1.1 version");
+    assert.ok(content.includes("Copy Prompt (${STORAGE_PROMPT_VERSION})"), "Button must show Copy Prompt (V1.1)");
 
-    // 5. Index.html must display V1.0 on button
+    // 6. Index.html must display V1.1 on button
     const htmlPath = path.resolve("page", "index.html");
     const htmlContent = fs.readFileSync(htmlPath, "utf8");
-    assert.ok(htmlContent.includes("Copy Prompt (V1.0)"), "index.html must display Copy Prompt (V1.0) on button");
+    assert.ok(htmlContent.includes("Copy Prompt (V1.1)"), "index.html must display Copy Prompt (V1.1) on button");
   });
 
   await t.test("Persistent Rule File: .agents/rules/components-storage-upstream-rule.md conforms to safety invariants", () => {

@@ -3188,7 +3188,7 @@
     }
 
     // Standardize Storage Structure Prompt Copy Button (with version display)
-    const STORAGE_PROMPT_VERSION = "V1.0";
+    const STORAGE_PROMPT_VERSION = "V1.1";
     const btnCopyPrompt = $("btnCopyStoragePrompt");
     if (btnCopyPrompt) {
       const originalText = `Copy Prompt (${STORAGE_PROMPT_VERSION})`;
@@ -3200,7 +3200,7 @@
 
         const promptText = `[Components Storage Specification & Upstream Rules Prompt ${STORAGE_PROMPT_VERSION}]
 
-Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, and install a persistent agent rule:
+Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, and install a persistent agent rule:
 
 ${targetPathHeader}1. Directory Structure Specification:
 A plugin is a directory containing a required manifest file (plugin.json) and optional subdirectories for customizations:
@@ -3225,19 +3225,31 @@ For EVERY component (plugin, skill, rule, agent, MCP) installed in Components St
   * In rules (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
   * In agents (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
 
-3. Centralized Weekly Update Checking (No Decentralized Scripts):
+3. Complete Plugin Removal & Cleanup:
+When the user asks to remove, delete, or uninstall a plugin:
+- Remove the plugin directory itself (plugins/<plugin-name>/).
+- Concurrently remove ALL components related to that plugin across Components Storage and connected agent configs:
+  * Associated skills in the plugin's skills/ directory and any bridged skill links.
+  * Associated subagents in agents/ and any bridged agent definitions.
+  * Associated rules in rules/ and any bridged rule files or managed rule sections.
+  * Associated MCP server definitions in mcp_config.json and their bridged entries.
+  * Associated hooks in hooks.json and their bridged hook entries.
+- Ensure no orphaned components, dangling junctions/symlinks, or ghost configuration entries associated with the removed plugin remain.
+
+4. Centralized Weekly Update Checking (No Decentralized Scripts):
 - Remove and DO NOT create individual, local, or decentralized update scripts (such as update_checker.mjs or update_check_state.json) inside component folders.
 - Update checking for all components in Components Storage Path is centralized once per week in this Agent Space Manager plugin (running automatically on the first day starting on Monday whenever the user starts up Magpie).
 - Prune any obsolete local component update checking scripts or decentralized state files.
 
-4. Mandatory Persistent Agent Rule:
-Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, or edit is made to any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
-- Rule Trigger: Addendum, creation, or edit of any component in Components Storage Path.
+5. Mandatory Persistent Agent Rule:
+Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
+- Rule Trigger: Addendum, creation, edit, or removal of any component in Components Storage Path.
 - Rule Invariant 1: Ensure strict compliance with the plugin directory structure above.
 - Rule Invariant 2: Always add and preserve the upstream link in the component's manifest or frontmatter.
-- Rule Invariant 3: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
+- Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) must also be cleanly removed with no orphaned leftovers.
+- Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
 
-Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, purge any decentralized update checking scripts, and persist the rule into your agent's rules.`;
+Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, purge any decentralized update checking scripts, ensure removal rules cover all related components, and persist the rule into your agent's rules.`;
 
         let copied = false;
         if (navigator.clipboard && navigator.clipboard.writeText) {

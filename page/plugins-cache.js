@@ -1,13 +1,13 @@
 window.__PLUGINS_CACHE__ = {
   "path": "",
   "count": 23,
-  "updatedAt": 1794128658557,
+  "updatedAt": 1794130310460,
   "plugins": [
     {
       "id": "android-cli-plugin",
       "name": "android-cli-plugin",
-      "version": "1.0.16625370",
-      "description": "Core tools and knowledge required to develop for Android.",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin",
       "upstream": null,
       "hasMcp": false,
@@ -31,8 +31,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 667,
-          "mtime": 1792985668376
+          "size": 1067,
+          "mtime": 1794129232608
         },
         {
           "name": "README.md",
@@ -85,8 +85,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "SKILL.md",
           "relPath": "skills/SKILL.md",
-          "size": 24922,
-          "mtime": 1792985668385
+          "size": 24974,
+          "mtime": 1794130223526
         }
       ]
     },
@@ -94,7 +94,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "antigravity-core",
       "name": "antigravity-core",
       "version": "1.0.0",
-      "description": "Core Antigravity system skills, customizations, and SDK orchestration",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core",
       "upstream": null,
       "hasMcp": false,
@@ -120,8 +120,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 176,
-          "mtime": 1793116019751
+          "size": 265,
+          "mtime": 1794129232611
         },
         {
           "name": "SKILL.md",
@@ -255,9 +255,9 @@ window.__PLUGINS_CACHE__ = {
       "id": "antislop",
       "name": "antislop",
       "version": "1.0.0",
-      "description": "Rules and filters to eliminate generic AI-generated slop in code, copy, and UI",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\antislop",
-      "upstream": "https://github.com/miqdadbadjuber/anti-slop",
+      "upstream": null,
       "hasMcp": false,
       "hasHooks": false,
       "mcps": [],
@@ -276,8 +276,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 239,
-          "mtime": 1793160753483
+          "size": 330,
+          "mtime": 1794129232613
         },
         {
           "name": "SKILL.md",
@@ -339,9 +339,9 @@ window.__PLUGINS_CACHE__ = {
       "id": "awesome-gamedev",
       "name": "awesome-gamedev",
       "version": "1.0.0",
-      "description": "Game-dev skill suite and master dispatcher across 10 engines (Godot, Unity, Unreal, etc.)",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\awesome-gamedev",
-      "upstream": "https://github.com/gamedev-skills/awesome-gamedev-agent-skills",
+      "upstream": null,
       "hasMcp": false,
       "hasHooks": false,
       "mcps": [],
@@ -355,8 +355,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 276,
-          "mtime": 1793160754062
+          "size": 386,
+          "mtime": 1794129232615
         },
         {
           "name": "marketplace.json",
@@ -543,10 +543,10 @@ window.__PLUGINS_CACHE__ = {
     {
       "id": "chrome-devtools-plugin",
       "name": "chrome-devtools-plugin",
-      "version": "1.10.1",
-      "description": "Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin",
-      "upstream": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
+      "upstream": null,
       "hasMcp": false,
       "hasHooks": false,
       "mcps": [],
@@ -565,8 +565,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 662,
-          "mtime": 1792683031690
+          "size": 986,
+          "mtime": 1794129232616
         },
         {
           "name": "a11y-snippets.md",
@@ -646,7 +646,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "clonewebsite",
       "name": "clonewebsite",
       "version": "1.0.0",
-      "description": "Rebuild existing web pages as working local code matching real content, layout, and animations",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\clonewebsite",
       "upstream": null,
       "hasMcp": false,
@@ -662,8 +662,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 197,
-          "mtime": 1793161040811
+          "size": 287,
+          "mtime": 1794129232618
         },
         {
           "name": "framer-and-motion.md",
@@ -689,7 +689,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "codegraph",
       "name": "codegraph",
       "version": "1.0.0",
-      "description": "CodeGraphContext AST semantic property graph and hierarchy query engine",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\codegraph",
       "upstream": null,
       "hasMcp": false,
@@ -706,8 +706,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 172,
-          "mtime": 1793108387523
+          "size": 259,
+          "mtime": 1794129232620
         },
         {
           "name": "SKILL.md",
@@ -727,7 +727,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "data-agent-kit-plugin",
       "name": "data-agent-kit-plugin",
       "version": "1.0.0",
-      "description": "data-agent-kit-plugin plugin",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
       "upstream": null,
       "hasMcp": false,
@@ -741,8 +741,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 123,
-          "mtime": 1793201226840
+          "size": 201,
+          "mtime": 1794129232622
         }
       ]
     },
@@ -750,7 +750,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "ecc-council",
       "name": "ecc-council",
       "version": "1.0.0",
-      "description": "Multi-perspective reasoning council, agent evaluation, snapshot context keeper, and compacting tools",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\ecc-council",
       "upstream": null,
       "hasMcp": false,
@@ -769,8 +769,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 195,
-          "mtime": 1793108375294
+          "size": 269,
+          "mtime": 1794129232624
         },
         {
           "name": "SKILL.md",
@@ -802,7 +802,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "fastcrw",
       "name": "fastcrw",
       "version": "1.0.0",
-      "description": "High-performance fastCRW web crawler and markdown extraction tool with MCP server",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\fastcrw",
       "upstream": null,
       "hasMcp": true,
@@ -844,8 +844,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 171,
-          "mtime": 1793108334785
+          "size": 248,
+          "mtime": 1794129232625
         },
         {
           "name": "server.json",
@@ -864,10 +864,10 @@ window.__PLUGINS_CACHE__ = {
     {
       "id": "flutter",
       "name": "flutter",
-      "version": "1.0.6",
-      "description": "Official plugin for Dart and Flutter that installs Flutter/Dart Skills, Rules, Custom Agents, and Dart MCP server for building natively compiled, visually stunning applications for mobile, web, desktop, and embedded devices from a single codebase",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\flutter",
-      "upstream": "https://github.com/flutter/agent-plugins",
+      "upstream": null,
       "hasMcp": true,
       "hasHooks": false,
       "mcps": [
@@ -923,8 +923,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 1359,
-          "mtime": 1793201400403
+          "size": 1424,
+          "mtime": 1794129232626
         },
         {
           "name": "README.md",
@@ -1141,10 +1141,10 @@ window.__PLUGINS_CACHE__ = {
     {
       "id": "gemini-api",
       "name": "gemini-api",
-      "version": "2.3.0",
-      "description": "Build applications with the Gemini Interactions API and Live API, including text, image, video, and speech generation, managed agents, and real-time multimodal streaming.",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\gemini-api",
-      "upstream": "https://github.com/google-gemini/gemini-skills",
+      "upstream": null,
       "hasMcp": true,
       "hasHooks": false,
       "mcps": [
@@ -1168,8 +1168,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 1043,
-          "mtime": 1792322637678
+          "size": 1453,
+          "mtime": 1794129232627
         },
         {
           "name": "README.md",
@@ -1236,8 +1236,8 @@ window.__PLUGINS_CACHE__ = {
     {
       "id": "google-antigravity-sdk",
       "name": "google-antigravity-sdk",
-      "version": "0.0.9",
-      "description": "Using the Google Antigravity Python SDK to build AI agents",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\google-antigravity-sdk",
       "upstream": null,
       "hasMcp": false,
@@ -1253,8 +1253,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 416,
-          "mtime": 1792322621398
+          "size": 642,
+          "mtime": 1794129232628
         },
         {
           "name": "agent_skills.md",
@@ -1423,10 +1423,10 @@ window.__PLUGINS_CACHE__ = {
     {
       "id": "google-developer-knowledge",
       "name": "google-developer-knowledge",
-      "version": "1.0.1",
-      "description": "Search and retrieve official documentation across Google Cloud, Gemini, Android, Firebase, Flutter, and Web. Requires Google Cloud credentials (ADC) or an API key.",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\google-developer-knowledge",
-      "upstream": "https://developers.google.com/knowledge",
+      "upstream": null,
       "hasMcp": true,
       "hasHooks": false,
       "mcps": [
@@ -1448,8 +1448,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 1144,
-          "mtime": 1792322651643
+          "size": 1632,
+          "mtime": 1794129232630
         },
         {
           "name": "README.md",
@@ -1487,7 +1487,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "jevgraph",
       "name": "jevgraph",
       "version": "1.0.0",
-      "description": "JevGraph non-code document and specification relation extraction engine",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\jevgraph",
       "upstream": null,
       "hasMcp": false,
@@ -1504,8 +1504,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 170,
-          "mtime": 1793108390515
+          "size": 249,
+          "mtime": 1794129232633
         },
         {
           "name": "pyproject.toml",
@@ -1531,7 +1531,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "lightpanda",
       "name": "lightpanda",
       "version": "1.0.0",
-      "description": "Lightpanda & Headless Chrome CDP browser automation and dynamic JavaScript execution engine",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\lightpanda",
       "upstream": null,
       "hasMcp": true,
@@ -1561,8 +1561,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 263,
-          "mtime": 1793201268891
+          "size": 485,
+          "mtime": 1794129232635
         },
         {
           "name": "SKILL.md",
@@ -1575,10 +1575,10 @@ window.__PLUGINS_CACHE__ = {
     {
       "id": "modern-web-guidance-plugin",
       "name": "modern-web-guidance-plugin",
-      "version": "0.0.195",
-      "description": "Keep your coding agent up to date with the latest web best practices.",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\modern-web-guidance-plugin",
-      "upstream": "https://github.com/GoogleChrome/modern-web-guidance",
+      "upstream": null,
       "hasMcp": false,
       "hasHooks": false,
       "mcps": [],
@@ -1605,8 +1605,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 891,
-          "mtime": 1792683032175
+          "size": 1287,
+          "mtime": 1794129232637
         },
         {
           "name": "modern-web-guidance.toml",
@@ -1776,9 +1776,9 @@ window.__PLUGINS_CACHE__ = {
       "id": "ponytail",
       "name": "ponytail",
       "version": "1.0.0",
-      "description": "Minimalist YAGNI development philosophy: reach for standard library and minimal diffs",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\ponytail",
-      "upstream": "https://github.com/DietrichGebert/ponytail",
+      "upstream": null,
       "hasMcp": false,
       "hasHooks": false,
       "mcps": [],
@@ -1797,8 +1797,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 245,
-          "mtime": 1793160753651
+          "size": 335,
+          "mtime": 1794129232638
         },
         {
           "name": "SKILL.md",
@@ -1842,7 +1842,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "rea",
       "name": "rea",
       "version": "1.0.0",
-      "description": "Reverse Engineer Anything (REA) native, managed, firmware, and web binary analysis tool",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\rea",
       "upstream": null,
       "hasMcp": true,
@@ -1866,8 +1866,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 176,
-          "mtime": 1793108399383
+          "size": 253,
+          "mtime": 1794129232640
         },
         {
           "name": "android-applications.md",
@@ -1917,7 +1917,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "rtk",
       "name": "rtk",
       "version": "1.0.0",
-      "description": "Rust Token Killer (RTK) and token reduction utilities for AI coding agents",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\rtk",
       "upstream": null,
       "hasMcp": false,
@@ -1947,8 +1947,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 159,
-          "mtime": 1793108366796
+          "size": 231,
+          "mtime": 1794129232642
         },
         {
           "name": "SKILL.md",
@@ -2045,8 +2045,8 @@ window.__PLUGINS_CACHE__ = {
     {
       "id": "science",
       "name": "science",
-      "version": "1.3.1",
-      "description": "Curated collection of agent skills for science tasks.",
+      "version": "1.0.0",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\science",
       "upstream": null,
       "hasMcp": true,
@@ -2124,8 +2124,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 230,
-          "mtime": 1792766514394
+          "size": 319,
+          "mtime": 1794129232644
         },
         {
           "name": "README.md",
@@ -3393,7 +3393,7 @@ window.__PLUGINS_CACHE__ = {
       "id": "stagehand",
       "name": "stagehand",
       "version": "1.0.0",
-      "description": "Stagehand browser automation and web extraction MCP server",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\stagehand",
       "upstream": null,
       "hasMcp": true,
@@ -3448,8 +3448,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 152,
-          "mtime": 1793108347162
+          "size": 235,
+          "mtime": 1794129232646
         },
         {
           "name": "SKILL.md",
@@ -3469,9 +3469,9 @@ window.__PLUGINS_CACHE__ = {
       "id": "ui-skills",
       "name": "ui-skills",
       "version": "1.0.0",
-      "description": "Design systems, accessibility compliance, Base UI components, and design token management",
+      "description": "Invalid plugin.json",
       "path": "D:\\Software\\AI Agent Space\\plugins\\ui-skills",
-      "upstream": "https://base-ui.com/react/components",
+      "upstream": null,
       "hasMcp": false,
       "hasHooks": false,
       "mcps": [],
@@ -3492,8 +3492,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "plugin.json",
           "relPath": "plugin.json",
-          "size": 247,
-          "mtime": 1793160753815
+          "size": 331,
+          "mtime": 1794129232648
         },
         {
           "name": "SKILL.md",
@@ -3617,9 +3617,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "android-cli-plugin",
         "name": "android-cli-plugin",
-        "version": "1.0.16625370",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin",
-        "description": "Core tools and knowledge required to develop for Android.",
+        "description": "Invalid plugin.json",
         "skillsCount": 3,
         "filesCount": 11,
         "hasMcp": false,
@@ -3630,7 +3630,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "antigravity-core",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\antigravity-core",
-        "description": "Core Antigravity system skills, customizations, and SDK orchestration",
+        "description": "Invalid plugin.json",
         "skillsCount": 11,
         "filesCount": 22,
         "hasMcp": false,
@@ -3641,7 +3641,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "antislop",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\antislop",
-        "description": "Rules and filters to eliminate generic AI-generated slop in code, copy, and UI",
+        "description": "Invalid plugin.json",
         "skillsCount": 6,
         "filesCount": 10,
         "hasMcp": false,
@@ -3652,7 +3652,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "awesome-gamedev",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\awesome-gamedev",
-        "description": "Game-dev skill suite and master dispatcher across 10 engines (Godot, Unity, Unreal, etc.)",
+        "description": "Invalid plugin.json",
         "skillsCount": 1,
         "filesCount": 31,
         "hasMcp": false,
@@ -3661,9 +3661,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "chrome-devtools-plugin",
         "name": "chrome-devtools-plugin",
-        "version": "1.10.1",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin",
-        "description": "Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer",
+        "description": "Invalid plugin.json",
         "skillsCount": 6,
         "filesCount": 13,
         "hasMcp": false,
@@ -3674,7 +3674,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "clonewebsite",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\clonewebsite",
-        "description": "Rebuild existing web pages as working local code matching real content, layout, and animations",
+        "description": "Invalid plugin.json",
         "skillsCount": 1,
         "filesCount": 4,
         "hasMcp": false,
@@ -3685,7 +3685,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "codegraph",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\codegraph",
-        "description": "CodeGraphContext AST semantic property graph and hierarchy query engine",
+        "description": "Invalid plugin.json",
         "skillsCount": 2,
         "filesCount": 3,
         "hasMcp": false,
@@ -3696,7 +3696,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "data-agent-kit-plugin",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
-        "description": "data-agent-kit-plugin plugin",
+        "description": "Invalid plugin.json",
         "skillsCount": 0,
         "filesCount": 1,
         "hasMcp": false,
@@ -3707,7 +3707,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "ecc-council",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\ecc-council",
-        "description": "Multi-perspective reasoning council, agent evaluation, snapshot context keeper, and compacting tools",
+        "description": "Invalid plugin.json",
         "skillsCount": 4,
         "filesCount": 5,
         "hasMcp": false,
@@ -3718,7 +3718,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "fastcrw",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\fastcrw",
-        "description": "High-performance fastCRW web crawler and markdown extraction tool with MCP server",
+        "description": "Invalid plugin.json",
         "skillsCount": 1,
         "filesCount": 7,
         "hasMcp": true,
@@ -3727,9 +3727,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "flutter",
         "name": "flutter",
-        "version": "1.0.6",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\flutter",
-        "description": "Official plugin for Dart and Flutter that installs Flutter/Dart Skills, Rules, Custom Agents, and Dart MCP server for building natively compiled, visually stunning applications for mobile, web, desktop, and embedded devices from a single codebase",
+        "description": "Invalid plugin.json",
         "skillsCount": 25,
         "filesCount": 38,
         "hasMcp": true,
@@ -3738,9 +3738,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "gemini-api",
         "name": "gemini-api",
-        "version": "2.3.0",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\gemini-api",
-        "description": "Build applications with the Gemini Interactions API and Live API, including text, image, video, and speech generation, managed agents, and real-time multimodal streaming.",
+        "description": "Invalid plugin.json",
         "skillsCount": 3,
         "filesCount": 12,
         "hasMcp": true,
@@ -3749,9 +3749,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "google-antigravity-sdk",
         "name": "google-antigravity-sdk",
-        "version": "0.0.9",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\google-antigravity-sdk",
-        "description": "Using the Google Antigravity Python SDK to build AI agents",
+        "description": "Invalid plugin.json",
         "skillsCount": 1,
         "filesCount": 28,
         "hasMcp": false,
@@ -3760,9 +3760,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "google-developer-knowledge",
         "name": "google-developer-knowledge",
-        "version": "1.0.1",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\google-developer-knowledge",
-        "description": "Search and retrieve official documentation across Google Cloud, Gemini, Android, Firebase, Flutter, and Web. Requires Google Cloud credentials (ADC) or an API key.",
+        "description": "Invalid plugin.json",
         "skillsCount": 1,
         "filesCount": 7,
         "hasMcp": true,
@@ -3773,7 +3773,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "jevgraph",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\jevgraph",
-        "description": "JevGraph non-code document and specification relation extraction engine",
+        "description": "Invalid plugin.json",
         "skillsCount": 2,
         "filesCount": 4,
         "hasMcp": false,
@@ -3784,7 +3784,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "lightpanda",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\lightpanda",
-        "description": "Lightpanda & Headless Chrome CDP browser automation and dynamic JavaScript execution engine",
+        "description": "Invalid plugin.json",
         "skillsCount": 1,
         "filesCount": 4,
         "hasMcp": true,
@@ -3793,9 +3793,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "modern-web-guidance-plugin",
         "name": "modern-web-guidance-plugin",
-        "version": "0.0.195",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\modern-web-guidance-plugin",
-        "description": "Keep your coding agent up to date with the latest web best practices.",
+        "description": "Invalid plugin.json",
         "skillsCount": 2,
         "filesCount": 30,
         "hasMcp": false,
@@ -3806,7 +3806,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "ponytail",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\ponytail",
-        "description": "Minimalist YAGNI development philosophy: reach for standard library and minimal diffs",
+        "description": "Invalid plugin.json",
         "skillsCount": 6,
         "filesCount": 7,
         "hasMcp": false,
@@ -3817,7 +3817,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "rea",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\rea",
-        "description": "Reverse Engineer Anything (REA) native, managed, firmware, and web binary analysis tool",
+        "description": "Invalid plugin.json",
         "skillsCount": 1,
         "filesCount": 9,
         "hasMcp": true,
@@ -3828,7 +3828,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "rtk",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\rtk",
-        "description": "Rust Token Killer (RTK) and token reduction utilities for AI coding agents",
+        "description": "Invalid plugin.json",
         "skillsCount": 15,
         "filesCount": 16,
         "hasMcp": false,
@@ -3837,9 +3837,9 @@ window.__PLUGINS_CACHE__ = {
       {
         "id": "science",
         "name": "science",
-        "version": "1.3.1",
+        "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\science",
-        "description": "Curated collection of agent skills for science tasks.",
+        "description": "Invalid plugin.json",
         "skillsCount": 41,
         "filesCount": 214,
         "hasMcp": true,
@@ -3850,7 +3850,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "stagehand",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\stagehand",
-        "description": "Stagehand browser automation and web extraction MCP server",
+        "description": "Invalid plugin.json",
         "skillsCount": 2,
         "filesCount": 9,
         "hasMcp": true,
@@ -3861,7 +3861,7 @@ window.__PLUGINS_CACHE__ = {
         "name": "ui-skills",
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\ui-skills",
-        "description": "Design systems, accessibility compliance, Base UI components, and design token management",
+        "description": "Invalid plugin.json",
         "skillsCount": 8,
         "filesCount": 20,
         "hasMcp": false,
