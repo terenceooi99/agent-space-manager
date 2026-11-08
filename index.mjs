@@ -59,11 +59,6 @@ if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env
   };
   process.on("SIGINT", onProcessSignal);
   process.on("SIGTERM", onProcessSignal);
-  process.on("exit", () => {
-    try {
-      stopOmnirouteSync();
-    } catch {}
-  });
 
   if (process.stdin && typeof process.stdin.on === "function" && process.stdin.readable) {
     process.stdin.on("close", async () => {

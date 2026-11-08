@@ -207,6 +207,8 @@ let lastOmnirouteNonce = null;
 let omnirouteBusy = false;
 let pendingOmnirouteRequest = null;
 
+let lastWrittenOmnirouteStatusSignature = "";
+
 export function writeOmnirouteStatusFile(payload) {
   try {
     const targetDirs = new Set();
@@ -220,13 +222,18 @@ export function writeOmnirouteStatusFile(payload) {
       targetDirs.add(path.join(__dirname, "page"));
     }
 
+    // Zero-work cache guard: skip disk writes if operational status is unchanged
+    const sig = `${payload?.installed}:${payload?.running}:${payload?.port}:${payload?.statusCode}:${payload?.action}:${payload?.state}`;
+    if (sig === lastWrittenOmnirouteStatusSignature && process.env.ASM_TEST !== "1") {
+      return;
+    }
+    lastWrittenOmnirouteStatusSignature = sig;
+
     const content = `window.__OMNIROUTE_STATUS__ = ${JSON.stringify(payload)};\n`;
     for (const dir of targetDirs) {
       try {
         const file = path.join(dir, "omniroute-status.js");
-        const tmp = `${file}.tmp`;
-        fs.writeFileSync(tmp, content, "utf8");
-        fs.renameSync(tmp, file);
+        fs.writeFileSync(file, content, "utf8");
       } catch {}
     }
   } catch {}
@@ -258,17 +265,9 @@ export async function runOmnirouteAction(action = "status", port = null, nonce =
   let status;
   if (action === "start") {
     lastOmnirouteStartAttempt = Date.now();
-    // Immediate progress write to inform polling clients that startup is underway
-    writeOmnirouteStatusFile({
-      installed: true,
-      running: false,
-      port: effectivePort,
-      url: `http://localhost:${effectivePort}`,
-      action: "start",
-      nonce,
-      state: "starting",
-      checkedAt: Date.now(),
-    });
+    if (typeof recordOmnirouteStartAttempt === "function") {
+      recordOmnirouteStartAttempt();
+    }
     const started = await startOmniroute(port, cfg);
     status = await checkOmnirouteStatus(port, cfg);
     if (!status.running && started?.error) status.error = started.error;

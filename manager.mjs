@@ -3899,7 +3899,38 @@ export function startOmniroute(customPort = null, hubConfig = null) {
       // Direct node.exe execution with --no-recovery, without cmd.exe batch wrappers:
       // - Skips supervisor crash-loop so OmniRoute boots directly and binds port in < 1s
       // - Eliminates windowsHide/CREATE_NO_WINDOW heuristics that trigger Windows Defender/Antivirus ASR rules
-      if (cliPath && fs.existsSync(cliPath)) {
+      // On Windows: Launch via WMI Win32_Process.Create so the process is created
+      // under Windows WMI service (WmiPrvSE.exe), completely detached from caller's
+      // Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) and terminal session boundaries.
+      // Falls back to direct detached node.exe spawn on non-Windows or if WMI fails.
+      if (process.platform === "win32" && cliPath && fs.existsSync(cliPath)) {
+        let launchedViaWmi = false;
+        try {
+          const fullCmd = `\\"${nodeBin}\\" \\"${cliPath}\\" serve --port ${port} --no-open --no-tray --no-recovery`;
+          const escaped = fullCmd.replace(/'/g, "''");
+          const psScript = `Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine = '${escaped}'}`;
+          const out = execSync(`powershell.exe -NoProfile -NonInteractive -Command "${psScript}"`, { encoding: "utf8", timeout: 8000 });
+          if (/0\s*$/m.test(out.trim()) || /ReturnValue\s*:\s*0/i.test(out)) {
+            launchedViaWmi = true;
+          }
+        } catch {}
+
+        if (!launchedViaWmi) {
+          child = spawn(nodeBin, [
+            cliPath,
+            "serve",
+            "--port", String(port),
+            "--no-open",
+            "--no-tray",
+            "--no-recovery",
+          ], {
+            cwd: home,
+            detached: true,
+            stdio: "ignore",
+            env: { ...process.env, PORT: String(port) },
+          });
+        }
+      } else if (cliPath && fs.existsSync(cliPath)) {
         child = spawn(nodeBin, [
           cliPath,
           "serve",
@@ -3924,11 +3955,12 @@ export function startOmniroute(customPort = null, hubConfig = null) {
       }
 
       let spawnErr = null;
-      child.on("error", (err) => {
-        spawnErr = err;
-      });
-
-      child.unref();
+      if (child) {
+        child.on("error", (err) => {
+          spawnErr = err;
+        });
+        child.unref();
+      }
 
       const startTime = Date.now();
       while (Date.now() - startTime < 25000) {
@@ -3940,7 +3972,7 @@ export function startOmniroute(customPort = null, hubConfig = null) {
         if (s.running) {
           return { success: true, running: true, port, url: s.url };
         }
-        if (child.exitCode !== null && child.exitCode !== 0) {
+        if (child && child.exitCode !== null && child.exitCode !== 0) {
           // Recheck once in case process spawned a worker daemon before exiting
           const doubleCheck = await checkOmnirouteStatus(port, hubConfig);
           if (doubleCheck.running) {

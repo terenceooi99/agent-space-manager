@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { loadHubConfig } from "./manager.mjs";
-import { ensureBackgroundDaemon, startApiServer } from "./server.mjs";
+import { startApiServer } from "./server.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ERROR_LOG_PATH = path.join(__dirname, "error.log");
@@ -16,7 +16,6 @@ const STATUS_PATH = path.join(__dirname, "STATUS.md");
 if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env.ASM_TEST !== "1") {
   try {
     startApiServer();
-    ensureBackgroundDaemon();
   } catch {}
 }
 

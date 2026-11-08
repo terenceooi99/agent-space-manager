@@ -2855,9 +2855,11 @@
       const res = await apiClient.startOmniroute(omniroutePort);
       let running = Boolean(res?.running);
       if (!running) {
-        await new Promise((r) => setTimeout(r, 600));
-        const recheck = await apiClient.getOmnirouteStatus(omniroutePort);
-        running = Boolean(recheck?.running);
+        for (let attempt = 0; attempt < 3 && !running; attempt++) {
+          await new Promise((r) => setTimeout(r, 600));
+          const recheck = await apiClient.getOmnirouteStatus(omniroutePort);
+          running = Boolean(recheck?.running);
+        }
       }
       if (running) {
         isOmnirouteRunning = true;
@@ -2940,28 +2942,6 @@
         handleCopyPortLink(e);
       });
     }
-
-    // Auto disable running OmniRoute when user closes Magpie window/page
-    window.addEventListener("beforeunload", () => {
-      if (isOmnirouteRunning) {
-        try {
-          if (navigator.sendBeacon) {
-            navigator.sendBeacon(`${API_BASE}/api/omniroute/stop?port=${omniroutePort}&t=${Date.now()}`);
-          }
-          apiClient.stopOmniroute(omniroutePort);
-        } catch {}
-      }
-    });
-    window.addEventListener("pagehide", () => {
-      if (isOmnirouteRunning) {
-        try {
-          if (navigator.sendBeacon) {
-            navigator.sendBeacon(`${API_BASE}/api/omniroute/stop?port=${omniroutePort}&t=${Date.now()}`);
-          }
-          apiClient.stopOmniroute(omniroutePort);
-        } catch {}
-      }
-    });
   }
 
   // --- Foreign Components Modal Prompt (Invariant 5 Compliant) ---

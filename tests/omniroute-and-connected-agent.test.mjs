@@ -462,16 +462,18 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     // 6. Capsule click triggers enable when stopped
     assert.ok(js.includes("triggerEnableOmniroute"), "app.js must implement triggerEnableOmniroute");
 
-    // 7. Auto-disable on Magpie close (beforeunload, pagehide, and sendBeacon)
-    assert.ok(js.includes("window.addEventListener(\"beforeunload\""), "app.js must register beforeunload listener");
-    assert.ok(js.includes("window.addEventListener(\"pagehide\""), "app.js must register pagehide listener");
-    assert.ok(js.includes("navigator.sendBeacon"), "app.js should leverage sendBeacon on unload");
-    assert.ok(js.includes("apiClient.stopOmniroute"), "app.js must invoke stopOmniroute on window close");
+    // 7. Desktop WebView Navigation Invariant: app.js must NOT register beforeunload or pagehide stopOmniroute calls
+    // (In Magpie WebView2, beforeunload/pagehide fire on tab switching and page reloads, which would kill OmniRoute)
+    assert.ok(!js.includes("beforeunload"), "app.js must not stop OmniRoute on beforeunload to protect against WebView tab switches");
+    assert.ok(!js.includes("pagehide"), "app.js must not stop OmniRoute on pagehide to protect against WebView navigation");
 
-    // 8. Single server invariant in index.mjs (no redundant daemon thrashing)
-    assert.ok(!indexMjs.includes("ensureBackgroundDaemon()"), "index.mjs must not spawn redundant daemon on startup");
-    assert.ok(indexMjs.includes("process.stdin.on(\"close\""), "index.mjs must listen to stdin close to shut down OmniRoute when Magpie host closes");
-    assert.ok(indexMjs.includes("process.on(\"exit\""), "index.mjs must stop OmniRoute on process exit");
+    // 8. Worker Process Resilience Invariant: index.mjs and server.mjs must not kill OmniRoute on normal worker process exit
+    // (Magpie reloads bun/node worker processes on file edits; OmniRoute shutdown must be tied to host liveness, not worker exits)
+    const serverMjs = fs.readFileSync(path.join(process.cwd(), "server.mjs"), "utf8");
+    assert.ok(!indexMjs.includes("process.on(\"exit\""), "index.mjs must not kill OmniRoute on process exit");
+    assert.ok(!serverMjs.includes("process.on(\"exit\""), "server.mjs must not kill OmniRoute on process exit");
+    assert.ok(indexMjs.includes("process.stdin.on(\"close\""), "index.mjs must listen to stdin close with liveness check when Magpie host closes");
+    assert.ok(serverMjs.includes("lastWrittenOmnirouteStatusSignature"), "server.mjs must use status signature cache to prevent file watcher reload loops");
   });
 
   it("OmniRoute Startup Mutex & CWD Invariant: startOmniroute uses home cwd and deduplicates concurrent start calls", async () => {
