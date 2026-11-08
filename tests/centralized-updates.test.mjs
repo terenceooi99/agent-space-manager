@@ -248,15 +248,16 @@ test("Centralized Weekly Monday Upstream Update Suite", async (t) => {
     assert.ok(content.includes("Mandatory Persistent Agent Rule:"), "Must include Mandatory Persistent Agent Rule section");
     assert.ok(content.includes("ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path"), "Must specify rule trigger on addendum, edit, or removal");
 
-    // 5. Must declare and display V1.1 version
-    assert.ok(content.includes('STORAGE_PROMPT_VERSION = "V1.1"'), "Must declare STORAGE_PROMPT_VERSION = 'V1.1'");
-    assert.ok(content.includes("Prompt V1.1") || content.includes("${STORAGE_PROMPT_VERSION}"), "Prompt text must include V1.1 version");
-    assert.ok(content.includes("Copy Prompt (${STORAGE_PROMPT_VERSION})"), "Button must show Copy Prompt (V1.1)");
+    // 5. Must declare and display V1.3 version
+    assert.ok(content.includes('STORAGE_PROMPT_VERSION = "V1.3"'), "Must declare STORAGE_PROMPT_VERSION = 'V1.3'");
+    assert.ok(content.includes("Prompt V1.3") || content.includes("${STORAGE_PROMPT_VERSION}"), "Prompt text must include V1.3 version");
+    assert.ok(content.includes("Copy Prompt (${STORAGE_PROMPT_VERSION})"), "Button must show Copy Prompt (V1.3)");
+    assert.ok(content.includes("One-Time Rearrangement Stability"), "Prompt must include One-Time Rearrangement Stability");
 
-    // 6. Index.html must display V1.1 on button
+    // 6. Index.html must display V1.3 on button
     const htmlPath = path.resolve("page", "index.html");
     const htmlContent = fs.readFileSync(htmlPath, "utf8");
-    assert.ok(htmlContent.includes("Copy Prompt (V1.1)"), "index.html must display Copy Prompt (V1.1) on button");
+    assert.ok(htmlContent.includes("Copy Prompt (V1.3)"), "index.html must display Copy Prompt (V1.3) on button");
   });
 
   await t.test("Persistent Rule File: .agents/rules/components-storage-upstream-rule.md conforms to safety invariants", () => {

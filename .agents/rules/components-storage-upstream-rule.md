@@ -84,3 +84,10 @@ When the user requests removing, deleting, or uninstalling a plugin:
 - **Prohibition on UTF-8 BOM**: NEVER write files with a UTF-8 BOM (`\uFEFF` / byte sequence `0xEF, 0xBB, 0xBF`). Standard JSON parsers across Node.js, Electron, Go, Python, and AI IDE engines reject strings starting with `\uFEFF`, causing `"Invalid plugin.json"` errors and manifest load failures.
 - **Windows PowerShell Prevention**: On Windows PowerShell (5.1), default `Set-Content` and `Out-File` write UTF-8 with BOM by default. Always write files without BOM using Node.js `fs.writeFileSync(file, text, "utf8")`, PowerShell 7 `-Encoding utf8NoBOM`, or `[System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding($false)))`.
 
+---
+
+## 7. One-Time Rearrangement Stability
+- **Preserve Existing Structure**: If the rearrangement of the file structure in Components Storage Path has already been executed once using the prompt, the agent must **STOP** rearranging, moving, or reorganizing existing directory/file structures on subsequent runs.
+- **Explicit Request Exception**: Further restructuring of existing folders or components is strictly forbidden unless the user explicitly and specifically requests a file structure rearrangement.
+- **Component Addendum Safety**: New components added afterwards must follow the standard specification without modifying or shifting previously organized components.
+

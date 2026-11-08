@@ -38,7 +38,6 @@ import {
   checkOmnirouteStatus,
   startOmniroute,
   stopOmniroute,
-  stopOmnirouteSync,
   isMagpieRunning,
   openUrlInBrowser,
   scanAgentForeignComponents,
@@ -52,24 +51,10 @@ if (!process.env.ASM_NO_SERVER && process.env.NODE_ENV !== "test" && process.env
   } catch {}
 
   const onProcessSignal = () => {
-    try {
-      stopOmnirouteSync();
-    } catch {}
     process.exit(0);
   };
   process.on("SIGINT", onProcessSignal);
   process.on("SIGTERM", onProcessSignal);
-
-  if (process.stdin && typeof process.stdin.on === "function" && process.stdin.readable) {
-    process.stdin.on("close", async () => {
-      try {
-        const alive = await isMagpieRunning();
-        if (!alive) {
-          stopOmnirouteSync();
-        }
-      } catch {}
-    });
-  }
 }
 
 export {

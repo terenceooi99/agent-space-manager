@@ -1,7 +1,7 @@
 {
   "path": "",
   "count": 23,
-  "updatedAt": 1794139657321,
+  "updatedAt": 1794156971494,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -817,6 +817,12 @@
       "rules": [],
       "agents": [],
       "files": [
+        {
+          "name": "cleanup_chrome.js",
+          "relPath": "bin/cleanup_chrome.js",
+          "size": 920,
+          "mtime": 1794147008000
+        },
         {
           "name": "crw-mcp.exe",
           "relPath": "bin/crw-mcp.exe",
@@ -3418,8 +3424,8 @@
         {
           "name": "model_config.mjs",
           "relPath": "agent/model_config.mjs",
-          "size": 1261,
-          "mtime": 1792173946517
+          "size": 3495,
+          "mtime": 1794156523989
         },
         {
           "name": "package-lock.json",
@@ -3436,8 +3442,8 @@
         {
           "name": "run_stagehand.mjs",
           "relPath": "agent/run_stagehand.mjs",
-          "size": 4124,
-          "mtime": 1792322462262
+          "size": 5890,
+          "mtime": 1794156537227
         },
         {
           "name": "mcp_config.json",
@@ -3720,7 +3726,7 @@
         "path": "D:\\Software\\AI Agent Space\\plugins\\fastcrw",
         "description": "High-performance fastCRW web crawler and markdown extraction tool with MCP server",
         "skillsCount": 1,
-        "filesCount": 7,
+        "filesCount": 8,
         "hasMcp": true,
         "hasHooks": false
       },

@@ -3963,6 +3963,23 @@ export function closeOmnirouteTerminalWindow() {
   }
 }
 
+export function findPidByPort(port) {
+  if (process.platform === "win32") {
+    try {
+      const out = execSync("netstat -ano -p tcp", { encoding: "utf8", timeout: 3000 });
+      const lines = out.split(/\r?\n/);
+      for (const line of lines) {
+        if (line.includes(`:${port}`) && line.includes("LISTENING")) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(pid) && pid > 0) return pid;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
 export function startOmniroute(customPort = null, hubConfig = null) {
   if (activeOmnirouteStartPromise) {
     return activeOmnirouteStartPromise;
@@ -3992,8 +4009,8 @@ export function startOmniroute(customPort = null, hubConfig = null) {
       if (process.platform === "win32") {
         let launchedInTerminal = false;
         try {
-          const psScript = `$p = Start-Process cmd.exe -ArgumentList '/k title ${terminalTitle} & set "PATH=%APPDATA%\\npm;%PATH%" & ${cmdToRun}' -PassThru; $p.Id`;
-          const out = execSync(`powershell.exe -NoProfile -NonInteractive -Command "${psScript}"`, { encoding: "utf8", timeout: 8000 });
+          const psScript = `$p = Start-Process cmd.exe -ArgumentList '/k title ${terminalTitle} & ${cmdToRun}' -WindowStyle Normal -PassThru; $p.Id`;
+          const out = execSync(`powershell.exe -NoProfile -Command "${psScript}"`, { encoding: "utf8", timeout: 8000 });
           const terminalPid = parseInt(out.trim(), 10);
           if (!isNaN(terminalPid) && terminalPid > 0) {
             recordOmnirouteTerminalPid(terminalPid);
@@ -4003,13 +4020,16 @@ export function startOmniroute(customPort = null, hubConfig = null) {
 
         if (!launchedInTerminal) {
           try {
-            const childProc = spawn("cmd.exe", ["/c", "start", terminalTitle, "cmd.exe", "/k", `set "PATH=%APPDATA%\\npm;%PATH%" & ${cmdToRun}`], {
+            const childProc = spawn("cmd.exe", ["/c", "start", terminalTitle, "cmd.exe", "/k", `title ${terminalTitle} & ${cmdToRun}`], {
               cwd: home,
               detached: true,
               stdio: "ignore",
+              windowsHide: false,
             });
-            if (childProc && childProc.pid) {
-              recordOmnirouteTerminalPid(childProc.pid);
+            if (childProc) {
+              if (childProc.pid) {
+                recordOmnirouteTerminalPid(childProc.pid);
+              }
               childProc.unref();
               launchedInTerminal = true;
             }
@@ -4081,6 +4101,10 @@ export function startOmniroute(customPort = null, hubConfig = null) {
         await new Promise((r) => setTimeout(r, 400));
         const s = await checkOmnirouteStatus(port, hubConfig);
         if (s.running) {
+          if (process.platform === "win32") {
+            const listeningPid = findPidByPort(port);
+            if (listeningPid) recordOmnirouteTerminalPid(listeningPid);
+          }
           return { success: true, running: true, port, url: s.url };
         }
         if (child && child.exitCode !== null && child.exitCode !== 0) {

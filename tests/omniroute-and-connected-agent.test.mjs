@@ -358,7 +358,7 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     delete process.env.ASM_MOCK_MAGPIE;
   });
 
-  it("Auto-Shutdown Invariant: automatically shuts down OmniRoute when Magpie is not running", async () => {
+  it("Independent Lifecycle Invariant: Magpie liveness does not kill OmniRoute, keeping it running independently", async () => {
     resetMagpieLivenessForTest();
 
     // 1. Alive check: ticks reset and OmniRoute remains untouched
@@ -366,40 +366,17 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.equal(aliveCheck.magpieAlive, true);
     assert.equal(aliveCheck.omnirouteStopped, false);
 
-    // 2. Dead tick 1: reports dead but does not immediately stop (prevents false positives from transient jitter)
+    // 2. Dead tick 1: reports dead but keeps omnirouteStopped: false
     const dead1 = await handleMagpieLivenessCheck(false);
     assert.equal(dead1.magpieAlive, false);
     assert.equal(dead1.omnirouteStopped, false);
     assert.equal(dead1.ticks, 1);
 
-    // 3. Dead tick 2 with mock server running: triggers stopOmniroute and updates status with magpie-not-running
-    const testMockPort = 49912;
-    const mockServer = http.createServer((req, res) => {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "healthy" }));
-    });
-    await new Promise((resolve) => mockServer.listen(testMockPort, "127.0.0.1", resolve));
-
-    try {
-      const dead2 = await handleMagpieLivenessCheck(false, testMockPort, async (port) => {
-        await new Promise((resolve) => mockServer.close(resolve));
-        return { installed: true, running: false, port, url: `http://localhost:${port}` };
-      });
-      assert.equal(dead2.magpieAlive, false);
-      assert.equal(dead2.omnirouteStopped, true);
-      assert.equal(dead2.status.running, false);
-    } finally {
-      try {
-        await new Promise((resolve) => mockServer.close(resolve));
-      } catch {}
-    }
-
-    // 4. Verification that status file records stoppedReason: "magpie-not-running"
-    const statusCacheFile = path.join(process.env.ASM_CACHE_DIR || path.join(process.cwd(), "page"), "omniroute-status.js");
-    if (fs.existsSync(statusCacheFile)) {
-      const content = fs.readFileSync(statusCacheFile, "utf8");
-      assert.ok(content.includes("magpie-not-running"), "Status file must record stoppedReason magpie-not-running");
-    }
+    // 3. Dead tick 2: even after multiple dead ticks, OmniRoute is NOT stopped
+    const dead2 = await handleMagpieLivenessCheck(false);
+    assert.equal(dead2.magpieAlive, false);
+    assert.equal(dead2.omnirouteStopped, false);
+    assert.equal(dead2.ticks, 2);
 
     resetMagpieLivenessForTest();
   });
@@ -435,7 +412,7 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.equal(stopPayload.running, false);
   });
 
-  it("Frontend OmniRoute UX: port link copies to clipboard and dot click shows progress notification", () => {
+  it("Frontend OmniRoute UX: port link copies to clipboard and dot click checks health status", () => {
     const js = fs.readFileSync(path.join(process.cwd(), "page", "app.js"), "utf8");
     const html = fs.readFileSync(path.join(process.cwd(), "page", "index.html"), "utf8");
     const css = fs.readFileSync(path.join(process.cwd(), "page", "style.css"), "utf8");
@@ -448,31 +425,23 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.ok(js.includes("copyTextToClipboard"), "app.js must implement copyTextToClipboard");
     assert.ok(js.includes("Copied port link to clipboard! Paste into your browser to enter"), "app.js must show clipboard copy toast");
 
-    // 3. Progress notification during enabling on status dot click
-    assert.ok(js.includes("Enabling OmniRoute on port"), "app.js must show progress toast during enabling");
+    // 3. Dot click checks health without triggering start
+    assert.ok(!js.includes("triggerEnableOmniroute"), "app.js must not implement triggerEnableOmniroute on dot click");
+    assert.ok(js.includes("checkOmniroute(true)"), "app.js must check health on dot click");
 
     // 4. Hit area expansion for status dot in style.css
     assert.ok(css.includes(".status-dot::after"), "style.css must expand click hit target of status-dot via ::after");
     assert.ok(css.includes("cursor: pointer"), "style.css must declare cursor pointer on status-dot");
 
-    // 5. Startup guard preventing background status checks from clobbering starting dot
-    assert.ok(js.includes("isStartingOmniroute"), "app.js must track isStartingOmniroute");
-    assert.ok(js.includes("if (isStartingOmniroute && !manual)"), "app.js must prevent background check from resetting blue dot during startup");
-
-    // 6. Capsule click triggers enable when stopped
-    assert.ok(js.includes("triggerEnableOmniroute"), "app.js must implement triggerEnableOmniroute");
-
-    // 7. Desktop WebView Navigation Invariant: app.js must NOT register beforeunload or pagehide stopOmniroute calls
-    // (In Magpie WebView2, beforeunload/pagehide fire on tab switching and page reloads, which would kill OmniRoute)
+    // 5. Desktop WebView Navigation Invariant: app.js must NOT register beforeunload or pagehide stopOmniroute calls
     assert.ok(!js.includes("beforeunload"), "app.js must not stop OmniRoute on beforeunload to protect against WebView tab switches");
     assert.ok(!js.includes("pagehide"), "app.js must not stop OmniRoute on pagehide to protect against WebView navigation");
 
-    // 8. Worker Process Resilience Invariant: index.mjs and server.mjs must not kill OmniRoute on normal worker process exit
-    // (Magpie reloads bun/node worker processes on file edits; OmniRoute shutdown must be tied to host liveness, not worker exits)
+    // 6. Worker Process Resilience Invariant: index.mjs and server.mjs must not kill OmniRoute on normal worker process exit
     const serverMjs = fs.readFileSync(path.join(process.cwd(), "server.mjs"), "utf8");
     assert.ok(!indexMjs.includes("process.on(\"exit\""), "index.mjs must not kill OmniRoute on process exit");
     assert.ok(!serverMjs.includes("process.on(\"exit\""), "server.mjs must not kill OmniRoute on process exit");
-    assert.ok(indexMjs.includes("process.stdin.on(\"close\""), "index.mjs must listen to stdin close with liveness check when Magpie host closes");
+    assert.ok(!indexMjs.includes("stopOmnirouteSync"), "index.mjs must not kill OmniRoute when Magpie closes");
     assert.ok(serverMjs.includes("lastWrittenOmnirouteStatusSignature"), "server.mjs must use status signature cache to prevent file watcher reload loops");
   });
 
@@ -547,28 +516,25 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.ok(scriptBody.includes("test-nonce-script"));
   });
 
-  it("Re-enabling & Startup Grace Protection: 30s window protects newly started instance and supports re-enabling", async () => {
-    resetMagpieLivenessForTest();
-
+  it("Health Status Indicators: red and green status dots accurately reflect OmniRoute health", async () => {
     // 1. Record start attempt updates timestamp
     recordOmnirouteStartAttempt();
     const ts = getLastOmnirouteStartAttempt();
     assert.ok(ts > 0, "recordOmnirouteStartAttempt must record timestamp");
 
-    // 2. Even when magpieAlive is false, liveness check returns startingUp: true within 30s window
-    const checkWhileStarting = await handleMagpieLivenessCheck(false);
-    assert.equal(checkWhileStarting.magpieAlive, false);
-    assert.equal(checkWhileStarting.startingUp, true);
-    assert.equal(checkWhileStarting.omnirouteStopped, false);
+    // 2. Liveness check returns omnirouteStopped: false
+    const check = await handleMagpieLivenessCheck(false);
+    assert.equal(check.magpieAlive, false);
+    assert.equal(check.omnirouteStopped, false);
 
     // 3. Reset test state
     resetMagpieLivenessForTest();
     assert.equal(getLastOmnirouteStartAttempt(), 0);
 
-    // 4. Verify frontend app.js logic allows clicking status dot to re-enable when stopped/red/gray
+    // 4. Verify frontend app.js logic renders dot-green when active and dot-red when stopped
     const js = fs.readFileSync(path.join(process.cwd(), "page", "app.js"), "utf8");
-    assert.ok(js.includes("dot.classList.contains(\"dot-red\")"), "app.js must permit re-enabling if dot is red");
-    assert.ok(js.includes("apiClient.startOmniroute"), "app.js must trigger startOmniroute on dot click");
+    assert.ok(js.includes("dot.className = \"status-dot dot-green\""), "app.js must set dot-green when active");
+    assert.ok(js.includes("dot.className = \"status-dot dot-red\""), "app.js must set dot-red when stopped");
     assert.ok(js.includes("checkOmniroute(false)"), "app.js must sync OmniRoute status periodically and on focus");
   });
 
@@ -578,11 +544,7 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     assert.ok(!content.includes("58197"), "Production status file must never be polluted by test ports");
   });
 
-  it("Terminal Window Lifecycle: clicking dot copies 'omniroute serve --no-open' and closing Magpie terminates terminal window", async () => {
-    const js = fs.readFileSync(path.join(process.cwd(), "page", "app.js"), "utf8");
-    assert.ok(js.includes("omniroute serve --no-open"), "app.js must copy 'omniroute serve --no-open'");
-    assert.ok(js.includes("copyTextToClipboard(cmdText)"), "app.js must copy command to clipboard on dot click");
-
+  it("Terminal Window Lifecycle: manager retains process tracking and cleanup methods", async () => {
     const mgr = await import("../manager.mjs");
     assert.equal(typeof mgr.recordOmnirouteTerminalPid, "function");
     assert.equal(typeof mgr.getOmnirouteTerminalPid, "function");

@@ -948,7 +948,7 @@
         const magpieApi = getMagpieApi();
         if (typeof magpieApi?.startOmniroute === "function") {
           const res = await magpieApi.startOmniroute(targetPort);
-          if (res && (res.running || res.error)) return res;
+          if (res && typeof res === "object") return res;
         }
       } catch {}
 
@@ -2874,19 +2874,13 @@
   }
 
   // --- OmniRoute AI Gateway State & Controller ---
-  let isStartingOmniroute = false;
-
   async function checkOmniroute(manual = false) {
-    if (isStartingOmniroute && !manual) {
-      return;
-    }
-
     const dot = $("omnirouteStatusDot");
     const portLink = $("omniroutePortLink");
 
     if (manual && dot) {
       dot.className = "status-dot dot-blue";
-      dot.title = "Checking OmniRoute status...";
+      dot.title = "Checking OmniRoute health status...";
     }
 
     try {
@@ -2902,13 +2896,13 @@
 
       isOmnirouteRunning = Boolean(res?.running);
 
-      if (dot && !isStartingOmniroute) {
+      if (dot) {
         if (isOmnirouteRunning) {
           dot.className = "status-dot dot-green";
-          dot.title = `OmniRoute is enabled & active on port ${omniroutePort} (Default password: CHANGEME) - click to copy 'omniroute serve --no-open'`;
+          dot.title = `OmniRoute is active on port ${omniroutePort} (Default password: CHANGEME) - click to check health`;
         } else {
           dot.className = "status-dot dot-red";
-          dot.title = `OmniRoute is stopped on port ${omniroutePort} - click to copy & run 'omniroute serve --no-open' in Command Prompt`;
+          dot.title = `OmniRoute is stopped / unreachable on port ${omniroutePort} - click to check health`;
         }
       }
 
@@ -2916,13 +2910,13 @@
         if (isOmnirouteRunning) {
           showToast(`OmniRoute: Active on port ${omniroutePort} (Default password: CHANGEME)`, "success", 4000, { noEmoji: true });
         } else {
-          showToast(`OmniRoute: Not running / stopped on port ${omniroutePort}`, "warning", 4000, { noEmoji: true });
+          showToast(`OmniRoute: Stopped / unreachable on port ${omniroutePort}`, "warning", 4000, { noEmoji: true });
         }
       }
     } catch {
-      if (dot && !isStartingOmniroute) {
+      if (dot) {
         dot.className = "status-dot dot-red";
-        dot.title = "OmniRoute status check failed";
+        dot.title = "OmniRoute health check failed";
       }
     }
   }
@@ -2952,61 +2946,6 @@
     }
   }
 
-  async function triggerEnableOmniroute() {
-    const dot = $("omnirouteStatusDot");
-    if (isStartingOmniroute) {
-      showToast(`Enabling OmniRoute on port ${omniroutePort}... Please wait.`, "info", 3000, { noEmoji: true });
-      return;
-    }
-
-    isStartingOmniroute = true;
-    showToast(`Enabling OmniRoute on port ${omniroutePort} via Command Prompt (omniroute serve --no-open)... Please wait.`, "info", 12000, { noEmoji: true });
-    if (dot) {
-      dot.className = "status-dot dot-blue";
-      dot.title = `Enabling OmniRoute on port ${omniroutePort} via Command Prompt (omniroute serve --no-open)...`;
-    }
-
-    try {
-      const res = await apiClient.startOmniroute(omniroutePort);
-      let running = Boolean(res?.running);
-      if (!running) {
-        for (let attempt = 0; attempt < 4 && !running; attempt++) {
-          await new Promise((r) => setTimeout(r, 600));
-          const recheck = await apiClient.getOmnirouteStatus(omniroutePort);
-          running = Boolean(recheck?.running);
-        }
-      }
-      if (running) {
-        isOmnirouteRunning = true;
-        if (dot) {
-          dot.className = "status-dot dot-green";
-          dot.title = `OmniRoute is active on port ${omniroutePort} (Default password: CHANGEME) - click dot to copy 'omniroute serve --no-open'`;
-        }
-        showToast(`OmniRoute enabled & running in Command Prompt on port ${omniroutePort}! (Default password: CHANGEME)`, "success", 4000, { noEmoji: true });
-      } else {
-        isOmnirouteRunning = false;
-        if (dot) {
-          dot.className = "status-dot dot-red";
-          const errMsg = res?.error ? `: ${res.error}` : "";
-          dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
-        }
-        const errMsg = res?.error ? `: ${res.error}` : "";
-        showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
-      }
-    } catch (err) {
-      isOmnirouteRunning = false;
-      if (dot) {
-        dot.className = "status-dot dot-red";
-        const errMsg = err?.message ? `: ${err.message}` : "";
-        dot.title = `OmniRoute failed to enable on port ${omniroutePort}${errMsg}`;
-      }
-      const errMsg = err?.message ? `: ${err.message}` : "";
-      showToast(`OmniRoute failed to enable on port ${omniroutePort}${errMsg}`, "error", 5000, { noEmoji: true });
-    } finally {
-      isStartingOmniroute = false;
-    }
-  }
-
   function setupOmnirouteCapsule() {
     const dot = $("omnirouteStatusDot");
     const portLink = $("omniroutePortLink");
@@ -3026,17 +2965,7 @@
       dot.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-
-        const cmdText = "omniroute serve --no-open";
-        await copyTextToClipboard(cmdText);
-
-        const isCurrentlyStopped = !isOmnirouteRunning || dot.classList.contains("dot-red") || dot.classList.contains("dot-gray");
-        if (isCurrentlyStopped) {
-          triggerEnableOmniroute();
-        } else {
-          showToast(`Copied "${cmdText}" to clipboard. OmniRoute is active on port ${omniroutePort}`, "info", 3000, { noEmoji: true });
-          checkOmniroute(true);
-        }
+        checkOmniroute(true);
       });
     }
 
@@ -3048,20 +2977,31 @@
 
     if (capsule) {
       capsule.addEventListener("click", async (e) => {
-        if (e.target === portLink) return;
-        const isCurrentlyStopped = !isOmnirouteRunning || dot?.classList.contains("dot-red") || dot?.classList.contains("dot-gray");
-        if (isCurrentlyStopped) {
-          e.preventDefault();
-          e.stopPropagation();
-          const cmdText = "omniroute serve --no-open";
-          await copyTextToClipboard(cmdText);
-          triggerEnableOmniroute();
-          return;
+        if (e.target === portLink || e.target === dot) return;
+        if (isOmnirouteRunning) {
+          showToast(`Opening OmniRoute dashboard on port ${omniroutePort}...`, "info", 3000, { noEmoji: true });
+          const res = await apiClient.openOmniroute(omniroutePort);
+          if (!res?.opened) {
+            window.open(`http://localhost:${omniroutePort}`, "_blank", "noopener,noreferrer");
+          }
+        } else {
+          checkOmniroute(true);
         }
-        if (e.target === dot) return;
-        handleCopyPortLink(e);
       });
     }
+
+    // Initial health check
+    checkOmniroute(false);
+
+    // Periodically re-check health every 8s
+    setInterval(() => {
+      checkOmniroute(false);
+    }, 8000);
+
+    // Also re-check when window gains focus
+    window.addEventListener("focus", () => {
+      checkOmniroute(false);
+    });
   }
 
   // --- Foreign Components Modal Prompt (Invariant 5 Compliant) ---
@@ -3308,7 +3248,7 @@
     }
 
     // Standardize Storage Structure Prompt Copy Button (with version display)
-    const STORAGE_PROMPT_VERSION = "V1.2";
+    const STORAGE_PROMPT_VERSION = "V1.3";
     const btnCopyPrompt = $("btnCopyStoragePrompt");
     if (btnCopyPrompt) {
       const originalText = `Copy Prompt (${STORAGE_PROMPT_VERSION})`;
@@ -3320,7 +3260,7 @@
 
         const promptText = `[Components Storage Specification & Upstream Rules Prompt ${STORAGE_PROMPT_VERSION}]
 
-Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, enforce UTF-8 without BOM encoding, and install a persistent agent rule:
+Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, enforce UTF-8 without BOM encoding, respect one-time rearrangement stability, and install a persistent agent rule:
 
 ${targetPathHeader}1. Directory Structure Specification:
 A plugin is a directory containing a required manifest file (plugin.json) and optional subdirectories for customizations:
@@ -3363,10 +3303,14 @@ When the user asks to remove, delete, or uninstall a plugin:
 
 5. Mandatory File Encoding (Strict UTF-8 Without BOM):
 - ALL manifest and configuration files (plugin.json, mcp_config.json, hooks.json, SKILL.md, and *.md) MUST be written strictly in standard UTF-8 without Byte Order Mark (UTF-8 No BOM).
-- NEVER output or save files with a UTF-8 BOM (\uFEFF or byte sequence 0xEF, 0xBB, 0xBF). A BOM header corrupts JSON parsing across IDEs and tools, leading to "Invalid plugin.json" errors.
+- NEVER output or save files with a UTF-8 BOM (\\uFEFF or byte sequence 0xEF, 0xBB, 0xBF). A BOM header corrupts JSON parsing across IDEs and tools, leading to "Invalid plugin.json" errors.
 - If executing file writes via Windows PowerShell (5.1), avoid standard Out-File or Set-Content defaults; always write without BOM using Node.js fs.writeFileSync(path, content, "utf8"), PowerShell 7 -Encoding utf8NoBOM, or [System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding($false))).
 
-6. Mandatory Persistent Agent Rule:
+6. One-Time Rearrangement Stability:
+- If the rearrangement of the file structure in Components Storage Path has already been executed once using this prompt, STOP rearranging or moving existing directory/file structures on subsequent runs unless the user explicitly requests a rearrangement.
+- Preserve already-organized components in their current locations to prevent directory churn and broken path references.
+
+7. Mandatory Persistent Agent Rule:
 Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
 - Rule Trigger: Addendum, creation, edit, or removal of any component in Components Storage Path.
 - Rule Invariant 1: Ensure strict compliance with the plugin directory structure above.
@@ -3374,8 +3318,9 @@ Install and persist a dedicated rule in your agent's rule system (e.g. .agents/r
 - Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) must also be cleanly removed with no orphaned leftovers.
 - Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
 - Rule Invariant 5: Never write files with a UTF-8 BOM header; always enforce UTF-8 No BOM encoding.
+- Rule Invariant 6: One-Time Rearrangement Stability — if file rearrangement was already performed once, never rearrange or move existing structure again on subsequent prompt runs unless explicitly requested by the user.
 
-Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components, and persist the rule into your agent's rules.`;
+Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
 
         let copied = false;
         if (navigator.clipboard && navigator.clipboard.writeText) {
