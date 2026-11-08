@@ -2,6 +2,8 @@
 
 **Universal Multi-IDE & Project Skill Orchestrator with Dynamic Intent-Based Tool Gateway for [Magpie](https://usemagpie.ai)**.
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 ---
 
 ## Core Purpose & Why This Exists
