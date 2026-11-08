@@ -145,6 +145,7 @@ export function syncFromMagpiePluginsJson(force = false) {
 
     const opts = entry.options;
     handleOmnirouteRequest(opts.omnirouteRequest);
+    handleConnectRequest(opts.connectRequest);
     const sig = JSON.stringify({
       toolsRoot: opts.toolsRoot,
       hubConfig: opts.hubConfig,
@@ -311,6 +312,150 @@ export function handleOmnirouteRequest(req) {
         const next = pendingOmnirouteRequest;
         pendingOmnirouteRequest = null;
         handleOmnirouteRequest(next);
+      }
+    });
+}
+
+// --- Connect Agent bridge for the sandboxed Magpie page ---
+// Magpie page frames are sandboxed (connect-src 'none'): explicit connect requests
+// are posted via magpie.options.set({ connectRequest: { target, isProject, nonce } });
+// this watcher runs it and answers in page/connect-status.js (script-src 'self').
+let lastConnectNonce = null;
+let connectBusy = false;
+let pendingConnectRequest = null;
+let lastWrittenConnectStatusSignature = "";
+
+export function resetConnectStateForTest() {
+  lastConnectNonce = null;
+  connectBusy = false;
+  pendingConnectRequest = null;
+  lastWrittenConnectStatusSignature = "";
+}
+
+export function writeConnectStatusFile(payload) {
+  try {
+    const targetDirs = new Set();
+    if (process.env.ASM_CACHE_DIR) {
+      targetDirs.add(process.env.ASM_CACHE_DIR);
+    } else if (process.env.ASM_TEST !== "1" && process.env.NODE_ENV !== "test") {
+      for (const base of SIBLING_DIRS) {
+        const pDir = path.join(base, "page");
+        if (fs.existsSync(pDir)) targetDirs.add(pDir);
+      }
+      targetDirs.add(path.join(__dirname, "page"));
+    }
+
+    const sig = `${payload?.success}:${payload?.nonce}:${payload?.targetId}:${payload?.timestamp}`;
+    if (sig === lastWrittenConnectStatusSignature && process.env.ASM_TEST !== "1") {
+      return;
+    }
+    lastWrittenConnectStatusSignature = sig;
+
+    const content = `window.__CONNECT_STATUS__ = ${JSON.stringify(payload)};\n`;
+    for (const dir of targetDirs) {
+      try {
+        const jsFile = path.join(dir, "connect-status.js");
+        fs.writeFileSync(jsFile, content, "utf8");
+        const jsonFile = path.join(dir, "connect-status.json");
+        fs.writeFileSync(jsonFile, JSON.stringify(payload, null, 2), "utf8");
+      } catch {}
+    }
+  } catch {}
+}
+
+export function readConnectStatusFile() {
+  try {
+    const dir = process.env.ASM_CACHE_DIR || path.join(__dirname, "page");
+    const jsonFile = path.join(dir, "connect-status.json");
+    if (fs.existsSync(jsonFile)) {
+      return JSON.parse(fs.readFileSync(jsonFile, "utf8"));
+    }
+  } catch {}
+  return null;
+}
+
+export function clearConnectRequestFromPluginsJson(nonceToClear = null) {
+  try {
+    if (!fs.existsSync(MAGPIE_PLUGINS_JSON)) return;
+    const raw = fs.readFileSync(MAGPIE_PLUGINS_JSON, "utf8");
+    const parsed = JSON.parse(raw);
+    const entry = (parsed?.plugins || []).find((p) => {
+      const spec = String(p?.spec || "").toLowerCase();
+      return spec.includes("agent-space-manager") || spec.includes("smart-middleware");
+    });
+    if (entry?.options?.connectRequest) {
+      if (!nonceToClear || entry.options.connectRequest.nonce === nonceToClear) {
+        delete entry.options.connectRequest;
+        fs.writeFileSync(MAGPIE_PLUGINS_JSON, JSON.stringify(parsed, null, 2), "utf8");
+      }
+    }
+  } catch {}
+}
+
+export async function runConnectAction(targetIde, isProject = false, nonce = null) {
+  const cfg = loadHubConfig();
+  const effHub = getEffectiveHubRoot(cfg);
+  let connectRes;
+
+  if (isProject) {
+    const plugins = scanPlugins(effHub);
+    connectRes = syncAllIdes(cfg, plugins);
+  } else {
+    connectRes = connectAgent(cfg, targetIde, { effHub });
+  }
+
+  // Ensure bridge and activeAgents are populated from file or return object
+  let bridge = connectRes.bridge || null;
+  let activeAgents = connectRes.activeAgents || [];
+  if (!bridge || Object.keys(bridge).length === 0) {
+    try {
+      const bridgePath = path.join(effHub, "agent-space-bridge.json");
+      if (fs.existsSync(bridgePath)) {
+        bridge = JSON.parse(fs.readFileSync(bridgePath, "utf8"));
+        activeAgents = bridge.activeAgents || [];
+      }
+    } catch {}
+  }
+
+  const payload = {
+    success: connectRes.success !== false,
+    nonce,
+    targetId: targetIde?.id || targetIde?.agentType || "custom",
+    targetName: targetIde?.name || targetIde?.id || "Agent",
+    bridge: bridge || {},
+    activeAgents: activeAgents.length > 0 ? activeAgents : (bridge?.activeAgents || []),
+    result: connectRes.result || connectRes.sync || connectRes,
+    sync: connectRes.sync || connectRes.result || connectRes,
+    error: connectRes.error || null,
+    timestamp: Date.now(),
+  };
+
+  writeConnectStatusFile(payload);
+  if (nonce) {
+    clearConnectRequestFromPluginsJson(nonce);
+  }
+  return payload;
+}
+
+export function handleConnectRequest(req) {
+  if (!req || typeof req !== "object" || !req.nonce) return;
+  if (req.nonce === lastConnectNonce) return;
+  if (connectBusy) {
+    pendingConnectRequest = req;
+    return;
+  }
+  lastConnectNonce = req.nonce;
+  connectBusy = true;
+
+  const target = req.target || req.ide || { id: req.id, agentType: req.agentType };
+  runConnectAction(target, Boolean(req.isProject), req.nonce)
+    .catch(() => {})
+    .finally(() => {
+      connectBusy = false;
+      if (pendingConnectRequest) {
+        const next = pendingConnectRequest;
+        pendingConnectRequest = null;
+        handleConnectRequest(next);
       }
     });
 }
@@ -498,6 +643,26 @@ export function startApiServer(port = API_PORT) {
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
         res.end(`window.__OMNIROUTE_STATUS__ = ${JSON.stringify(payload)};\n`);
+        return;
+      }
+
+      if (pathname === "/action-connect.js" || pathname === "/api/connect/action.js") {
+        const id = query.id || query.agentType || "antigravity";
+        const agentType = query.agentType || query.id || "antigravity";
+        const name = query.name || id;
+        const nonce = query.nonce || null;
+        const targetIde = { id, agentType, name };
+        const payload = await runConnectAction(targetIde, false, nonce);
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
+        res.end(`window.__CONNECT_STATUS__ = ${JSON.stringify(payload)};\n`);
+        return;
+      }
+
+      if (pathname === "/api/connect-status" && req.method === "GET") {
+        const status = readConnectStatusFile();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(status || { success: true, status: "idle", timestamp: 0 }));
         return;
       }
 
@@ -796,16 +961,26 @@ export function startApiServer(port = API_PORT) {
               } catch {}
             }
 
+            const payload = {
+              success: connectRes.success !== false,
+              bridge: bridge || {},
+              activeAgents: activeAgents.length > 0 ? activeAgents : (bridge?.activeAgents || []),
+              result: connectRes.result || connectRes.sync || connectRes,
+              hubConfig: connectRes.hubConfig || config,
+            };
+
+            writeConnectStatusFile({
+              success: connectRes.success !== false,
+              nonce: parsed.nonce || null,
+              targetId: targetIde.id || targetIde.agentType,
+              targetName: targetIde.name || targetIde.id,
+              result: connectRes.result || connectRes.sync || connectRes,
+              sync: connectRes.sync || connectRes.result || connectRes,
+              timestamp: Date.now(),
+            });
+
             res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                success: connectRes.success !== false,
-                bridge: bridge || {},
-                activeAgents: activeAgents.length > 0 ? activeAgents : (bridge?.activeAgents || []),
-                result: connectRes.result || connectRes.sync || connectRes,
-                hubConfig: connectRes.hubConfig || config,
-              })
-            );
+            res.end(JSON.stringify(payload));
           } catch (err) {
             res.writeHead(400, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ success: false, error: err.message }));

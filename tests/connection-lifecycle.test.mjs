@@ -693,4 +693,76 @@ describe("Requirement R1, R2, R3: Connection Lifecycle, Preference Persistence &
       sb.cleanup();
     }
   });
+
+  test("R1: Magpie CSP Sandbox Fallback & Options Bridge for Connect", async () => {
+    const sb = makeSandbox();
+    try {
+      const s = await import("../server.mjs");
+      const cacheDir = path.join(sb.root, "cache-test");
+      fs.mkdirSync(cacheDir, { recursive: true });
+      process.env.ASM_CACHE_DIR = cacheDir;
+
+      // 1. writeConnectStatusFile creates valid JS and JSON files
+      s.writeConnectStatusFile({
+        success: true,
+        nonce: "test-nonce-123",
+        targetId: "antigravity",
+        targetName: "Antigravity (Google)",
+        timestamp: Date.now(),
+      });
+
+      const jsPath = path.join(cacheDir, "connect-status.js");
+      const jsonPath = path.join(cacheDir, "connect-status.json");
+      assert.equal(fs.existsSync(jsPath), true, "connect-status.js must be created");
+      assert.equal(fs.existsSync(jsonPath), true, "connect-status.json must be created");
+
+      const jsContent = fs.readFileSync(jsPath, "utf8");
+      assert.ok(jsContent.startsWith("window.__CONNECT_STATUS__ ="), "Must define window.__CONNECT_STATUS__");
+      assert.ok(jsContent.includes("test-nonce-123"));
+
+      const parsedJson = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+      assert.equal(parsedJson.success, true);
+      assert.equal(parsedJson.targetId, "antigravity");
+
+      // 2. HTTP endpoints: /action-connect.js and /api/connect-status
+      const srv = s.startApiServer(0);
+      await new Promise((resolve) => srv.once("listening", resolve));
+      const port = srv.address().port;
+      const base = `http://127.0.0.1:${port}`;
+
+      try {
+        const actionRes = await fetch(`${base}/action-connect.js?id=antigravity&agentType=antigravity&nonce=action-nonce`);
+        assert.equal(actionRes.status, 200);
+        assert.equal(actionRes.headers.get("content-type"), "application/javascript; charset=utf-8");
+        const actionJs = await actionRes.text();
+        assert.ok(actionJs.startsWith("window.__CONNECT_STATUS__ ="));
+        assert.ok(actionJs.includes("action-nonce"));
+
+        const statusRes = await fetch(`${base}/api/connect-status`).then((r) => r.json());
+        assert.equal(statusRes.success, true);
+        assert.equal(statusRes.targetId, "antigravity");
+      } finally {
+        if (srv && typeof srv.close === "function") {
+          await new Promise((resolve) => srv.close(resolve));
+        }
+      }
+
+      // 3. handleConnectRequest processes connectRequest options object
+      s.resetConnectStateForTest();
+      s.handleConnectRequest({
+        target: { id: "antigravity", agentType: "antigravity" },
+        nonce: "magpie-opt-nonce",
+      });
+
+      // Allow async action to finish
+      await new Promise((r) => setTimeout(r, 100));
+      const updatedStatus = s.readConnectStatusFile();
+      assert.ok(updatedStatus);
+      assert.equal(updatedStatus.nonce, "magpie-opt-nonce");
+      assert.equal(updatedStatus.success, true);
+    } finally {
+      delete process.env.ASM_CACHE_DIR;
+      sb.cleanup();
+    }
+  });
 });

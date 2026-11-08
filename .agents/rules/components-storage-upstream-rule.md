@@ -77,3 +77,10 @@ When the user requests removing, deleting, or uninstalling a plugin:
 - **Weekly Schedule**: Centralized update checks execute **once per week**, on the first day starting on **Monday** whenever the user starts up Magpie.
 - If legacy decentralized update scripts or state files are encountered during addendum, edits, or removals, immediately remove them.
 
+---
+
+## 6. Mandatory File Encoding: Strict UTF-8 Without BOM (No BOM)
+- **Strict Invariant**: ALL manifest and configuration files (`plugin.json`, `mcp_config.json`, `hooks.json`, `SKILL.md`, `*.md`) MUST be saved strictly in standard **UTF-8 without Byte Order Mark (UTF-8 No BOM)**.
+- **Prohibition on UTF-8 BOM**: NEVER write files with a UTF-8 BOM (`\uFEFF` / byte sequence `0xEF, 0xBB, 0xBF`). Standard JSON parsers across Node.js, Electron, Go, Python, and AI IDE engines reject strings starting with `\uFEFF`, causing `"Invalid plugin.json"` errors and manifest load failures.
+- **Windows PowerShell Prevention**: On Windows PowerShell (5.1), default `Set-Content` and `Out-File` write UTF-8 with BOM by default. Always write files without BOM using Node.js `fs.writeFileSync(file, text, "utf8")`, PowerShell 7 `-Encoding utf8NoBOM`, or `[System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding($false)))`.
+

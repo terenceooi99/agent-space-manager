@@ -43,7 +43,8 @@
       "logFailures": true,
       "toolsRoot": "",
       "hubConfig": null,
-      "omnirouteRequest": null
+      "omnirouteRequest": null,
+      "connectRequest": null
     },
     "optionsExample": {
       "smartMiddlewareEnabled": true,

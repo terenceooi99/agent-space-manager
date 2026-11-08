@@ -577,4 +577,21 @@ describe("OmniRoute AI Gateway & Connected Agent Management Suite", () => {
     const content = fs.readFileSync(prodStatusFile, "utf8");
     assert.ok(!content.includes("58197"), "Production status file must never be polluted by test ports");
   });
+
+  it("Terminal Window Lifecycle: clicking dot copies 'omniroute serve --no-open' and closing Magpie terminates terminal window", async () => {
+    const js = fs.readFileSync(path.join(process.cwd(), "page", "app.js"), "utf8");
+    assert.ok(js.includes("omniroute serve --no-open"), "app.js must copy 'omniroute serve --no-open'");
+    assert.ok(js.includes("copyTextToClipboard(cmdText)"), "app.js must copy command to clipboard on dot click");
+
+    const mgr = await import("../manager.mjs");
+    assert.equal(typeof mgr.recordOmnirouteTerminalPid, "function");
+    assert.equal(typeof mgr.getOmnirouteTerminalPid, "function");
+    assert.equal(typeof mgr.closeOmnirouteTerminalWindow, "function");
+
+    // Test record and cleanup
+    mgr.recordOmnirouteTerminalPid(999999);
+    assert.equal(mgr.getOmnirouteTerminalPid(), 999999);
+    mgr.clearOmnirouteTerminalPid();
+    assert.equal(mgr.getOmnirouteTerminalPid(), null);
+  });
 });

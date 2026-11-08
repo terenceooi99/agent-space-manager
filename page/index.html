@@ -8,6 +8,7 @@
   <script src="_magpie/bridge.js"></script>
   <script src="plugins-cache.js?v=1.2.6" defer></script>
   <script src="omniroute-status.js?v=1.2.6" defer></script>
+  <script src="connect-status.js?v=1.2.6" defer></script>
   <script src="app.js?v=1.2.6" defer></script>
 </head>
 <body>
@@ -22,7 +23,7 @@
       <div class="omniroute-capsule" id="omnirouteCapsule" title="OmniRoute AI Gateway & Proxy (Default initial password: CHANGEME)">
         <span class="omniroute-label">Omniroute:</span>
         <a href="http://localhost:20128" target="_blank" rel="noopener noreferrer" id="omniroutePortLink" class="omniroute-port" title="Click to copy link to clipboard (Default password: CHANGEME)">20128</a>
-        <span id="omnirouteStatusDot" class="status-dot dot-gray" title="Click to refresh OmniRoute status (Default password: CHANGEME)"></span>
+        <span id="omnirouteStatusDot" class="status-dot dot-gray" title="Click dot to copy & run 'omniroute serve --no-open' in Command Prompt (Default password: CHANGEME)"></span>
       </div>
 
       <div class="feature-toggle-widget">
@@ -128,7 +129,7 @@
       <div class="prompt-desc">
         Ask your AI agent to enforce standard layouts, record upstream links, and install rules for component addendum/edits.
       </div>
-      <button type="button" class="btn-copy-prompt" id="btnCopyStoragePrompt" title="Copy prompt for your AI agent to standardize Components Storage file structure, enforce upstream links, clean up plugins, and install rules">Copy Prompt (V1.1)</button>
+      <button type="button" class="btn-copy-prompt" id="btnCopyStoragePrompt" title="Copy prompt for your AI agent to standardize Components Storage file structure, enforce upstream links, clean up plugins, enforce UTF-8 No BOM encoding, and install rules">Copy Prompt (V1.2)</button>
     </div>
     
     <!-- Tile 4: Gateway Tool Optimization (Adjustable Cap with "Default" button) -->

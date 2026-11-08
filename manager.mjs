@@ -57,6 +57,11 @@ export {
   resolveEffectiveProjectPaths,
 };
 
+export function stripBom(str) {
+  if (typeof str !== "string") return "";
+  return str.charCodeAt(0) === 0xFEFF ? str.slice(1) : str;
+}
+
 /**
  * Resolves the Hub root dynamically:
  * 1. Environment variables AGENT_TOOLS_ROOT or AI_WORKSPACE_DIR
@@ -839,7 +844,8 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
     let manifest = { name: entryName, version: "1.0.0", description: "" };
     if (fs.existsSync(rootManifestPath)) {
       try {
-        manifest = JSON.parse(fs.readFileSync(rootManifestPath, "utf8"));
+        const raw = fs.readFileSync(rootManifestPath, "utf8");
+        manifest = JSON.parse(stripBom(raw));
       } catch {
         manifest.description = "Invalid plugin.json";
       }
@@ -850,7 +856,8 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
     let mcps = [];
     if (hasMcp) {
       try {
-        const mcpData = JSON.parse(fs.readFileSync(path.join(cleanHub, "mcp_config.json"), "utf8"));
+        const raw = fs.readFileSync(path.join(cleanHub, "mcp_config.json"), "utf8");
+        const mcpData = JSON.parse(stripBom(raw));
         if (mcpData.mcpServers) mcps = Object.keys(mcpData.mcpServers);
       } catch {}
       if (mcps.length === 0) mcps = [entryName];
@@ -859,7 +866,8 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
     let hooks = [];
     if (hasHooks) {
       try {
-        const hookData = JSON.parse(fs.readFileSync(path.join(cleanHub, "hooks.json"), "utf8"));
+        const raw = fs.readFileSync(path.join(cleanHub, "hooks.json"), "utf8");
+        const hookData = JSON.parse(stripBom(raw));
         if (Array.isArray(hookData)) hooks = hookData;
         else if (hookData.hooks) hooks = Object.keys(hookData.hooks);
       } catch {}
@@ -1017,7 +1025,8 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
     let manifest = { name: entryName, version: "1.0.0", description: "" };
     if (fs.existsSync(manifestPath)) {
       try {
-        manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        const raw = fs.readFileSync(manifestPath, "utf8");
+        manifest = JSON.parse(stripBom(raw));
       } catch {
         manifest.description = "Invalid plugin.json";
       }
@@ -1034,7 +1043,8 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
     let mcps = [];
     if (hasMcp) {
       try {
-        const mcpData = JSON.parse(fs.readFileSync(path.join(pluginDir, "mcp_config.json"), "utf8"));
+        const raw = fs.readFileSync(path.join(pluginDir, "mcp_config.json"), "utf8");
+        const mcpData = JSON.parse(stripBom(raw));
         if (mcpData.mcpServers) mcps = Object.keys(mcpData.mcpServers);
       } catch {}
       if (mcps.length === 0) mcps = [entryName];
@@ -1043,7 +1053,8 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
     let hooks = [];
     if (hasHooks) {
       try {
-        const hookData = JSON.parse(fs.readFileSync(path.join(pluginDir, "hooks.json"), "utf8"));
+        const raw = fs.readFileSync(path.join(pluginDir, "hooks.json"), "utf8");
+        const hookData = JSON.parse(stripBom(raw));
         if (Array.isArray(hookData)) hooks = hookData;
         else if (hookData.hooks) hooks = Object.keys(hookData.hooks);
       } catch {}
@@ -3878,6 +3889,80 @@ export function getLastOmnirouteStartAttempt() {
 
 let activeOmnirouteStartPromise = null;
 
+let activeOmnirouteTerminalPid = null;
+
+function getTerminalPidFilePath() {
+  try {
+    const base = getHomeDir();
+    return path.join(base, ".omniroute-terminal-pid");
+  } catch {
+    return null;
+  }
+}
+
+export function recordOmnirouteTerminalPid(pid) {
+  if (!pid || isNaN(pid)) return;
+  activeOmnirouteTerminalPid = Number(pid);
+  try {
+    const file = getTerminalPidFilePath();
+    if (file) {
+      fs.writeFileSync(file, String(pid), "utf8");
+    }
+  } catch {}
+}
+
+export function getOmnirouteTerminalPid() {
+  if (activeOmnirouteTerminalPid) return activeOmnirouteTerminalPid;
+  try {
+    const file = getTerminalPidFilePath();
+    if (file && fs.existsSync(file)) {
+      const content = fs.readFileSync(file, "utf8").trim();
+      const num = parseInt(content, 10);
+      if (!isNaN(num) && num > 0) {
+        activeOmnirouteTerminalPid = num;
+        return num;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export function clearOmnirouteTerminalPid() {
+  activeOmnirouteTerminalPid = null;
+  try {
+    const file = getTerminalPidFilePath();
+    if (file && fs.existsSync(file)) {
+      fs.unlinkSync(file);
+    }
+  } catch {}
+}
+
+export function closeOmnirouteTerminalWindow() {
+  const pid = getOmnirouteTerminalPid();
+  clearOmnirouteTerminalPid();
+
+  if (process.platform === "win32") {
+    // 1. Terminate tracked terminal process tree
+    if (pid) {
+      try {
+        execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore", timeout: 4000 });
+      } catch {}
+    }
+    // 2. Terminate any remaining command prompt window with OmniRoute title
+    try {
+      execSync('taskkill /FI "WINDOWTITLE eq OmniRoute (Magpie)*" /T /F', { stdio: "ignore", timeout: 4000 });
+    } catch {}
+  } else if (pid) {
+    try {
+      process.kill(-pid, "SIGTERM");
+    } catch {
+      try {
+        process.kill(pid, "SIGTERM");
+      } catch {}
+    }
+  }
+}
+
 export function startOmniroute(customPort = null, hubConfig = null) {
   if (activeOmnirouteStartPromise) {
     return activeOmnirouteStartPromise;
@@ -3896,39 +3981,65 @@ export function startOmniroute(customPort = null, hubConfig = null) {
       const home = getHomeDir();
       let child;
 
-      // Direct node.exe execution with --no-recovery, without cmd.exe batch wrappers:
-      // - Skips supervisor crash-loop so OmniRoute boots directly and binds port in < 1s
-      // - Eliminates windowsHide/CREATE_NO_WINDOW heuristics that trigger Windows Defender/Antivirus ASR rules
-      // On Windows: Launch via WMI Win32_Process.Create so the process is created
-      // under Windows WMI service (WmiPrvSE.exe), completely detached from caller's
-      // Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) and terminal session boundaries.
-      // Falls back to direct detached node.exe spawn on non-Windows or if WMI fails.
-      if (process.platform === "win32" && cliPath && fs.existsSync(cliPath)) {
-        let launchedViaWmi = false;
+      // Command Prompt Terminal execution:
+      // Spawns visible cmd.exe terminal running 'omniroute serve --no-open'
+      // - Window title set to 'OmniRoute (Magpie)'
+      // - Tracked via PID and window title so that when Magpie closes, the terminal window is also closed
+      const portFlag = port && port !== 20128 ? ` --port ${port}` : "";
+      const cmdToRun = `omniroute serve${portFlag} --no-open --no-recovery`;
+      const terminalTitle = "OmniRoute (Magpie)";
+
+      if (process.platform === "win32") {
+        let launchedInTerminal = false;
         try {
-          const fullCmd = `\\"${nodeBin}\\" \\"${cliPath}\\" serve --port ${port} --no-open --no-tray --no-recovery`;
-          const escaped = fullCmd.replace(/'/g, "''");
-          const psScript = `Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine = '${escaped}'}`;
+          const psScript = `$p = Start-Process cmd.exe -ArgumentList '/k title ${terminalTitle} & set "PATH=%APPDATA%\\npm;%PATH%" & ${cmdToRun}' -PassThru; $p.Id`;
           const out = execSync(`powershell.exe -NoProfile -NonInteractive -Command "${psScript}"`, { encoding: "utf8", timeout: 8000 });
-          if (/0\s*$/m.test(out.trim()) || /ReturnValue\s*:\s*0/i.test(out)) {
-            launchedViaWmi = true;
+          const terminalPid = parseInt(out.trim(), 10);
+          if (!isNaN(terminalPid) && terminalPid > 0) {
+            recordOmnirouteTerminalPid(terminalPid);
+            launchedInTerminal = true;
           }
         } catch {}
 
-        if (!launchedViaWmi) {
-          child = spawn(nodeBin, [
-            cliPath,
-            "serve",
-            "--port", String(port),
-            "--no-open",
-            "--no-tray",
-            "--no-recovery",
-          ], {
-            cwd: home,
-            detached: true,
-            stdio: "ignore",
-            env: { ...process.env, PORT: String(port) },
-          });
+        if (!launchedInTerminal) {
+          try {
+            const childProc = spawn("cmd.exe", ["/c", "start", terminalTitle, "cmd.exe", "/k", `set "PATH=%APPDATA%\\npm;%PATH%" & ${cmdToRun}`], {
+              cwd: home,
+              detached: true,
+              stdio: "ignore",
+            });
+            if (childProc && childProc.pid) {
+              recordOmnirouteTerminalPid(childProc.pid);
+              childProc.unref();
+              launchedInTerminal = true;
+            }
+          } catch {}
+        }
+
+        // Direct node/cli spawn fallback
+        if (!launchedInTerminal) {
+          if (cliPath && fs.existsSync(cliPath)) {
+            child = spawn(nodeBin, [
+              cliPath,
+              "serve",
+              "--port", String(port),
+              "--no-open",
+              "--no-tray",
+              "--no-recovery",
+            ], {
+              cwd: home,
+              detached: true,
+              stdio: "ignore",
+              env: { ...process.env, PORT: String(port) },
+            });
+          } else {
+            child = spawn("cmd.exe", ["/c", "omniroute", "serve", "--port", String(port), "--no-open", "--no-tray", "--no-recovery"], {
+              cwd: home,
+              detached: true,
+              stdio: "ignore",
+              env: { ...process.env, PORT: String(port) },
+            });
+          }
         }
       } else if (cliPath && fs.existsSync(cliPath)) {
         child = spawn(nodeBin, [
@@ -3945,7 +4056,7 @@ export function startOmniroute(customPort = null, hubConfig = null) {
           env: { ...process.env, PORT: String(port) },
         });
       } else {
-        const cmd = process.platform === "win32" ? "omniroute.cmd" : "omniroute";
+        const cmd = "omniroute";
         child = spawn(cmd, ["serve", "--port", String(port), "--no-open", "--no-tray", "--no-recovery"], {
           cwd: home,
           detached: true,
@@ -3995,6 +4106,9 @@ export function startOmniroute(customPort = null, hubConfig = null) {
 
 export function stopOmnirouteSync(customPort = null, hubConfig = null) {
   const port = customPort || getOmniroutePort(hubConfig);
+  try {
+    closeOmnirouteTerminalWindow();
+  } catch {}
   try {
     const cliPath = findOmnirouteCliPath();
     const nodeBin = findNodeBinary();

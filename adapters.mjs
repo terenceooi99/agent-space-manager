@@ -101,7 +101,7 @@ export function ensureBackupOnce(filePath) {
  * Extracts simple YAML frontmatter key/values (e.g. name, description) and Markdown body.
  */
 export function parseMarkdownFrontmatter(raw = "") {
-  const text = String(raw || "");
+  const text = String(raw || "").replace(/^\uFEFF/, "");
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!m) {
     return { frontmatter: {}, body: text.trim() };

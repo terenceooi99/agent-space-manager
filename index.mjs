@@ -2,7 +2,7 @@
 // Magpie Plugin Entrypoint for Agent Space Manager & Smart Middleware
 
 import { onRequest, onResponse } from "./smart-tools.middleware.js";
-import { startApiServer, ensureBackgroundDaemon, handleOmnirouteRequest, runOmnirouteAction } from "./server.mjs";
+import { startApiServer, ensureBackgroundDaemon, handleOmnirouteRequest, runOmnirouteAction, writeConnectStatusFile } from "./server.mjs";
 import {
   loadHubConfig,
   saveHubConfig,
@@ -126,7 +126,18 @@ export const AgentSpaceManagerPlugin = {
         targetIde = hubConfigOrIde;
         opts = targetIdeOrOptions || {};
       }
-      return connectAgent(hubConfig, targetIde, opts);
+      const res = connectAgent(hubConfig, targetIde, opts);
+      try {
+        writeConnectStatusFile({
+          success: res.success !== false,
+          targetId: targetIde?.id || targetIde?.agentType,
+          targetName: targetIde?.name || targetIde?.id,
+          result: res.result || res.sync || res,
+          sync: res.sync || res.result || res,
+          timestamp: Date.now(),
+        });
+      } catch {}
+      return res;
     },
     getPlugins: async (customHubRoot) => {
       if (customHubRoot !== undefined && customHubRoot !== null && customHubRoot !== "") {
