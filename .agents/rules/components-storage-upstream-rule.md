@@ -40,7 +40,7 @@ Every component stored in the Components Storage Path MUST adhere to the standar
 │   ├── handoff/              # Cross-agent delegation and task handoff inboxes
 │   │   └── <agent-id>/       # Target agent inbox queue
 │   ├── _upstream_backups/    # Pre-update backups and component snapshots
-│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation (e.g. omniroute, stagehand)
+│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation; named after joining skills (e.g. stagehand-fastcrw)
 ├── skills/           # Standalone or migrated skills
 ├── hub-config.json   # Hub configuration
 ├── plugins.json      # Discovered/registered plugins index
@@ -54,7 +54,7 @@ The `<Components Storage Path>/shared` folder serves as the centralized cross-ag
 1. **`agent-connectors.json`**: Global registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
 2. **`handoff/`**: Inter-agent handoff queues. Enables asynchronous task delegation and context packet transfers between agents across different IDEs.
 3. **`_upstream_backups/`**: Centralized safety backups created prior to weekly upstream component updates or synchronization runs.
-4. **Shared Tooling & Engines**: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication.
+4. **Shared Tooling & Skill-Naming Convention**: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication. Any subfolder created in `shared/` for joint or multi-skill tooling **MUST be named after the joining skills** (e.g. `stagehand-fastcrw` representing the joined capability of `stagehand` and `fastcrw`, `omniroute`).
 5. **Preservation Invariant**: NEVER treat the `shared/` directory or its internal files as loose components, and never delete or clear user-managed handoffs or shared configs during plugin cleanup.
 
 ---

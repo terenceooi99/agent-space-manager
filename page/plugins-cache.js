@@ -1,7 +1,7 @@
 window.__PLUGINS_CACHE__ = {
   "path": "",
   "count": 14,
-  "updatedAt": 1794241963534,
+  "updatedAt": 1794242381220,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -2584,8 +2584,8 @@ window.__PLUGINS_CACHE__ = {
         {
           "name": "run_stagehand.mjs",
           "relPath": "agent/run_stagehand.mjs",
-          "size": 5890,
-          "mtime": 1794156537227
+          "size": 7056,
+          "mtime": 1794241967638
         },
         {
           "name": "mcp_config.json",

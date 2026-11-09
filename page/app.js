@@ -3283,7 +3283,7 @@ Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, o
 │   ├── handoff/              # Cross-agent delegation and task handoff inboxes
 │   │   └── <agent-id>/       # Target agent inbox queue
 │   ├── _upstream_backups/    # Pre-update backups and component snapshots
-│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation (e.g. omniroute, stagehand)
+│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation; subfolders are named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw, omniroute)
 ├── skills/           # Standalone or migrated skills
 ├── hub-config.json   # Hub configuration
 ├── plugins.json      # Discovered/registered plugins index
@@ -3294,7 +3294,7 @@ The shared directory serves as the centralized cross-agent IPC, discovery, and s
 - agent-connectors.json: Global discovery registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
 - handoff/: Inter-agent handoff queues. Enables asynchronous task delegation and context packet transfers between agents across different IDEs.
 - _upstream_backups/: Centralized safety backups created prior to weekly upstream component updates or synchronization runs.
-- Shared Tooling & State: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication.
+- Shared Tooling & State Subfolder Naming: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication. Any subfolder created in shared/ for collaborating skills MUST be named after the joining skills (e.g. \`stagehand-fastcrw\` representing the joint operation of \`stagehand\` and \`fastcrw\`).
 - Invariant: Never treat the shared/ directory or its internal files as loose components, and never delete or clear user-managed handoffs or shared configs during plugin cleanup.
 
 3. Mandatory Upstream Links:
@@ -3339,7 +3339,7 @@ Install and persist a dedicated rule in your agent's rule system (e.g. .agents/r
 - Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
 - Rule Invariant 5: Never write files with a UTF-8 BOM header; always enforce UTF-8 No BOM encoding.
 - Rule Invariant 6: One-Time Rearrangement Stability — if file rearrangement was already performed once, never rearrange or move existing structure again on subsequent prompt runs unless explicitly requested by the user.
-- Rule Invariant 7: Universal Shared Directory Preservation — preserve <Components Storage Path>/shared (agent-connectors.json, handoff/, _upstream_backups/) as the designated cross-agent communication and data hub; never treat it as an orphaned or removable plugin.
+- Rule Invariant 7: Universal Shared Directory Preservation & Naming — preserve <Components Storage Path>/shared (agent-connectors.json, handoff/, _upstream_backups/) as the designated cross-agent communication and data hub; never treat it as an orphaned or removable plugin; any subfolders in shared/ must be named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw).
 
 Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components, preserve the shared/ cross-agent folder, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
 

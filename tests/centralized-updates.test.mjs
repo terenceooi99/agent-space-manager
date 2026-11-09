@@ -254,6 +254,7 @@ test("Centralized Weekly Monday Upstream Update Suite", async (t) => {
     assert.ok(content.includes("Copy Prompt (${STORAGE_PROMPT_VERSION})"), "Button must show Copy Prompt (V1.4)");
     assert.ok(content.includes("One-Time Rearrangement Stability"), "Prompt must include One-Time Rearrangement Stability");
     assert.ok(content.includes("Shared Folder Specification") || content.includes("shared/"), "Prompt must include universal shared folder structure");
+    assert.ok(content.includes("stagehand-fastcrw") && content.includes("joining skills"), "Prompt must specify subfolder naming after joining skills");
 
     // 6. Index.html must display V1.4 on button
     const htmlPath = path.resolve("page", "index.html");
