@@ -26,11 +26,14 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
       assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin")), true);
       assert.equal(fs.existsSync(path.join(agyConfig, "beta-plugin")), false);
 
-      // Flattened global skills, rules, and subagents are also synced into ~/.gemini/config/{skills,rules,agents}
-      // so Antigravity's `/` slash menu and `@` mentions discover all enabled components (including root skills)
+      // In bundle mode (Antigravity), skills bundled inside enabled plugins (like alpha-plugin/skills/code-review)
+      // are accessed directly from the plugin bundle directory to avoid appearing twice in Antigravity.
+      // Standalone root skills (e.g. skills/standalone-skill) are synced into ~/.gemini/config/skills/<skill-name>.
+      // Enabled rules & subagents are synced into ~/.gemini/config/{rules,agents} for `@` mentions.
       const geminiSkillsDir = path.join(sb.home, ".gemini", "config", "skills");
-      assert.equal(fs.existsSync(path.join(geminiSkillsDir, "code-review", "SKILL.md")), true);
-      assert.equal(fs.existsSync(path.join(geminiSkillsDir, "standalone-skill", "SKILL.md")), true);
+      assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin", "skills", "code-review", "SKILL.md")), true, "Skill must exist inside plugin bundle");
+      assert.equal(fs.existsSync(path.join(geminiSkillsDir, "code-review", "SKILL.md")), false, "Bundled skill must not be duplicated into config/skills");
+      assert.equal(fs.existsSync(path.join(geminiSkillsDir, "standalone-skill", "SKILL.md")), true, "Standalone root skill must be synced to config/skills");
       assert.equal(fs.existsSync(path.join(geminiSkillsDir, "deploy-helper", "SKILL.md")), false);
       assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "rules", "alpha-style.md")), true);
       assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "agents", "reviewer.md")), true);
@@ -39,7 +42,7 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
       const resEmpty = m.syncIdePlugins(ide, []);
       assert.equal(resEmpty.success, true);
       assert.equal(fs.existsSync(path.join(agyConfig, "alpha-plugin")), false);
-      assert.equal(fs.existsSync(path.join(geminiSkillsDir, "code-review", "SKILL.md")), false);
+      assert.equal(fs.existsSync(path.join(geminiSkillsDir, "standalone-skill", "SKILL.md")), false);
       assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "agents", "reviewer.md")), false);
     } finally {
       sb.cleanup();
@@ -125,11 +128,11 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
       assert.equal(fs.existsSync(path.join(alphaPluginDir, ".asm-owned.json")), true, "Must have .asm-owned marker");
       assert.equal(fs.existsSync(path.join(alphaPluginDir, "plugin.json")), true, "Must have real plugin.json");
 
-      const flattenedSkillDir = path.join(sb.home, ".gemini", "config", "skills", "code-review");
-      const skillStat = fs.lstatSync(flattenedSkillDir);
-      assert.equal(skillStat.isDirectory(), true, "Flattened skill must be a real directory");
-      assert.equal(skillStat.isSymbolicLink(), false, "Flattened skill must not be a top-level junction");
-      assert.equal(fs.existsSync(path.join(flattenedSkillDir, "SKILL.md")), true, "Must have real SKILL.md");
+      const standaloneSkillDir = path.join(sb.home, ".gemini", "config", "skills", "standalone-skill");
+      const skillStat = fs.lstatSync(standaloneSkillDir);
+      assert.equal(skillStat.isDirectory(), true, "Standalone skill must be a real directory");
+      assert.equal(skillStat.isSymbolicLink(), false, "Standalone skill must not be a top-level junction");
+      assert.equal(fs.existsSync(path.join(standaloneSkillDir, "SKILL.md")), true, "Must have real SKILL.md");
 
       // Verify communication files written in hub
       m.syncAllIdes({ hubRoot: sb.hub, ides: [ide], projects: [] }, plugins);
@@ -148,7 +151,7 @@ describe("Feature 3 & 6: Antigravity Bundle Sync, Unlinking & Foreign Link Prese
       // Test complete unlinking when agent is removed
       m.unlinkAllForIde(ide);
       assert.equal(fs.existsSync(alphaPluginDir), false, "All plugin bundle folders must be completely removed");
-      assert.equal(fs.existsSync(flattenedSkillDir), false, "All flattened skill folders must be completely removed");
+      assert.equal(fs.existsSync(standaloneSkillDir), false, "All standalone skill folders must be completely removed");
       assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "rules", "alpha-style.md")), false);
       assert.equal(fs.existsSync(path.join(sb.home, ".gemini", "config", "agents", "reviewer.md")), false);
     } finally {

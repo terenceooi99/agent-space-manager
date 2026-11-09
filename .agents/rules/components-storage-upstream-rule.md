@@ -18,26 +18,48 @@ This rule applies **ALWAYS** and is specifically enforced whenever:
 
 ---
 
-## 2. Standard Plugin Directory Structure
-Every component stored in the Components Storage Path MUST adhere to the standard plugin specification:
+## 2. Standard Directory & Plugin Structure
+Every component stored in the Components Storage Path MUST adhere to the standard specification, which houses plugins, optional standalone skills, hub metadata, and a shared cross-agent communication/data directory:
 
 ```
-plugins/<plugin-name>/
-├── plugin.json       # Required marker & manifest (must include "upstream" source URL)
-├── mcp_config.json   # Optional MCP server definitions
-├── hooks.json        # Optional hooks definition
-├── skills/           # Optional skills directory
-│   └── <upstream GitHub name/self (if self created)-skill-name>/
-│       └── SKILL.md  # Must include upstream: <url> in YAML frontmatter
-├── agents/           # Optional subagent definition templates
-│   └── <upstream GitHub name/self (if self created)-agent-name>.md  # Must include upstream in frontmatter
-└── rules/            # Optional rules directory
-    └── <upstream GitHub name/self (if self created)-rule-name>.md    # Must include upstream in frontmatter
+<Components Storage Path>/
+├── plugins/          # Standard plugin directory
+│   └── <plugin-name>/
+│       ├── plugin.json       # Required marker & manifest (must include "upstream" source URL)
+│       ├── mcp_config.json   # Optional MCP server definitions
+│       ├── hooks.json        # Optional hooks definition
+│       ├── skills/           # Optional skills directory
+│       │   └── <upstream GitHub name/self (if self created)-skill-name>/
+│       │       └── SKILL.md  # Must include upstream: <url> in YAML frontmatter
+│       ├── agents/           # Optional subagent definition templates
+│       │   └── <upstream GitHub name/self (if self created)-agent-name>.md  # Must include upstream in frontmatter
+│       └── rules/            # Optional rules directory
+│           └── <upstream GitHub name/self (if self created)-rule-name>.md    # Must include upstream in frontmatter
+├── shared/           # Cross-agent IPC, discovery registry, handoff, and shared tools directory
+│   ├── agent-connectors.json # Cross-agent messaging and discovery registry (active IDE agents & capabilities)
+│   ├── handoff/              # Cross-agent delegation and task handoff inboxes
+│   │   └── <agent-id>/       # Target agent inbox queue
+│   ├── _upstream_backups/    # Pre-update backups and component snapshots
+│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation (e.g. omniroute, stagehand)
+├── skills/           # Standalone or migrated skills
+├── hub-config.json   # Hub configuration
+├── plugins.json      # Discovered/registered plugins index
+└── skills.json       # Discovered/registered skills index
 ```
 
 ---
 
-## 3. Mandatory Upstream Links
+## 3. Shared Directory Specification (`shared/`)
+The `<Components Storage Path>/shared` folder serves as the centralized cross-agent IPC, discovery, and shared coordination layer across all supported AI coding agents (Antigravity, Cursor, Windsurf, Claude Code, OpenCode, VS Code Copilot, etc.):
+1. **`agent-connectors.json`**: Global registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
+2. **`handoff/`**: Inter-agent handoff queues. Enables asynchronous task delegation and context packet transfers between agents across different IDEs.
+3. **`_upstream_backups/`**: Centralized safety backups created prior to weekly upstream component updates or synchronization runs.
+4. **Shared Tooling & Engines**: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication.
+5. **Preservation Invariant**: NEVER treat the `shared/` directory or its internal files as loose components, and never delete or clear user-managed handoffs or shared configs during plugin cleanup.
+
+---
+
+## 4. Mandatory Upstream Links
 Whenever saving, installing, or modifying components:
 1. **Plugins (`plugins/<plugin-name>/plugin.json`)**:
    Must include an `"upstream"` property containing the official GitHub repository URL, package URL, or source link where the plugin originated:

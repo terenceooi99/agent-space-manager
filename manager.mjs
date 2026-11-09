@@ -1433,9 +1433,18 @@ export function syncIdePlugins(ide, allPlugins = []) {
         }
       }
 
-      // Sync flattened skills into ~/.gemini/config/skills/<skill-name>
+      // In bundle mode (e.g. Antigravity), skills that belong to an enabled plugin bundle
+      // are already discovered from bundleDir/<plugin>/skills/<skill-name>.
+      // Linking them AGAIN into geminiSkillsDir causes them to appear twice in Antigravity!
+      // Therefore, only standalone root skills (not bundled inside an enabled plugin) should be flattened into geminiSkillsDir.
+      const standaloneSkills = components.skills.filter((s) => {
+        const parentPlugin = allPlugins.find((p) => p.id === s.pluginId);
+        return !parentPlugin || Boolean(parentPlugin.isRootSkills);
+      });
+
+      // Sync standalone skills into ~/.gemini/config/skills/<skill-name>
       const skillSync = syncFlattenedSkills(
-        components.skills,
+        standaloneSkills,
         geminiSkillsDir,
         prevSkillLinks,
         createJunction,

@@ -3248,7 +3248,7 @@
     }
 
     // Standardize Storage Structure Prompt Copy Button (with version display)
-    const STORAGE_PROMPT_VERSION = "V1.3";
+    const STORAGE_PROMPT_VERSION = "V1.4";
     const btnCopyPrompt = $("btnCopyStoragePrompt");
     if (btnCopyPrompt) {
       const originalText = `Copy Prompt (${STORAGE_PROMPT_VERSION})`;
@@ -3260,24 +3260,44 @@
 
         const promptText = `[Components Storage Specification & Upstream Rules Prompt ${STORAGE_PROMPT_VERSION}]
 
-Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, enforce UTF-8 without BOM encoding, respect one-time rearrangement stability, and install a persistent agent rule:
+Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, enforce UTF-8 without BOM encoding, respect one-time rearrangement stability, define universal shared folder specifications, and install a persistent agent rule:
 
 ${targetPathHeader}1. Directory Structure Specification:
-A plugin is a directory containing a required manifest file (plugin.json) and optional subdirectories for customizations:
+Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, optional standalone skills, hub configuration, and a shared cross-agent communication/data directory:
 
-plugins/<plugin-name>/
-├── plugin.json       # Required manifest file (must include "upstream" source URL)
-├── mcp_config.json   # Optional MCP server definitions
-├── hooks.json        # Optional hooks definition
-├── skills/           # Optional skills directory
-│   └── <upstream GitHub name/self (if self created)-skill-name>/
-│       └── SKILL.md  # Must include upstream: <url> in YAML frontmatter
-├── agents/           # Optional subagent definition templates
-│   └── <upstream GitHub name/self (if self created)-agent-name>.md  # Must include upstream in frontmatter
-└── rules/            # Optional rules directory
-    └── <upstream GitHub name/self (if self created)-rule-name>.md    # Must include upstream in frontmatter
+<Components Storage Path>/
+├── plugins/          # Standard plugin directory
+│   └── <plugin-name>/
+│       ├── plugin.json       # Required manifest file (must include "upstream" source URL)
+│       ├── mcp_config.json   # Optional MCP server definitions
+│       ├── hooks.json        # Optional hooks definition
+│       ├── skills/           # Optional skills directory
+│       │   └── <upstream GitHub name/self (if self created)-skill-name>/
+│       │       └── SKILL.md  # Must include upstream: <url> in YAML frontmatter
+│       ├── agents/           # Optional subagent definition templates
+│       │   └── <upstream GitHub name/self (if self created)-agent-name>.md  # Must include upstream in frontmatter
+│       └── rules/            # Optional rules directory
+│           └── <upstream GitHub name/self (if self created)-rule-name>.md    # Must include upstream in frontmatter
+├── shared/           # Cross-agent IPC, discovery registry, handoff, and shared tools directory
+│   ├── agent-connectors.json # Cross-agent messaging and discovery registry (active IDE agents & capabilities)
+│   ├── handoff/              # Cross-agent delegation and task handoff inboxes
+│   │   └── <agent-id>/       # Target agent inbox queue
+│   ├── _upstream_backups/    # Pre-update backups and component snapshots
+│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation (e.g. omniroute, stagehand)
+├── skills/           # Standalone or migrated skills
+├── hub-config.json   # Hub configuration
+├── plugins.json      # Discovered/registered plugins index
+└── skills.json       # Discovered/registered skills index
 
-2. Mandatory Upstream Links:
+2. Shared Folder Specification (<Components Storage Path>/shared):
+The shared directory serves as the centralized cross-agent IPC, discovery, and shared coordination layer across all supported AI coding agents (Antigravity, Cursor, Windsurf, Claude Code, OpenCode, VS Code Copilot, etc.):
+- agent-connectors.json: Global discovery registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
+- handoff/: Inter-agent handoff queues. Enables asynchronous task delegation and context packet transfers between agents across different IDEs.
+- _upstream_backups/: Centralized safety backups created prior to weekly upstream component updates or synchronization runs.
+- Shared Tooling & State: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication.
+- Invariant: Never treat the shared/ directory or its internal files as loose components, and never delete or clear user-managed handoffs or shared configs during plugin cleanup.
+
+3. Mandatory Upstream Links:
 For EVERY component (plugin, skill, rule, agent, MCP) installed in Components Storage Path:
 - Identify and record the upstream source link (GitHub repository URL, official documentation URL, or author registry link) where the component was saved or fetched from:
   * In plugin.json: Include "upstream": "https://github.com/<owner>/<repo>" (or source repository URL).
@@ -3285,7 +3305,7 @@ For EVERY component (plugin, skill, rule, agent, MCP) installed in Components St
   * In rules (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
   * In agents (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
 
-3. Complete Plugin Removal & Cleanup:
+4. Complete Plugin Removal & Cleanup:
 When the user asks to remove, delete, or uninstall a plugin:
 - Remove the plugin directory itself (plugins/<plugin-name>/).
 - Concurrently remove ALL components related to that plugin across Components Storage and connected agent configs:
@@ -3296,31 +3316,32 @@ When the user asks to remove, delete, or uninstall a plugin:
   * Associated hooks in hooks.json and their bridged hook entries.
 - Ensure no orphaned components, dangling junctions/symlinks, or ghost configuration entries associated with the removed plugin remain.
 
-4. Centralized Weekly Update Checking (No Decentralized Scripts):
+5. Centralized Weekly Update Checking (No Decentralized Scripts):
 - Remove and DO NOT create individual, local, or decentralized update scripts (such as update_checker.mjs or update_check_state.json) inside component folders.
 - Update checking for all components in Components Storage Path is centralized once per week in this Agent Space Manager plugin (running automatically on the first day starting on Monday whenever the user starts up Magpie).
 - Prune any obsolete local component update checking scripts or decentralized state files.
 
-5. Mandatory File Encoding (Strict UTF-8 Without BOM):
+6. Mandatory File Encoding (Strict UTF-8 Without BOM):
 - ALL manifest and configuration files (plugin.json, mcp_config.json, hooks.json, SKILL.md, and *.md) MUST be written strictly in standard UTF-8 without Byte Order Mark (UTF-8 No BOM).
 - NEVER output or save files with a UTF-8 BOM (\\uFEFF or byte sequence 0xEF, 0xBB, 0xBF). A BOM header corrupts JSON parsing across IDEs and tools, leading to "Invalid plugin.json" errors.
 - If executing file writes via Windows PowerShell (5.1), avoid standard Out-File or Set-Content defaults; always write without BOM using Node.js fs.writeFileSync(path, content, "utf8"), PowerShell 7 -Encoding utf8NoBOM, or [System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding($false))).
 
-6. One-Time Rearrangement Stability:
+7. One-Time Rearrangement Stability:
 - If the rearrangement of the file structure in Components Storage Path has already been executed once using this prompt, STOP rearranging or moving existing directory/file structures on subsequent runs unless the user explicitly requests a rearrangement.
 - Preserve already-organized components in their current locations to prevent directory churn and broken path references.
 
-7. Mandatory Persistent Agent Rule:
+8. Mandatory Persistent Agent Rule:
 Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
 - Rule Trigger: Addendum, creation, edit, or removal of any component in Components Storage Path.
-- Rule Invariant 1: Ensure strict compliance with the plugin directory structure above.
+- Rule Invariant 1: Ensure strict compliance with the plugin directory and shared/ directory structures above.
 - Rule Invariant 2: Always add and preserve the upstream link in the component's manifest or frontmatter.
 - Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) must also be cleanly removed with no orphaned leftovers.
 - Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
 - Rule Invariant 5: Never write files with a UTF-8 BOM header; always enforce UTF-8 No BOM encoding.
 - Rule Invariant 6: One-Time Rearrangement Stability — if file rearrangement was already performed once, never rearrange or move existing structure again on subsequent prompt runs unless explicitly requested by the user.
+- Rule Invariant 7: Universal Shared Directory Preservation — preserve <Components Storage Path>/shared (agent-connectors.json, handoff/, _upstream_backups/) as the designated cross-agent communication and data hub; never treat it as an orphaned or removable plugin.
 
-Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
+Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components, preserve the shared/ cross-agent folder, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
 
         let copied = false;
         if (navigator.clipboard && navigator.clipboard.writeText) {
