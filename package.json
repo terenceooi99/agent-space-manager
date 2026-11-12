@@ -21,9 +21,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test --test-reporter=spec \"tests/*.test.mjs\"",
+    "test": "node --test --test-reporter=spec tests/*.test.mjs",
     "test:relevant": "node --test --test-reporter=spec",
-    "test:report": "node --test --test-reporter=junit --test-reporter-destination=tests/report.xml \"tests/*.test.mjs\"",
+    "test:report": "node --test --test-reporter=junit --test-reporter-destination=tests/report.xml tests/*.test.mjs",
     "test:universal": "node --test --test-reporter=spec tests/any-condition-usability.test.mjs"
   },
   "keywords": [
