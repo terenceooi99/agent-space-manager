@@ -6,58 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
-## [1.2.1] - 2026-11-08
-
-### Changed
-- **Copy Prompt V1.1 (Plugin Removal Cleanup)**: Updated Copy Prompt from `V1.0` to `V1.1` to enforce complete removal cleanup — when a user asks to remove a plugin, all associated components (skills, subagents, rules, MCP servers, and hooks) across Components Storage and connected agent configs are cleanly removed without leaving orphaned files or ghost settings.
-- **Components Storage Upstream & Removal Rule**: Updated [`.agents/rules/components-storage-upstream-rule.md`](file:///d:/Software/Magpie/agent-space-manager/.agents/rules/components-storage-upstream-rule.md) and the `pluginmanagement` skill to include invariant 3 for complete plugin removal cleanup and trigger on component removals.
-- **Dashboard UI Display**: Updated copy prompt button in `index.html` and `app.js` to show `Copy Prompt (V1.1)`.
-
----
-
-## [1.2.0] - 2026-10-31
+## [1.0.0] - 2026-11-12
 
 ### Added
-- **Centralized Weekly Upstream Checking**: Added centralized update checking for all components in Components Storage Path via `/api/central-update-check` and startup hooks, running once per week on Monday cycles whenever Magpie boots up.
-- **Decentralized Updater Pruning**: Added `removeComponentUpdateMechanisms()` to automatically find and purge legacy or decentralized update scripts (`update_checker.mjs`, `update_check_state.json`) from component directories.
-- **Copy Prompt Versioning**: Introduced versioned prompt specification (`V1.0`) with dynamic label display on the copy button (`Copy Prompt (V1.0)`).
-- **Persistent Agent Upstream Rule**: Installed [`.agents/rules/components-storage-upstream-rule.md`](.agents/rules/components-storage-upstream-rule.md) enforcing standard plugin directory layouts, mandatory upstream source links, and centralized Monday update checking on all component addendums and edits.
-- **On-Disk Physical Workability Verification**: Added `verifyPluginWorkabilityOnDisk()` to verify physical directory and file presence before confirming agent readiness.
-- **Workability Status Dots & Quick Actions**: Added green/red interactive status indicators and auto-detection of slash commands and `@` mentions for enabled components.
-- **Components Storage Snapshot Fingerprinting**: SHA-256 canonical hashing of component storage directories to automatically detect external additions, edits, or removals and auto-reconnect configured agents on startup.
-
-### Changed
-- **Copy Prompt Button**: Display now shows `Copy Prompt (V1.0)` with automated 2-second copy feedback state and reset handling.
-- **Plugins Cache Hygiene**: Sanitized fallback plugins cache to keep machine paths isolated and avoid repo pollution.
-
-### Fixed
-- **Universal Components Path Discovery**: Fixed `⚠️ Directory not found or contains 0 components` error across all path variants entered into Components Storage Path (`#hubPathInput`), including paths with surrounding double/single quotes, trailing slashes, single plugin folders, standalone skills directories, and direct multi-component roots.
-- **Magpie Host Scan API Alignment**: Exposed `scanPlugins` alongside `getPlugins` in plugin IPC API (`index.mjs`) and added IPC fallbacks and 10000ms fetch timeout guards in `page/app.js`.
-- **Packaging Cache Match Invariant**: Relaxed fallback matching in `apiClient.getPlugins` to align clean empty path baselines (`path: ""`) with default hub storage directories and cached components.
-- **NTFS Reparse Point Compatibility**: Materialized real physical directories for Antigravity plugin bundles on Windows to bypass Go runtime `os.ReadDir` junction traversal issues.
-- **Config Sanitization**: Proactively pruned 0-byte JSON files and empty `{}` stubs lacking required `"id"` fields to eliminate background Language Server crash loops.
-
----
-
-## [1.1.0] - 2026-10-25
-
-### Added
-- **Universal Cross-Platform Resolution**: Added support for standard XDG, macOS Application Support, and Windows AppData directory resolutions across all agents.
-- **Two-Step Non-Blocking Confirmations**: Replaced synchronous native browser dialogs with 2-step inline button confirmations with auto-reset timers for WebView2 and desktop host stability.
-- **Process Protection Invariant**: Prohibited forceful `taskkill /F` and `SIGKILL` signals against primary GUI code editors (Antigravity, Cursor, Windsurf, VS Code, OpenCode).
-
-### Changed
-- Decoupled configuration saving (`saveHubConfig`) from active bridge generation (`connectAgent`).
-
----
-
-## [1.0.0] - 2026-10-18
-
-### Added
-- **Universal Multi-Agent Bridging**: Initial release supporting 13+ AI environments (Antigravity, Claude Code, Cursor, Windsurf, VS Code Copilot, Codex CLI, OpenCode, Kiro, Cline, Roo Code).
-- **Smart Middleware Gateway**: Intent-based tool filtering and configurable tool caps (default: 96) protecting LLM context windows against tool bloat.
-- **Git Exclude Protection**: Automatic synchronization of bridged directories into `.git/info/exclude`.
-- **Atomic Backups & Ownership Tracking**: Implemented `.asm-owned.json` manifests and `.asm-bak` backups to preserve user-owned files.
+- **Unified Single-Folder Component Management**: Centralized management for all AI component types (**Plugins, MCP Servers, Hooks, Skills, Subagents, and Rules**) in a single Components Storage Path (`~/AI-Agent-Space` or custom directory), with zero file duplication into agent default config folders.
+- **Universal Multi-Agent Bridging (13 Built-In Profiles + Custom)**: Native format adaptation and OS junction/symlink linking for Antigravity, Claude Code, Codex CLI, OpenCode, VS Code / GitHub Copilot, Cursor AI, Windsurf, Gemini CLI, Cline, Roo Code, Kiro, Universal (`~/.agents/skills`), and Custom agents.
+- **Auto-Detection & Per-Component Target Overrides**: Automatic config path discovery via filesystem probes, executables/shortcuts, environment variables, and CLI tools, plus customizable destination paths for Bundles, Skills, Slash Commands, MCPs, Rules, Subagents, and Hooks.
+- **Expandable Discovered Components Registry**: 7-tab category browser (`All`, `Plugins`, `MCPs`, `Hooks`, `Skills`, `Agents`, `Rules`) with live search and 6-type component metrics tiles.
+- **Per-Agent & Per-Project Overrides**: Drag-and-drop IDE/project reordering, project `Clone / Fork`, `.git/info/exclude` protection, `Expand All Files`, live `Rescan Hub` & `Connect` progress modals, and `● Agent Status` workability indicators with slash command (`/`) and `@` mention detection.
+- **Foreign Components Detection & Cleanup**: Scans connected agent default directories for unmanaged components and provides interactive keep/delete cleanup.
+- **Startup Snapshot Fingerprinting & Auto-Reconnect**: SHA-256 canonical storage hashing to detect external changes on startup and automatically re-sync connected agents.
+- **Centralized Weekly Upstream Checking**: Monday startup upstream update checks and automatic pruning of decentralized update scripts (`update_checker.mjs`, `update_check_state.json`).
+- **Smart Middleware Tool Gateway & OmniRoute Integration**: Intent-based tool filtering (`smart-tools.middleware.js`) with configurable tool cap (`10–256`, default `96`), failure diagnostics (`error.log`, `LAST_ERROR.json`, `STATUS.md`), and OmniRoute port `20128` status capsule.
+- **Non-Destructive Ownership & Safety Invariants**: `.asm-owned.json` markers, `~/.agent-space-manager/state/<id>.json` tracking, atomic `.asm-bak` backups, 0-byte/`{}` config sanitization, GUI editor process protection, and WebView2-safe two-step inline confirmations.
+- **Plugin Version Badge & Marketplace Publishing**: Displayed `V1.0.0` badge beside the plugin title and added GitHub Actions workflow (`.github/workflows/publish.yml`) for automated testing and npm marketplace publishing.
 
 ---
 
@@ -87,4 +49,3 @@ This section tracks all revisions to the standardized instructions copied via th
 - **Centralized Weekly Monday Checking**: Directed the agent to remove and prohibit local, decentralized update checking scripts (`update_checker.mjs`, `update_check_state.json`), relying on Agent Space Manager's centralized Monday startup update cycle.
 - **Persistent Rule Installation**: Instructed the user's AI agent to persist a dedicated rule (`.agents/rules/components-storage-upstream-rule.md` or `.cursor/rules/components-storage-upstream-rule.mdc`) triggered whenever an addendum or edit is performed in the Components Storage Path.
 - **Dashboard UI Display**: Updated the dashboard copy button to display `Copy Prompt (V1.0)`.
-

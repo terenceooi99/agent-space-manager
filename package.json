@@ -1,9 +1,25 @@
 {
   "name": "agent-space-manager",
-  "version": "1.2.0",
+  "version": "1.0.0",
   "description": "Universal Agent Space Manager & Dynamic Intent-Based MCP Tool Gateway for Magpie",
   "type": "module",
   "main": "./index.mjs",
+  "files": [
+    "index.mjs",
+    "manager.mjs",
+    "adapters.mjs",
+    "agents.mjs",
+    "server.mjs",
+    "smart-tools.middleware.js",
+    "page/index.html",
+    "page/app.js",
+    "page/style.css",
+    "page/icon.svg",
+    "README.md",
+    "README.zh-CN.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "node --test --test-reporter=spec \"tests/*.test.mjs\"",
     "test:relevant": "node --test --test-reporter=spec",

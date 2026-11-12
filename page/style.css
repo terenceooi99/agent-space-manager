@@ -33,6 +33,24 @@ body {
   gap: 10px;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plugin-version-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--magpie-surface, rgba(128, 128, 128, 0.12));
+  border: 1px solid var(--magpie-border, rgba(128, 128, 128, 0.25));
+  color: var(--magpie-muted, #71717a);
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+
 h1 {
   margin: 0;
   font-size: 20px;
