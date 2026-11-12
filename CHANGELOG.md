@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.1] - 2026-11-12
+
+### Changed
+- **Copy Prompt Duplicate Naming Rule (`page/app.js`)**: Updated the Copy Prompt specification and Rule Invariant 1 to disambiguate coincidental duplicate component names by appending `-1`, `-2`, etc. sequentially (`<name>-1`, `<name>-2`).
+
+---
+
 ## [1.0.0] - 2026-11-12
 
 ### Added
