@@ -141,7 +141,7 @@ export function detectAgentConfigPath(name = "", exePath = "") {
  */
 export function inferNameFromExe(filePath) {
   if (!filePath) return "Agent";
-  const base = path.basename(filePath).replace(/\.(exe|lnk|app|cmd|bat)$/i, "");
+  const base = path.basename(String(filePath).replace(/\\/g, "/")).replace(/\.(exe|lnk|app|cmd|bat)$/i, "");
   const lower = base.toLowerCase();
 
   if (lower === "opencode" || lower.startsWith("opencode")) return "OpenCode";
