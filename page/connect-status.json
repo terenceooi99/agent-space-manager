@@ -1,17 +1,17 @@
 {
   "success": true,
-  "nonce": "1794137962114-ml19d1",
+  "nonce": "1794323286006-ty4p7c",
   "targetId": "antigravity",
   "targetName": "Antigravity (Google)",
   "bridge": {
     "version": "1.0.0",
     "bridgeProtocol": "magpie-asm-v1",
-    "updatedAt": "2026-11-08T11:39:23.573Z",
+    "updatedAt": "2026-11-10T15:08:07.351Z",
     "hubRoot": "D:\\Software\\AI Agent Space",
     "componentCounts": {
-      "plugins": 23,
-      "skills": 143,
-      "mcpServers": 8,
+      "plugins": 14,
+      "skills": 107,
+      "mcpServers": 7,
       "rules": 2,
       "agents": 1,
       "hooks": 0
@@ -66,24 +66,14 @@
           "agentType": "antigravity",
           "mode": "bundle",
           "summary": {
-            "plugins": 3,
-            "skills": 4,
+            "plugins": 1,
+            "skills": 0,
             "rules": 0,
             "agents": 0
           },
           "results": [
             {
-              "plugin": "fastcrw",
-              "action": "linked",
-              "success": true
-            },
-            {
-              "plugin": "lightpanda",
-              "action": "linked",
-              "success": true
-            },
-            {
-              "plugin": "stagehand",
+              "plugin": "ponytail",
               "action": "linked",
               "success": true
             }
@@ -135,24 +125,14 @@
     "agentType": "antigravity",
     "mode": "bundle",
     "summary": {
-      "plugins": 3,
-      "skills": 4,
+      "plugins": 1,
+      "skills": 0,
       "rules": 0,
       "agents": 0
     },
     "results": [
       {
-        "plugin": "fastcrw",
-        "action": "linked",
-        "success": true
-      },
-      {
-        "plugin": "lightpanda",
-        "action": "linked",
-        "success": true
-      },
-      {
-        "plugin": "stagehand",
+        "plugin": "ponytail",
         "action": "linked",
         "success": true
       }
@@ -163,29 +143,19 @@
     "agentType": "antigravity",
     "mode": "bundle",
     "summary": {
-      "plugins": 3,
-      "skills": 4,
+      "plugins": 1,
+      "skills": 0,
       "rules": 0,
       "agents": 0
     },
     "results": [
       {
-        "plugin": "fastcrw",
-        "action": "linked",
-        "success": true
-      },
-      {
-        "plugin": "lightpanda",
-        "action": "linked",
-        "success": true
-      },
-      {
-        "plugin": "stagehand",
+        "plugin": "ponytail",
         "action": "linked",
         "success": true
       }
     ]
   },
   "error": null,
-  "timestamp": 1794137963579
+  "timestamp": 1794323287355
 }

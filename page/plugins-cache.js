@@ -1,7 +1,7 @@
 window.__PLUGINS_CACHE__ = {
   "path": "",
-  "count": 14,
-  "updatedAt": 1794242381220,
+  "count": 13,
+  "updatedAt": 1794482982261,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -189,29 +189,6 @@ window.__PLUGINS_CACHE__ = {
           "relPath": "skills/troubleshooting/SKILL.md",
           "size": 7268,
           "mtime": 1793160824372
-        }
-      ]
-    },
-    {
-      "id": "data-agent-kit-plugin",
-      "name": "data-agent-kit-plugin",
-      "version": "1.0.0",
-      "description": "data-agent-kit-plugin plugin",
-      "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
-      "upstream": "https://github.com/GoogleCloudPlatform/data-agent-kit",
-      "hasMcp": false,
-      "hasHooks": false,
-      "mcps": [],
-      "hooks": [],
-      "skills": [],
-      "rules": [],
-      "agents": [],
-      "files": [
-        {
-          "name": "plugin.json",
-          "relPath": "plugin.json",
-          "size": 198,
-          "mtime": 1794139092913
         }
       ]
     },
@@ -2635,17 +2612,6 @@ window.__PLUGINS_CACHE__ = {
         "description": "Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer",
         "skillsCount": 6,
         "filesCount": 13,
-        "hasMcp": false,
-        "hasHooks": false
-      },
-      {
-        "id": "data-agent-kit-plugin",
-        "name": "data-agent-kit-plugin",
-        "version": "1.0.0",
-        "path": "D:\\Software\\AI Agent Space\\plugins\\data-agent-kit-plugin",
-        "description": "data-agent-kit-plugin plugin",
-        "skillsCount": 0,
-        "filesCount": 1,
         "hasMcp": false,
         "hasHooks": false
       },
