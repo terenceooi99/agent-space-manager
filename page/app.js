@@ -3289,6 +3289,8 @@ Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, o
 ├── plugins.json      # Discovered/registered plugins index
 └── skills.json       # Discovered/registered skills index
 
+Duplicate Naming Collision Rule: If two or more components (plugins, skills, agents, rules, or MCPs) coincidentally have the same name, append \`-1\`, \`-2\`, etc. sequentially (e.g. \`<name>-1\`, \`<name>-2\`) so every component has a unique name without colliding or overwriting.
+
 2. Shared Folder Specification (<Components Storage Path>/shared):
 The shared directory serves as the centralized cross-agent IPC, discovery, and shared coordination layer across all supported AI coding agents (Antigravity, Cursor, Windsurf, Claude Code, OpenCode, VS Code Copilot, etc.):
 - agent-connectors.json: Global discovery registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
@@ -3333,7 +3335,7 @@ When the user asks to remove, delete, or uninstall a plugin:
 8. Mandatory Persistent Agent Rule:
 Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
 - Rule Trigger: Addendum, creation, edit, or removal of any component in Components Storage Path.
-- Rule Invariant 1: Ensure strict compliance with the plugin directory and shared/ directory structures above.
+- Rule Invariant 1: Ensure strict compliance with the plugin directory and shared/ directory structures above, and disambiguate any coincidental duplicate component names by appending -1, -2, etc. sequentially.
 - Rule Invariant 2: Always add and preserve the upstream link in the component's manifest or frontmatter.
 - Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) must also be cleanly removed with no orphaned leftovers.
 - Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
