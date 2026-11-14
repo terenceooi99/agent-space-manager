@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.3] - 2026-11-14
+
+### Added / Changed
+- **Copy Prompt V1.6 (`page/app.js`, `page/index.html`)**: Added **No Duplicate Standalone Copies** rule and updated `Rule Invariant 1` to prevent leaving duplicate standalone copies in root `skills/`, `rules/`, `agents/`, or IDE native directories when a component belongs to a plugin.
+- **Duplicate-Standalone Detection (`manager.mjs`)**: Added `detectDuplicateStandalones` and `upstream`/suffix matching in `scanPlugins`, `buildCategoriesRegistry`, and `syncIde` (bundle and convert modes) to exclude hub-level standalone duplicates and report pre-existing unowned IDE-level duplicates in `conflicts`.
+
+---
+
 ## [1.0.2] - 2026-11-14
 
 ### Added
