@@ -59,9 +59,9 @@ Agent Space Manager 是一个集中式控制平面，旨在**在同一个文件�
 - **SHA-256 存储快照指纹**：对 Components Storage 目录计算确定性规范快照（`getComponentsStorageSnapshot`）。
 - **外部变更自动重连**：启动时若检测到存储目录中存在外部新增、修改或删除，系统将自动重新同步已配置的 Agent，并在顶部展示可关闭的 **Auto-reconnected Connected Agents** 提示横幅。
 
-### 6. 集中式每周上游更新检查与规范提示词 (`Copy Prompt V1.4`)
+### 6. 集中式每周上游更新检查与规范提示词 (`Copy Prompt V1.5`)
 - **集中式每周一更新检查**：每周一启动 Magpie 时集中检查所有已安装组件的上游仓库更新（`/api/central-update-check`），并自动清理分散的本地更新脚本（`update_checker.mjs`、`update_check_state.json`）。
-- **一键复制规范提示词 (`Copy Prompt (V1.4)`)**：在 **Storage & Upstream Rules** 磁贴中一键复制标准化指令，引导你的 AI 助手严格遵守 Hub 目录规范、记录 `upstream` 上游链接、执行完整的插件卸载清理、使用无 BOM 的 UTF-8 编码、保持一次性目录整理稳定性，并保护 `shared/` 跨 Agent 通信目录。
+- **一键复制规范提示词 (`Copy Prompt (V1.5)`)**：在 **Storage & Upstream Rules** 磁贴中一键复制标准化指令，引导你的 AI 助手严格遵守 Hub 目录规范、记录 `upstream` 上游链接、执行完整的插件卸载清理（同步裁剪智能中间件无用意图）、使用无 BOM 的 UTF-8 编码、保持一次性目录整理稳定性、保护 `shared/` 跨 Agent 通信目录，并在 `shared/middleware-intents.json` 中自动生成初始意图并在组件变动时动态增删。
 
 ### 7. 智能中间件工具网关与 OmniRoute 集成
 - **基于意图的动态工具过滤 (`smart-tools.middleware.js`)**：

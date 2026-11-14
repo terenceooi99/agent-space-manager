@@ -40,6 +40,7 @@ Every component stored in the Components Storage Path MUST adhere to the standar
 │   ├── handoff/              # Cross-agent delegation and task handoff inboxes
 │   │   └── <agent-id>/       # Target agent inbox queue
 │   ├── _upstream_backups/    # Pre-update backups and component snapshots
+│   ├── middleware-intents.json # Dynamic user & agent Smart Middleware intent keyword registry
 │   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation; named after joining skills (e.g. stagehand-fastcrw)
 ├── skills/           # Standalone or migrated skills
 ├── hub-config.json   # Hub configuration
@@ -54,8 +55,9 @@ The `<Components Storage Path>/shared` folder serves as the centralized cross-ag
 1. **`agent-connectors.json`**: Global registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
 2. **`handoff/`**: Inter-agent handoff queues. Enables asynchronous task delegation and context packet transfers between agents across different IDEs.
 3. **`_upstream_backups/`**: Centralized safety backups created prior to weekly upstream component updates or synchronization runs.
-4. **Shared Tooling & Skill-Naming Convention**: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication. Any subfolder created in `shared/` for joint or multi-skill tooling **MUST be named after the joining skills** (e.g. `stagehand-fastcrw` representing the joined capability of `stagehand` and `fastcrw`, `omniroute`).
-5. **Preservation Invariant**: NEVER treat the `shared/` directory or its internal files as loose components, and never delete or clear user-managed handoffs or shared configs during plugin cleanup.
+4. **`middleware-intents.json`**: Dynamic user and agent Smart Middleware intent keyword registry. Maps tool patterns to user intent keywords so the tool gateway prioritizes domain tools without exceeding context limits.
+5. **Shared Tooling & Skill-Naming Convention**: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication. Any subfolder created in `shared/` for joint or multi-skill tooling **MUST be named after the joining skills** (e.g. `stagehand-fastcrw` representing the joined capability of `stagehand` and `fastcrw`, `omniroute`).
+6. **Preservation Invariant**: NEVER treat the `shared/` directory or its internal files as loose components, and never delete or clear user-managed handoffs, shared configs, or `middleware-intents.json` during plugin cleanup.
 
 ---
 
@@ -89,7 +91,8 @@ When the user requests removing, deleting, or uninstalling a plugin:
   4. All rules in `plugins/<plugin-name>/rules/` and bridged rule files or managed rule comment sections.
   5. All MCP servers declared in `plugins/<plugin-name>/mcp_config.json` from agent configurations.
   6. All hooks declared in `plugins/<plugin-name>/hooks.json` from agent configurations.
-- Ensure that no dangling symlinks/junctions, orphaned directories, or ghost config entries remain in Components Storage or connected agents.
+  7. All Smart Middleware intent entries in `<Components Storage Path>/shared/middleware-intents.json`: trim and remove the target plugin's intent keywords and tool patterns so no dead or stale intent mappings remain.
+- Ensure that no dangling symlinks/junctions, orphaned directories, ghost config entries, or leftover intent keywords remain in Components Storage or connected agents.
 
 ---
 
@@ -112,4 +115,21 @@ When the user requests removing, deleting, or uninstalling a plugin:
 - **Preserve Existing Structure**: If the rearrangement of the file structure in Components Storage Path has already been executed once using the prompt, the agent must **STOP** rearranging, moving, or reorganizing existing directory/file structures on subsequent runs.
 - **Explicit Request Exception**: Further restructuring of existing folders or components is strictly forbidden unless the user explicitly and specifically requests a file structure rearrangement.
 - **Component Addendum Safety**: New components added afterwards must follow the standard specification without modifying or shifting previously organized components.
+
+---
+
+## 8. Dynamic Smart Middleware Intent Lifecycle (`shared/middleware-intents.json`)
+- **Initial Run Seeding**: On the initial run of the prompt (or whenever `<Components Storage Path>/shared/middleware-intents.json` is missing or does not yet include all currently installed components), inspect all existing plugins in `plugins/` (and their `plugin.json`, `mcp_config.json`, and skill definitions), identify their tool names and capabilities, and generate the initial `shared/middleware-intents.json` personal layer mapping each existing tool to relevant intent keywords and tool patterns.
+- **Intent Registration Invariant**: Whenever adding, creating, or modifying a component providing MCP tools or capabilities, register or update its intent keywords and tool patterns in `<Components Storage Path>/shared/middleware-intents.json`.
+- **Uninstallation Trimming**: Whenever removing or uninstalling any plugin/component, trim and delete its corresponding intent entries from `shared/middleware-intents.json` so no dead or stale tool mappings remain.
+- **Format**:
+  ```json
+  {
+    "<component-or-category>": {
+      "toolPatterns": ["<tool_prefix>", "<tool_name>"],
+      "intentKeywords": ["<keyword1>", "<keyword2>"]
+    }
+  }
+  ```
+- **Rationale**: Keeps the Smart Middleware dynamically optimized and personalized for the user's workflow without modifying the core engine code in `smart-tools.middleware.js`, allowing the core middleware to cleanly receive upstream updates from origin without wiping user settings.
 

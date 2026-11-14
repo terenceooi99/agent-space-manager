@@ -3248,7 +3248,7 @@
     }
 
     // Standardize Storage Structure Prompt Copy Button (with version display)
-    const STORAGE_PROMPT_VERSION = "V1.4";
+    const STORAGE_PROMPT_VERSION = "V1.5";
     const btnCopyPrompt = $("btnCopyStoragePrompt");
     if (btnCopyPrompt) {
       const originalText = `Copy Prompt (${STORAGE_PROMPT_VERSION})`;
@@ -3260,7 +3260,7 @@
 
         const promptText = `[Components Storage Specification & Upstream Rules Prompt ${STORAGE_PROMPT_VERSION}]
 
-Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, enforce UTF-8 without BOM encoding, respect one-time rearrangement stability, define universal shared folder specifications, and install a persistent agent rule:
+Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, enforce UTF-8 without BOM encoding, respect one-time rearrangement stability, define universal shared folder specifications, maintain dynamic Smart Middleware intent rules, and install a persistent agent rule:
 
 ${targetPathHeader}1. Directory Structure Specification:
 Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, optional standalone skills, hub configuration, and a shared cross-agent communication/data directory:
@@ -3283,6 +3283,7 @@ Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, o
 │   ├── handoff/              # Cross-agent delegation and task handoff inboxes
 │   │   └── <agent-id>/       # Target agent inbox queue
 │   ├── _upstream_backups/    # Pre-update backups and component snapshots
+│   ├── middleware-intents.json # Dynamic user & agent Smart Middleware intent keyword registry
 │   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation; subfolders are named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw, omniroute)
 ├── skills/           # Standalone or migrated skills
 ├── hub-config.json   # Hub configuration
@@ -3296,6 +3297,7 @@ The shared directory serves as the centralized cross-agent IPC, discovery, and s
 - agent-connectors.json: Global discovery registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
 - handoff/: Inter-agent handoff queues. Enables asynchronous task delegation and context packet transfers between agents across different IDEs.
 - _upstream_backups/: Centralized safety backups created prior to weekly upstream component updates or synchronization runs.
+- middleware-intents.json: Dynamic intent keyword registry for Smart Middleware. Maps tool patterns (e.g. docker, database, git) to user intent keywords so Smart Middleware dynamically surfaces domain tools without exceeding LLM context limits.
 - Shared Tooling & State Subfolder Naming: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication. Any subfolder created in shared/ for collaborating skills MUST be named after the joining skills (e.g. \`stagehand-fastcrw\` representing the joint operation of \`stagehand\` and \`fastcrw\`).
 - Invariant: Never treat the shared/ directory or its internal files as loose components, and never delete or clear user-managed handoffs or shared configs during plugin cleanup.
 
@@ -3316,7 +3318,8 @@ When the user asks to remove, delete, or uninstall a plugin:
   * Associated rules in rules/ and any bridged rule files or managed rule sections.
   * Associated MCP server definitions in mcp_config.json and their bridged entries.
   * Associated hooks in hooks.json and their bridged hook entries.
-- Ensure no orphaned components, dangling junctions/symlinks, or ghost configuration entries associated with the removed plugin remain.
+  * Associated Smart Middleware intent entries in <Components Storage Path>/shared/middleware-intents.json: trim and remove the plugin's registered intent keywords and tool patterns so no dead or stale intent entries remain for uninstalled tools.
+- Ensure no orphaned components, dangling junctions/symlinks, ghost configuration entries, or leftover intent keywords associated with the removed plugin remain.
 
 5. Centralized Weekly Update Checking (No Decentralized Scripts):
 - Remove and DO NOT create individual, local, or decentralized update scripts (such as update_checker.mjs or update_check_state.json) inside component folders.
@@ -3332,18 +3335,25 @@ When the user asks to remove, delete, or uninstall a plugin:
 - If the rearrangement of the file structure in Components Storage Path has already been executed once using this prompt, STOP rearranging or moving existing directory/file structures on subsequent runs unless the user explicitly requests a rearrangement.
 - Preserve already-organized components in their current locations to prevent directory churn and broken path references.
 
-8. Mandatory Persistent Agent Rule:
+8. Dynamic Smart Middleware Intent Lifecycle & Initial Run Seeding (shared/middleware-intents.json):
+- Initial Run Seeding: On the first initial run of this prompt (or whenever <Components Storage Path>/shared/middleware-intents.json is missing or does not yet include all currently installed components), inspect all existing plugins in plugins/ (and their plugin.json, mcp_config.json, and skill definitions), identify their tool names and capabilities, and generate the initial shared/middleware-intents.json personal layer mapping each existing tool to relevant intent keywords and tool patterns.
+- Component Addendum: Whenever adding or installing new components with tools, register or update their intent keywords and tool patterns in <Components Storage Path>/shared/middleware-intents.json (e.g. {"<category>": {"toolPatterns": ["..."], "intentKeywords": ["..."]}}).
+- Component Removal & Trimming: Whenever removing or uninstalling any plugin/component, trim and delete its corresponding intent entries from shared/middleware-intents.json so no stale or orphaned tool mappings remain.
+- Rationale: Keeps the Smart Middleware dynamic, clean, and user-personalized while keeping the core middleware engine fully updatable from upstream origin.
+
+9. Mandatory Persistent Agent Rule:
 Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
 - Rule Trigger: Addendum, creation, edit, or removal of any component in Components Storage Path.
 - Rule Invariant 1: Ensure strict compliance with the plugin directory and shared/ directory structures above, and disambiguate any coincidental duplicate component names by appending -1, -2, etc. sequentially.
 - Rule Invariant 2: Always add and preserve the upstream link in the component's manifest or frontmatter.
-- Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) must also be cleanly removed with no orphaned leftovers.
+- Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) AND its entries in shared/middleware-intents.json must be cleanly removed and trimmed with no orphaned leftovers.
 - Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
 - Rule Invariant 5: Never write files with a UTF-8 BOM header; always enforce UTF-8 No BOM encoding.
 - Rule Invariant 6: One-Time Rearrangement Stability — if file rearrangement was already performed once, never rearrange or move existing structure again on subsequent prompt runs unless explicitly requested by the user.
-- Rule Invariant 7: Universal Shared Directory Preservation & Naming — preserve <Components Storage Path>/shared (agent-connectors.json, handoff/, _upstream_backups/) as the designated cross-agent communication and data hub; never treat it as an orphaned or removable plugin; any subfolders in shared/ must be named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw).
+- Rule Invariant 7: Universal Shared Directory Preservation & Naming — preserve <Components Storage Path>/shared (agent-connectors.json, handoff/, _upstream_backups/, middleware-intents.json) as the designated cross-agent communication and data hub; never treat it as an orphaned or removable plugin; any subfolders in shared/ must be named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw).
+- Rule Invariant 8: Dynamic Smart Middleware Intent Lifecycle & Seeding — (a) on initial run, seed shared/middleware-intents.json based on all currently existing plugins and tools in Components Storage; (b) when adding new components with tools, register their intent keywords and tool patterns in shared/middleware-intents.json; (c) when removing components, trim and prune their intent entries from shared/middleware-intents.json so the personal layer remains trimmed and accurate.
 
-Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components, preserve the shared/ cross-agent folder, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
+Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components and trim middleware intents, preserve the shared/ cross-agent folder, seed or update tool intent keywords in shared/middleware-intents.json based on existing installed components, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
 
         let copied = false;
         if (navigator.clipboard && navigator.clipboard.writeText) {

@@ -34,7 +34,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 This section tracks all revisions to the standardized instructions copied via the **Copy Prompt** button in the Agent Space Manager dashboard.
 
-## [V1.0] - 2026-10-31
+## [V1.5] - 2026-11-14
+
+### Features & Invariants
+- **Dynamic Smart Middleware Intent Lifecycle (`shared/middleware-intents.json`)**: Added Rule Invariant 8 directing AI agents to register or update intent keywords and tool patterns whenever installing or modifying MCP tools in Components Storage.
+- **Initial Run Seeding**: Mandated that the copy prompt and Smart Middleware automatically scan existing installed plugins/tools in `<Components Storage Path>/plugins/` on initial run and seed the initial `shared/middleware-intents.json` personal layer.
+- **Uninstallation Intent Trimming**: Mandated that when a user requests uninstalling or removing a plugin via the copy prompt, the agent concurrently trims and deletes its corresponding intent entries from `shared/middleware-intents.json` so no stale tool mappings remain.
+- **Layered Upstream Engine Protection**: Allows Smart Middleware to dynamically prioritize newly installed tools based on user prompt context while preserving origin updates for the core middleware engine.
+- **Dashboard UI Update**: Updated the Storage & Upstream Rules tile button to display `Copy Prompt (V1.5)`.
+
+## [V1.4] - 2026-11-12
 
 ### Features & Invariants
 - **Version Identifier**: Added explicit version tag `[Components Storage Specification & Upstream Rules Prompt V1.0]` at the header of the copied prompt text.

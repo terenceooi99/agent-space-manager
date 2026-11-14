@@ -1,7 +1,7 @@
 {
   "path": "",
-  "count": 13,
-  "updatedAt": 1794491687964,
+  "count": 14,
+  "updatedAt": 1794638739300,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -2589,6 +2589,115 @@
           "mtime": 1793160824263
         }
       ]
+    },
+    {
+      "id": "unslop",
+      "name": "unslop",
+      "version": "1.0.0",
+      "description": "Turns vibecoded, AI-looking UI into a designed interface with its own character.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\unslop",
+      "upstream": "https://github.com/heydamir/unslop",
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "unslop"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 239,
+          "mtime": 1794591519401
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/unslop/agents/openai.yaml",
+          "size": 200,
+          "mtime": 1794591519310
+        },
+        {
+          "name": "effects.md",
+          "relPath": "skills/unslop/references/effects.md",
+          "size": 4977,
+          "mtime": 1794591519310
+        },
+        {
+          "name": "beacon-engraving.webp",
+          "relPath": "skills/unslop/references/refs/beacon-engraving.webp",
+          "size": 569124,
+          "mtime": 1794591519312
+        },
+        {
+          "name": "meadow-3d.webp",
+          "relPath": "skills/unslop/references/refs/meadow-3d.webp",
+          "size": 286608,
+          "mtime": 1794591519313
+        },
+        {
+          "name": "story-dashboard-frames.webp",
+          "relPath": "skills/unslop/references/refs/story-dashboard-frames.webp",
+          "size": 187334,
+          "mtime": 1794591519314
+        },
+        {
+          "name": "unslop-dashboard-after.webp",
+          "relPath": "skills/unslop/references/refs/unslop-dashboard-after.webp",
+          "size": 74724,
+          "mtime": 1794591519314
+        },
+        {
+          "name": "unslop-hero-after.webp",
+          "relPath": "skills/unslop/references/refs/unslop-hero-after.webp",
+          "size": 223664,
+          "mtime": 1794591519315
+        },
+        {
+          "name": "refs.md",
+          "relPath": "skills/unslop/references/refs.md",
+          "size": 2475,
+          "mtime": 1794591519310
+        },
+        {
+          "name": "signs.md",
+          "relPath": "skills/unslop/references/signs.md",
+          "size": 7141,
+          "mtime": 1794591519316
+        },
+        {
+          "name": "tokens.md",
+          "relPath": "skills/unslop/references/tokens.md",
+          "size": 6629,
+          "mtime": 1794591519316
+        },
+        {
+          "name": "visuals.md",
+          "relPath": "skills/unslop/references/visuals.md",
+          "size": 8390,
+          "mtime": 1794591519316
+        },
+        {
+          "name": "snapshot.mjs",
+          "relPath": "skills/unslop/scripts/snapshot.mjs",
+          "size": 8468,
+          "mtime": 1794591519317
+        },
+        {
+          "name": "story.mjs",
+          "relPath": "skills/unslop/scripts/story.mjs",
+          "size": 25885,
+          "mtime": 1794591519317
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/unslop/SKILL.md",
+          "size": 31939,
+          "mtime": 1794591519411
+        }
+      ]
     }
   ],
   "categories": {
@@ -2734,6 +2843,17 @@
         "skillsCount": 2,
         "filesCount": 9,
         "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "unslop",
+        "name": "unslop",
+        "version": "1.0.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\unslop",
+        "description": "Turns vibecoded, AI-looking UI into a designed interface with its own character.",
+        "skillsCount": 1,
+        "filesCount": 15,
+        "hasMcp": false,
         "hasHooks": false
       }
     ],
@@ -3424,6 +3544,12 @@
         "pluginId": "stagehand",
         "pluginName": "stagehand",
         "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\stagehand\\skills\\browsernotdefault"
+      },
+      {
+        "name": "unslop",
+        "pluginId": "unslop",
+        "pluginName": "unslop",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\unslop\\skills\\unslop"
       }
     ],
     "agents": [
