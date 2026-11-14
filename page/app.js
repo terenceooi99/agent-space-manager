@@ -68,8 +68,8 @@
         const match = files.find((f) => {
           const r = (f.relPath || f.name || "").toLowerCase();
           return r === `skills/${skillName.toLowerCase()}/skill.md` ||
-                 r.includes(`skills/${skillName.toLowerCase()}/`) ||
-                 r.endsWith(`/${skillName.toLowerCase()}/skill.md`);
+            r.includes(`skills/${skillName.toLowerCase()}/`) ||
+            r.endsWith(`/${skillName.toLowerCase()}/skill.md`);
         });
         if (match) seenFiles.add(match.relPath || match.name);
         items.push({
@@ -195,10 +195,10 @@
 
   function getMagpieApi() {
     return globalThis.magpie?.api?.agentSpaceManager ||
-           globalThis.magpie?.api?.["agent-space-manager"] ||
-           globalThis.magpie?.api?.smartMiddleware ||
-           globalThis.magpie?.api?.["smart-middleware"] ||
-           globalThis.magpie?.api;
+      globalThis.magpie?.api?.["agent-space-manager"] ||
+      globalThis.magpie?.api?.smartMiddleware ||
+      globalThis.magpie?.api?.["smart-middleware"] ||
+      globalThis.magpie?.api;
   }
 
   // Non-blocking toast notifications (Desktop WebView2 Dialog Safety Invariant)
@@ -309,11 +309,11 @@
             mPlugins.forEach(ensurePluginFiles);
             try {
               localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(mPlugins));
-            } catch {}
+            } catch { }
             return mPlugins;
           }
         }
-      } catch {}
+      } catch { }
 
       // 2. Local API server dynamically with cache-busting timestamp (when running outside CSP connect-src 'none')
       try {
@@ -324,14 +324,14 @@
             data.plugins.forEach(ensurePluginFiles);
             try {
               localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(data.plugins));
-            } catch {}
+            } catch { }
             if (data.categories) {
               discoveredCategories = data.categories;
             }
             return data.plugins;
           }
         }
-      } catch {}
+      } catch { }
 
       // 3. Dynamically reload plugins-cache.js via <script> tag (allowed by Magpie iframe CSP script-src 'self'!)
       const currentCacheNorm = normalizePathForCompare(globalThis.__PLUGINS_CACHE__?.path);
@@ -345,7 +345,7 @@
         cached.forEach(ensurePluginFiles);
         try {
           localStorage.setItem("magpie_plugins_" + norm, JSON.stringify(cached));
-        } catch {}
+        } catch { }
         if (globalThis.__PLUGINS_CACHE__.categories) {
           discoveredCategories = globalThis.__PLUGINS_CACHE__.categories;
         }
@@ -365,7 +365,7 @@
             return cData.plugins;
           }
         }
-      } catch {}
+      } catch { }
 
       // 6. LocalStorage cached plugins strictly for this exact path
       try {
@@ -377,7 +377,7 @@
             return parsed;
           }
         }
-      } catch {}
+      } catch { }
 
       return [];
     },
@@ -389,7 +389,7 @@
           const res = await magpieApi.saveConfig(config, options);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const payload = { config, ...options };
         const res = await fetch(`${API_BASE}/api/save`, {
@@ -418,7 +418,7 @@
           signal: AbortSignal.timeout(5000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -435,7 +435,7 @@
           signal: AbortSignal.timeout(5000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -446,7 +446,7 @@
           const res = await magpieApi.resolveDroppedTarget(raw, mode);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/resolve?path=${encodeURIComponent(raw || "")}&mode=${encodeURIComponent(mode || "ide")}`, { signal: AbortSignal.timeout(10000) });
         if (res.ok) return await res.json();
@@ -463,7 +463,7 @@
           const res = await magpieApi.browseFileSystem(type);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/browse?type=${encodeURIComponent(type || "file")}`, { signal: AbortSignal.timeout(90000) });
         if (res.ok) return await res.json();
@@ -480,14 +480,14 @@
           const detected = await magpieApi.detectConfigPath(name, exePath);
           if (detected) return detected;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/detect-config?name=${encodeURIComponent(name || "")}&exePath=${encodeURIComponent(exePath || "")}`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) {
           const data = await res.json();
           return data.configPath;
         }
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -498,11 +498,11 @@
           const cfg = await magpieApi.getConfig();
           if (cfg && Array.isArray(cfg.ides)) return cfg;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/config`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -513,14 +513,14 @@
           const list = await magpieApi.getAgentProfiles();
           if (Array.isArray(list) && list.length > 0) return list;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/agents`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data?.agents)) return data.agents;
         }
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -531,11 +531,11 @@
           const res = await magpieApi.checkModifications(customHubRoot);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/check-modifications?path=${encodeURIComponent(customHubRoot || "")}&t=${Date.now()}`, { signal: AbortSignal.timeout(5000) });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -546,7 +546,7 @@
           const res = await magpieApi.startupSync(customConfig);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/startup-sync`, {
           method: "POST",
@@ -555,7 +555,7 @@
           signal: AbortSignal.timeout(10000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -566,7 +566,7 @@
           const res = await magpieApi.recheckStatus(customConfig);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/recheck-status`, {
           method: "POST",
@@ -575,7 +575,7 @@
           signal: AbortSignal.timeout(8000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -587,7 +587,7 @@
           const res = await magpieApi.connectAgent(target, options);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
 
       // Tier 2: Direct HTTP POST to local API server (if outside CSP connect-src 'none')
       try {
@@ -629,7 +629,7 @@
         if (scriptRes && scriptRes.success !== false) {
           return scriptRes;
         }
-      } catch {}
+      } catch { }
 
       // Tier 4: Magpie options bridge with connect-status.js (allowed under script-src 'self')
       try {
@@ -723,11 +723,11 @@
           const res = await magpieApi.checkCentralizedUpdates(customHubRoot, { force });
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/central-update-check?path=${encodeURIComponent(customHubRoot || "")}&force=${force ? "true" : "false"}&t=${Date.now()}`, { signal: AbortSignal.timeout(5000) });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -738,11 +738,11 @@
           const res = await magpieApi.getCentralizedUpdateStatus(customHubRoot);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/central-update-status?path=${encodeURIComponent(customHubRoot || "")}&t=${Date.now()}`, { signal: AbortSignal.timeout(3000) });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -862,7 +862,7 @@
         if (scriptStatus?.checkedAt && (Date.now() - scriptStatus.checkedAt < 12000)) {
           return scriptStatus;
         }
-      } catch {}
+      } catch { }
 
       // 3. Magpie host IPC bridge
       try {
@@ -871,14 +871,14 @@
           const res = await magpieApi.getOmnirouteStatus(customPort);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
 
       // 4. Local API server endpoint
       try {
         const query = customPort ? `?port=${customPort}&t=${Date.now()}` : `?t=${Date.now()}`;
         const res = await fetch(`${API_BASE}/api/omniroute/status${query}`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
 
       // 5. Sandboxed Magpie options watcher bridge
       const viaOptions = await this.omnirouteViaOptions("status", customPort, 8000);
@@ -904,7 +904,7 @@
               port: targetPort,
               url: `http://localhost:${targetPort}`,
             };
-          } catch {}
+          } catch { }
         }
       }
 
@@ -931,7 +931,7 @@
         if (imgOk) {
           return { installed: true, running: true, port: targetPort, url: `http://localhost:${targetPort}` };
         }
-      } catch {}
+      } catch { }
 
       // If omniroute-status.js has a recently verified state (< 15s), use it
       if (globalThis.__OMNIROUTE_STATUS__?.checkedAt && (Date.now() - globalThis.__OMNIROUTE_STATUS__.checkedAt < 15000)) {
@@ -950,7 +950,7 @@
           const res = await magpieApi.startOmniroute(targetPort);
           if (res && typeof res === "object") return res;
         }
-      } catch {}
+      } catch { }
 
       // 2. Direct simple GET to API server (avoids CORS preflight)
       try {
@@ -962,7 +962,7 @@
           const json = await res.json();
           if (json && (json.running || json.error)) return json;
         }
-      } catch {}
+      } catch { }
 
       // 3. Direct POST to API server
       try {
@@ -976,7 +976,7 @@
           const json = await res.json();
           if (json && (json.running || json.error)) return json;
         }
-      } catch {}
+      } catch { }
 
       // 4. Dynamic script trigger (allowed under CSP script-src)
       try {
@@ -1001,7 +1001,7 @@
           document.head.appendChild(s);
         });
         if (scriptRes?.running) return scriptRes;
-      } catch {}
+      } catch { }
 
       // 5. Sandboxed Magpie options watcher bridge
       return await this.omnirouteViaOptions("start", targetPort, 28000);
@@ -1015,14 +1015,14 @@
           const res = await magpieApi.stopOmniroute(targetPort);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/omniroute/stop?port=${targetPort}&t=${Date.now()}`, {
           method: "GET",
           signal: AbortSignal.timeout(10000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/omniroute/stop`, {
           method: "POST",
@@ -1032,7 +1032,7 @@
           keepalive: true,
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return await this.omnirouteViaOptions("stop", targetPort, 10000);
     },
 
@@ -1046,7 +1046,7 @@
         if (win) {
           // Opened successfully in browser window
         }
-      } catch {}
+      } catch { }
 
       // 2. Direct fast call to local API server endpoint (GET query format avoids preflight)
       try {
@@ -1055,7 +1055,7 @@
           signal: AbortSignal.timeout(2000),
         });
         if (getRes.ok) return await getRes.json();
-      } catch {}
+      } catch { }
 
       // 3. Wails v2 runtime Go shell open (standard in Magpie desktop host)
       try {
@@ -1067,7 +1067,7 @@
           window.wails.runtime.BrowserOpenURL(url);
           return { success: true, url, method: "wails-runtime" };
         }
-      } catch {}
+      } catch { }
 
       // 4. Magpie host IPC bridge shell open
       try {
@@ -1089,7 +1089,7 @@
           magpie.openUrl(url);
           return { success: true, url, method: "magpie-openUrl" };
         }
-      } catch {}
+      } catch { }
 
       // 5. Local API server POST
       try {
@@ -1100,7 +1100,7 @@
           signal: AbortSignal.timeout(3000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
 
       // 6. Sandboxed Magpie frame: the plugin backend opens the OS default browser
       try {
@@ -1108,7 +1108,7 @@
         if (viaOptions && (viaOptions.opened || viaOptions.action === "open")) {
           return { ...viaOptions, success: true, url };
         }
-      } catch {}
+      } catch { }
 
       return { success: true, url, method: "fallback" };
     },
@@ -1120,7 +1120,7 @@
           const res = await magpieApi.scanForeignComponents(agent);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/agent/scan-foreign`, {
           method: "POST",
@@ -1129,7 +1129,7 @@
           signal: AbortSignal.timeout(6000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
 
@@ -1140,7 +1140,7 @@
           const res = await magpieApi.cleanForeignComponents(components);
           if (res) return res;
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetch(`${API_BASE}/api/agent/clean-foreign`, {
           method: "POST",
@@ -1149,7 +1149,7 @@
           signal: AbortSignal.timeout(6000),
         });
         if (res.ok) return await res.json();
-      } catch {}
+      } catch { }
       return null;
     },
   };
@@ -1328,7 +1328,7 @@
       const parsed = JSON.parse(local);
       if (parsed?.ides) hubConfig = parsed;
     }
-  } catch {}
+  } catch { }
 
   // Ensure default Antigravity IDE is present ONLY on first run if ides was never configured
   if (!Array.isArray(hubConfig.ides)) {
@@ -1351,7 +1351,7 @@
     if (Array.isArray(liveProfiles) && liveProfiles.length > 0) {
       agentProfiles = liveProfiles;
     }
-  } catch {}
+  } catch { }
   await reloadPluginsFromHub();
 
   // 4b. On startup: check for modification difference in Components Storage Path and recheck status dots for each enabled plugin in each connected agent!
@@ -1952,8 +1952,8 @@
       item.dataset.type = "ide";
 
       const prof = agentProfiles.find((p) => p.id === ide.agentType) ||
-                   agentProfiles.find((p) => ide.id?.includes(p.id) || ide.name?.toLowerCase().includes(p.id)) ||
-                   agentProfiles[0];
+        agentProfiles.find((p) => ide.id?.includes(p.id) || ide.name?.toLowerCase().includes(p.id)) ||
+        agentProfiles[0];
       const modeBadge = prof?.mode === "bundle"
         ? `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(16,185,129,0.15); color:#10b981; margin-left:6px;">Bundle</span>`
         : `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(59,130,246,0.15); color:#3b82f6; margin-left:6px;">Native Adapter</span>`;
@@ -2838,7 +2838,7 @@
     try {
       const detected = await apiClient.detectConfigPath(nameOrAgentType, exePath);
       if (detected) return detected;
-    } catch {}
+    } catch { }
 
     const prof = agentProfiles.find((p) => p.id === nameOrAgentType || p.label.toLowerCase() === String(nameOrAgentType || "").toLowerCase());
     if (prof && prof.defaultConfigPath) {
@@ -2926,7 +2926,7 @@
       try {
         await navigator.clipboard.writeText(text);
         return true;
-      } catch {}
+      } catch { }
     }
     try {
       const ta = document.createElement("textarea");
@@ -3121,7 +3121,7 @@
     if ($("btnPickHubFolder")) {
       $("btnPickHubFolder").addEventListener("click", async () => {
         if (hubFolderPicker) {
-          try { hubFolderPicker.click(); } catch (err) {}
+          try { hubFolderPicker.click(); } catch (err) { }
         }
         try {
           $("btnPickHubFolder").textContent = "Opening...";
@@ -3360,7 +3360,7 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
           try {
             await navigator.clipboard.writeText(promptText);
             copied = true;
-          } catch {}
+          } catch { }
         }
         if (!copied) {
           try {
@@ -3373,7 +3373,7 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
             document.execCommand("copy");
             document.body.removeChild(ta);
             copied = true;
-          } catch {}
+          } catch { }
         }
 
         btnCopyPrompt.textContent = copied ? "Copied!" : "Copy Failed";
@@ -3526,7 +3526,7 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
     if ($("btnBrowseIdeExe")) {
       $("btnBrowseIdeExe").addEventListener("click", async () => {
         if (ideExePicker) {
-          try { ideExePicker.click(); } catch (err) {}
+          try { ideExePicker.click(); } catch (err) { }
         }
         try {
           $("btnBrowseIdeExe").textContent = "Opening...";
@@ -3593,7 +3593,7 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
     if ($("btnBrowseProjectPath")) {
       $("btnBrowseProjectPath").addEventListener("click", async () => {
         if (projectFolderPicker) {
-          try { projectFolderPicker.click(); } catch (err) {}
+          try { projectFolderPicker.click(); } catch (err) { }
         }
         try {
           $("btnBrowseProjectPath").textContent = "Opening...";
@@ -3933,7 +3933,7 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
         const norm = normalizePathForCompare(effectivePath);
         try {
           localStorage.removeItem("magpie_plugins_" + norm);
-        } catch {}
+        } catch { }
 
         await new Promise((r) => setTimeout(r, 200));
         if (bar) bar.style.width = "40%";
@@ -4169,7 +4169,7 @@ Please inspect ${storagePath || "Components Storage Path"}, clean up non-conform
   async function persistConfig(forceRescan = false, options = { connect: false, sync: false }) {
     try {
       localStorage.setItem("magpie_agent_space_config", JSON.stringify(hubConfig));
-    } catch {}
+    } catch { }
 
     // 1. Try direct API server first (works in browser / unrestricted WebView)
     const saveRes = await apiClient.saveConfig(hubConfig, options);

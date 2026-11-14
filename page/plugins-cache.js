@@ -1,7 +1,7 @@
 window.__PLUGINS_CACHE__ = {
   "path": "",
   "count": 14,
-  "updatedAt": 1794641606254,
+  "updatedAt": 1794641630407,
   "plugins": [
     {
       "id": "android-cli-plugin",
