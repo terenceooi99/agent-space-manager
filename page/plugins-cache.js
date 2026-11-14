@@ -1,7 +1,7 @@
 window.__PLUGINS_CACHE__ = {
   "path": "",
-  "count": 14,
-  "updatedAt": 1794649736574,
+  "count": 15,
+  "updatedAt": 1794651236598,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -2591,6 +2591,63 @@ window.__PLUGINS_CACHE__ = {
       ]
     },
     {
+      "id": "trail-code",
+      "name": "trail-code",
+      "version": "0.29.0",
+      "description": "The self-learning context layer for coding agents. Maps your codebase into a context graph, traces call hierarchies, and stores team learnings and decisions.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\trail-code",
+      "upstream": "https://github.com/trailhq/Trail-Code",
+      "hasMcp": true,
+      "hasHooks": false,
+      "mcps": [
+        "trail"
+      ],
+      "hooks": [],
+      "skills": [
+        "trailhq-trail-code"
+      ],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": "LICENSE",
+          "relPath": "LICENSE",
+          "size": 1111,
+          "mtime": 1794650361973
+        },
+        {
+          "name": "mcp_config.json",
+          "relPath": "mcp_config.json",
+          "size": 154,
+          "mtime": 1794650759487
+        },
+        {
+          "name": "package.json",
+          "relPath": "package.json",
+          "size": 3143,
+          "mtime": 1794650362197
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 399,
+          "mtime": 1794650759487
+        },
+        {
+          "name": "README.md",
+          "relPath": "README.md",
+          "size": 64525,
+          "mtime": 1794650361973
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/trailhq-trail-code/SKILL.md",
+          "size": 4447,
+          "mtime": 1794650759488
+        }
+      ]
+    },
+    {
       "id": "unslop",
       "name": "unslop",
       "version": "1.0.0",
@@ -2846,6 +2903,17 @@ window.__PLUGINS_CACHE__ = {
         "hasHooks": false
       },
       {
+        "id": "trail-code",
+        "name": "trail-code",
+        "version": "0.29.0",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\trail-code",
+        "description": "The self-learning context layer for coding agents. Maps your codebase into a context graph, traces call hierarchies, and stores team learnings and decisions.",
+        "skillsCount": 1,
+        "filesCount": 6,
+        "hasMcp": true,
+        "hasHooks": false
+      },
+      {
         "id": "unslop",
         "name": "unslop",
         "version": "1.0.0",
@@ -2899,6 +2967,12 @@ window.__PLUGINS_CACHE__ = {
         "pluginId": "stagehand",
         "pluginName": "stagehand",
         "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\stagehand\\mcp_config.json"
+      },
+      {
+        "name": "trail",
+        "pluginId": "trail-code",
+        "pluginName": "trail-code",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\trail-code\\mcp_config.json"
       }
     ],
     "hooks": [],
@@ -3544,6 +3618,12 @@ window.__PLUGINS_CACHE__ = {
         "pluginId": "stagehand",
         "pluginName": "stagehand",
         "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\stagehand\\skills\\browsernotdefault"
+      },
+      {
+        "name": "trailhq-trail-code",
+        "pluginId": "trail-code",
+        "pluginName": "trail-code",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\trail-code\\skills\\trailhq-trail-code"
       },
       {
         "name": "unslop",
