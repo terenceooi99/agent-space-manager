@@ -66,6 +66,7 @@ export {
 
 export const AgentSpaceManagerPlugin = {
   name: "agent-space-manager",
+  version: "1.0.2",
   onRequest,
   onResponse,
 
