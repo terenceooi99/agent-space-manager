@@ -103,4 +103,75 @@ describe("Feature 1: Hub Component Discovery & Categories Registry", () => {
       sb.cleanup();
     }
   });
+
+  test("scanPlugins, buildCategoriesRegistry, and detectDuplicateStandalones catch duplicate standalone skills and rules", async () => {
+    const sb = makeSandbox();
+    try {
+      // 1. Add a plugin with prefixed rule & skill + upstream URL
+      const trailDir = path.join(sb.hub, "plugins", "trail-code");
+      fs.mkdirSync(path.join(trailDir, "skills", "trailhq-trail-code"), { recursive: true });
+      fs.mkdirSync(path.join(trailDir, "rules"), { recursive: true });
+      fs.writeFileSync(
+        path.join(trailDir, "plugin.json"),
+        JSON.stringify({ name: "trail-code", upstream: "https://github.com/trailhq/Trail-Code" }),
+        "utf8"
+      );
+      fs.writeFileSync(
+        path.join(trailDir, "skills", "trailhq-trail-code", "SKILL.md"),
+        "---\nname: trailhq-trail-code\nupstream: https://github.com/trailhq/Trail-Code\n---\n",
+        "utf8"
+      );
+      fs.writeFileSync(
+        path.join(trailDir, "rules", "trailhq-trail-code-auto.md"),
+        "---\ntrigger: always_on\nupstream: https://github.com/trailhq/Trail-Code\n---\n# Trail\n",
+        "utf8"
+      );
+
+      // 2. Add a differently-named standalone skill in hub/skills with the same upstream
+      fs.mkdirSync(path.join(sb.hub, "skills", "trail-code-legacy"), { recursive: true });
+      fs.writeFileSync(
+        path.join(sb.hub, "skills", "trail-code-legacy", "SKILL.md"),
+        "---\nname: trail-code-legacy\nupstream: https://github.com/trailhq/Trail-Code\n---\n",
+        "utf8"
+      );
+
+      // 3. Add an unprefixed standalone rule in hub/rules
+      fs.writeFileSync(
+        path.join(sb.hub, "rules", "trail-code-auto.md"),
+        "---\ntrigger: always_on\n---\n# Duplicate\n",
+        "utf8"
+      );
+
+      const m = await import("../manager.mjs");
+      const plugins = m.scanPlugins(sb.hub);
+      const ws = plugins.find((p) => p.id === "workspace-skills");
+      assert.equal(ws.skills.includes("trail-code-legacy"), false, "Hub root skill with matching upstream must be excluded");
+
+      const cats = m.buildCategoriesRegistry(plugins, sb.hub);
+      assert.equal(cats.rules.some((r) => r.name === "trail-code-auto.md" && r.pluginId === "root"), false, "Root rule duplicating plugin rule must be excluded");
+
+      // 4. Simulate pre-existing unowned rule in IDE config dir
+      const ideRulesDir = path.join(sb.root, "ide-config", "rules");
+      fs.mkdirSync(ideRulesDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(ideRulesDir, "trail-code-auto.md"),
+        "---\ntrigger: always_on\n---\n# Pre-existing\n",
+        "utf8"
+      );
+
+      const dupes = m.detectDuplicateStandalones(
+        plugins,
+        { "trail-code": true },
+        { rulesDir: ideRulesDir },
+        [],
+        []
+      );
+      assert.equal(dupes.length, 1);
+      assert.equal(dupes[0].type, "duplicate-standalone");
+      assert.equal(dupes[0].category, "rule");
+      assert.equal(dupes[0].pluginId, "trail-code");
+    } finally {
+      sb.cleanup();
+    }
+  });
 });

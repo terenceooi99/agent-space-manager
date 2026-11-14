@@ -47,6 +47,7 @@ This section tracks all revisions to the standardized instructions copied via th
 ## [V1.5] - 2026-11-14
 
 ### Features & Invariants
+- **Skill Name Collision Avoidance Across Plugins (`page/app.js`, `Rule Invariant 1`)**: Updated the Copy Prompt specification and Rule Invariant 1 to avoid skill name collisions across plugins by prefixing the skill with its parent plugin name (e.g. naming a skill called `plan` in plugin `A` and `B` as `A-plan` and `B-plan`), while continuing to sequentially disambiguate other duplicate component names with `-1`, `-2`.
 - **Dynamic Smart Middleware Intent Lifecycle (`shared/middleware-intents.json`)**: Added Rule Invariant 8 directing AI agents to register or update intent keywords and tool patterns whenever installing or modifying MCP tools in Components Storage.
 - **Initial Run Seeding**: Mandated that the copy prompt and Smart Middleware automatically scan existing installed plugins/tools in `<Components Storage Path>/plugins/` on initial run and seed the initial `shared/middleware-intents.json` personal layer.
 - **Uninstallation Intent Trimming**: Mandated that when a user requests uninstalling or removing a plugin via the copy prompt, the agent concurrently trims and deletes its corresponding intent entries from `shared/middleware-intents.json` so no stale tool mappings remain.

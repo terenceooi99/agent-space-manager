@@ -694,6 +694,144 @@ export function listFilesRecursiveRel(dir, baseDir = dir, maxDepth = 4, depth = 
 }
 
 /**
+ * Normalizes an upstream repository URL for reliable duplicate matching.
+ */
+function normalizeUpstreamUrl(url = "") {
+  return String(url || "")
+    .trim()
+    .replace(/\.git$/i, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+/**
+ * Extracts and normalizes the `upstream` frontmatter URL from a markdown file.
+ */
+function extractMarkdownUpstream(filePath) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return "";
+    const raw = fs.readFileSync(filePath, "utf8");
+    const { frontmatter } = parseMarkdownFrontmatter(raw);
+    return normalizeUpstreamUrl(frontmatter?.upstream || "");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Checks whether a standalone component name/upstream duplicates a plugin-bundled component.
+ */
+function matchesPluginComponent(standaloneName, standaloneUpstream, pluginEntries = []) {
+  const cleanBase = String(standaloneName || "").replace(/\.(md|mdc)$/i, "").toLowerCase();
+  const normUp = normalizeUpstreamUrl(standaloneUpstream);
+  for (const entry of pluginEntries) {
+    if (normUp && entry.upstream && normUp === entry.upstream) {
+      return entry;
+    }
+    const compBase = String(entry.name || "").replace(/\.(md|mdc)$/i, "").toLowerCase();
+    if (!compBase || !cleanBase) continue;
+    if (compBase === cleanBase) return entry;
+    if (cleanBase.length >= 6 && compBase.endsWith(`-${cleanBase}`)) return entry;
+  }
+  return null;
+}
+
+/**
+ * Builds normalized plugin component metadata for duplicate-standalone detection.
+ */
+function collectPluginComponentIndex(plugins = [], enabledMap = null) {
+  const skillEntries = [];
+  const ruleEntries = [];
+  const agentEntries = [];
+  for (const p of plugins) {
+    if (!p || p.isRootSkills || !p.path) continue;
+    if (enabledMap && enabledMap[p.id] !== true) continue;
+    const pluginUp = normalizeUpstreamUrl(p.upstream || "");
+    for (const s of p.skills || []) {
+      const skillUp = extractMarkdownUpstream(path.join(p.path, "skills", s, "SKILL.md")) || pluginUp;
+      skillEntries.push({ name: s, upstream: skillUp, pluginId: p.id });
+    }
+    for (const r of p.rules || []) {
+      const ruleUp = extractMarkdownUpstream(path.join(p.path, "rules", r)) || pluginUp;
+      ruleEntries.push({ name: r, upstream: ruleUp, pluginId: p.id });
+    }
+    for (const a of p.agents || []) {
+      const agentUp = extractMarkdownUpstream(path.join(p.path, "agents", a)) || pluginUp;
+      agentEntries.push({ name: a, upstream: agentUp, pluginId: p.id });
+    }
+  }
+  return { skillEntries, ruleEntries, agentEntries };
+}
+
+/**
+ * Detects pre-existing non-ASM-owned standalone skills, rules, or agents in target IDE
+ * directories that duplicate components already provided by enabled plugins.
+ */
+export function detectDuplicateStandalones(
+  allPlugins = [],
+  enabledMap = {},
+  targetDirs = {},
+  ownedFiles = [],
+  ownedLinks = []
+) {
+  const conflicts = [];
+  const { skillEntries, ruleEntries, agentEntries } = collectPluginComponentIndex(allPlugins, enabledMap);
+  const ownedFileSet = new Set((ownedFiles || []).map((f) => path.resolve(f)));
+  const ownedLinkSet = new Set((ownedLinks || []).map((l) => path.resolve(l)));
+
+  const scanDirForDuplicates = (dir, category, pluginEntries) => {
+    if (!dir || !fs.existsSync(dir) || pluginEntries.length === 0) return;
+    try {
+      for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, ent.name);
+        const resolved = path.resolve(fullPath);
+        if (category === "skill") {
+          if (ownedLinkSet.has(resolved) || isAsmOwnedDirectory(fullPath)) continue;
+          const isDir = ent.isDirectory() || (ent.isSymbolicLink() && (() => {
+            try { return fs.statSync(fullPath).isDirectory(); } catch { return false; }
+          })());
+          if (!isDir) continue;
+          const up = extractMarkdownUpstream(path.join(fullPath, "SKILL.md"));
+          const match = matchesPluginComponent(ent.name, up, pluginEntries);
+          if (match) {
+            conflicts.push({
+              type: "duplicate-standalone",
+              category,
+              name: ent.name,
+              existingPath: fullPath,
+              pluginId: match.pluginId,
+              pluginComponent: match.name,
+              reason: `standalone skill duplicates plugin "${match.pluginId}" (${match.name})`,
+            });
+          }
+        } else {
+          if (!ent.name.endsWith(".md") && !ent.name.endsWith(".mdc")) continue;
+          if (ownedFileSet.has(resolved)) continue;
+          const up = extractMarkdownUpstream(fullPath);
+          const match = matchesPluginComponent(ent.name, up, pluginEntries);
+          if (match) {
+            conflicts.push({
+              type: "duplicate-standalone",
+              category,
+              name: ent.name,
+              existingPath: fullPath,
+              pluginId: match.pluginId,
+              pluginComponent: match.name,
+              reason: `standalone ${category} duplicates plugin "${match.pluginId}" (${match.name})`,
+            });
+          }
+        }
+      }
+    } catch {}
+  };
+
+  scanDirForDuplicates(targetDirs.skillsDir, "skill", skillEntries);
+  scanDirForDuplicates(targetDirs.rulesDir, "rule", ruleEntries);
+  scanDirForDuplicates(targetDirs.agentsDir, "agent", agentEntries);
+  return conflicts;
+}
+
+/**
  * Builds a comprehensive categorized registry of Plugins, MCPs, Hooks, Skills, Agents, and Rules.
  */
 export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
@@ -788,19 +926,21 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
   }
 
   if (hubRoot && fs.existsSync(hubRoot)) {
+    const { ruleEntries, agentEntries } = collectPluginComponentIndex(plugins);
     const rootAgentsDir = path.join(hubRoot, "agents");
     if (fs.existsSync(rootAgentsDir)) {
       try {
         for (const a of fs.readdirSync(rootAgentsDir)) {
-          if (a.endsWith(".md") && !seenAgents.has(a)) {
-            seenAgents.add(a);
-            categories.agents.push({
-              name: a,
-              pluginId: "root",
-              pluginName: "Root Agents",
-              sourcePath: path.join(rootAgentsDir, a),
-            });
-          }
+          if (!a.endsWith(".md") || seenAgents.has(a)) continue;
+          const aPath = path.join(rootAgentsDir, a);
+          if (matchesPluginComponent(a, extractMarkdownUpstream(aPath), agentEntries)) continue;
+          seenAgents.add(a);
+          categories.agents.push({
+            name: a,
+            pluginId: "root",
+            pluginName: "Root Agents",
+            sourcePath: aPath,
+          });
         }
       } catch {}
     }
@@ -809,15 +949,16 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
     if (fs.existsSync(rootRulesDir)) {
       try {
         for (const r of fs.readdirSync(rootRulesDir)) {
-          if (r.endsWith(".md") && !seenRules.has(r)) {
-            seenRules.add(r);
-            categories.rules.push({
-              name: r,
-              pluginId: "root",
-              pluginName: "Root Rules",
-              sourcePath: path.join(rootRulesDir, r),
-            });
-          }
+          if (!r.endsWith(".md") || seenRules.has(r)) continue;
+          const rPath = path.join(rootRulesDir, r);
+          if (matchesPluginComponent(r, extractMarkdownUpstream(rPath), ruleEntries)) continue;
+          seenRules.add(r);
+          categories.rules.push({
+            name: r,
+            pluginId: "root",
+            pluginName: "Root Rules",
+            sourcePath: rPath,
+          });
         }
       } catch {}
     }
@@ -1122,14 +1263,19 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
     if (fs.existsSync(rootSkillsDir)) {
       try {
         const pluginSkillSet = new Set(plugins.flatMap((p) => p.skills || []));
+        const { skillEntries } = collectPluginComponentIndex(plugins);
         const rootSkills = [];
         for (const se of fs.readdirSync(rootSkillsDir, { withFileTypes: true })) {
           if (pluginSkillSet.has(se.name)) continue;
+          const skillDirPath = path.join(rootSkillsDir, se.name);
           let isDir = false;
           try {
-            isDir = se.isDirectory() || (se.isSymbolicLink() && fs.statSync(path.join(rootSkillsDir, se.name)).isDirectory());
+            isDir = se.isDirectory() || (se.isSymbolicLink() && fs.statSync(skillDirPath).isDirectory());
           } catch {}
-          if (isDir) rootSkills.push(se.name);
+          if (!isDir) continue;
+          const up = extractMarkdownUpstream(path.join(skillDirPath, "SKILL.md"));
+          if (matchesPluginComponent(se.name, up, skillEntries)) continue;
+          rootSkills.push(se.name);
         }
         if (rootSkills.length > 0) {
           const rootSkillFiles = listFilesRecursiveRel(rootSkillsDir, rootSkillsDir);
@@ -1499,6 +1645,21 @@ export function syncIdePlugins(ide, allPlugins = []) {
     }
 
     const allOwnedLinks = [...bundleLinks, ...skillLinks];
+    if (isGeminiIde) {
+      const geminiConfigDir = path.dirname(bundleDir);
+      const dupes = detectDuplicateStandalones(
+        allPlugins,
+        normalized.plugins,
+        {
+          skillsDir: paths.skills || path.join(geminiConfigDir, "skills"),
+          rulesDir: (paths.rules?.dir || paths.rulesDir?.dir || path.join(geminiConfigDir, "rules")),
+          agentsDir: (paths.agents?.dir || paths.agentsDir?.dir || path.join(geminiConfigDir, "agents")),
+        },
+        nextFiles,
+        allOwnedLinks
+      );
+      components.conflicts.push(...dupes);
+    }
     saveOwnershipState(ownerKey, { links: allOwnedLinks, files: nextFiles, jsonKeys: nextJsonKeys, blocks: nextBlocks });
     return {
       success: true,
@@ -1509,7 +1670,9 @@ export function syncIdePlugins(ide, allPlugins = []) {
         skills: skillLinks.length,
         rules: components.rules.length,
         agents: components.agents.length,
+        conflicts: components.conflicts.length,
       },
+      conflicts: components.conflicts,
       results,
     };
   }
@@ -1598,6 +1761,19 @@ export function syncIdePlugins(ide, allPlugins = []) {
       nextJsonKeys[paths.hooks.file] = hookRes.ownedKeys;
     }
   }
+
+  const dupes = detectDuplicateStandalones(
+    allPlugins,
+    normalized.plugins,
+    {
+      skillsDir: skillsTargetDir,
+      rulesDir: typeof paths.rules === "object" ? paths.rules?.dir : undefined,
+      agentsDir: typeof paths.agents === "object" ? paths.agents?.dir : undefined,
+    },
+    nextFiles,
+    skillSync.nextLinks
+  );
+  components.conflicts.push(...dupes);
 
   saveOwnershipState(ownerKey, {
     links: skillSync.nextLinks,

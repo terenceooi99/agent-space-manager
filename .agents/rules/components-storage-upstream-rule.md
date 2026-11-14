@@ -48,6 +48,10 @@ Every component stored in the Components Storage Path MUST adhere to the standar
 └── skills.json       # Discovered/registered skills index
 ```
 
+### Duplicate Naming & Skill Collision Avoidance
+- **Skill Name Collisions Across Plugins**: To avoid skill name collision across plugins, if a skill with the same name exists in two or more different plugins (e.g. a skill called `plan` in plugin `A` and plugin `B`), name the skill in each plugin by prefixing it with the plugin name (e.g. name the skill `plan` in `A` as `A-plan`, and in `B` as `B-plan`) so each skill has a unique, distinct identifier without colliding.
+- **Other Component Collisions**: For other components or standalone components that coincidentally share the same name, append `-1`, `-2`, etc. sequentially (e.g. `<name>-1`, `<name>-2`) so every component has a unique name without colliding or overwriting.
+
 ---
 
 ## 3. Shared Directory Specification (`shared/`)

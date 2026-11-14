@@ -1963,7 +1963,8 @@
       if (syncInfo?.summary) {
         const s = syncInfo.summary;
         if (syncInfo.mode === "bundle") {
-          syncSubtitle = `<div style="font-size:10px; color:#10b981; margin-top:2px;">Synced: ${s.plugins || 0} plugin bundles</div>`;
+          const conflictSuffix = s.conflicts ? ` · <span style="color:#f59e0b;">${s.conflicts} conflicts</span>` : "";
+          syncSubtitle = `<div style="font-size:10px; color:#10b981; margin-top:2px;">Synced: ${s.plugins || 0} plugin bundles${conflictSuffix}</div>`;
         } else {
           const parts = [];
           if (s.skills !== undefined) parts.push(`${s.skills} skills`);
@@ -3248,7 +3249,7 @@
     }
 
     // Standardize Storage Structure Prompt Copy Button (with version display)
-    const STORAGE_PROMPT_VERSION = "V1.5";
+    const STORAGE_PROMPT_VERSION = "V1.6";
     const btnCopyPrompt = $("btnCopyStoragePrompt");
     if (btnCopyPrompt) {
       const originalText = `Copy Prompt (${STORAGE_PROMPT_VERSION})`;
@@ -3290,7 +3291,10 @@ Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, o
 ├── plugins.json      # Discovered/registered plugins index
 └── skills.json       # Discovered/registered skills index
 
-Duplicate Naming Collision Rule: If two or more components (plugins, skills, agents, rules, or MCPs) coincidentally have the same name, append \`-1\`, \`-2\`, etc. sequentially (e.g. \`<name>-1\`, \`<name>-2\`) so every component has a unique name without colliding or overwriting.
+Duplicate Naming, Skill Collision Avoidance & No Duplicate Standalone Rule:
+- Skill Name Collisions Across Plugins: To avoid skill name collision across plugins, if a skill with the same name exists in two or more different plugins (e.g. a skill called "plan" in 2 different plugins called A and B), name the skill in each plugin by prefixing it with its plugin name (e.g. name the skill "plan" in A as "A-plan", and in B as "B-plan") so each skill has a distinct identifier without namespace collisions.
+- Other Component Duplicate Collisions: If two or more other components (plugins, agents, rules, MCPs, or standalone skills) coincidentally have the same name, append \`-1\`, \`-2\`, etc. sequentially (e.g. \`<name>-1\`, \`<name>-2\`) so every component has a unique name without colliding or overwriting.
+- No Duplicate Standalone Copies: NEVER leave or create a standalone copy in \`<Components Storage Path>/skills/\`, \`rules/\`, \`agents/\`, or directly inside IDE native directories (e.g. \`~/.gemini/config/skills/\`, \`~/.gemini/config/rules/\`, \`~/.cursor/rules/\`, \`~/.claude/\`) when that component belongs to a plugin in \`plugins/<plugin-name>/\`. Whenever installing or migrating a plugin, check for existing standalone or unprefixed copies matching the same \`upstream\` URL or base name (e.g. \`trail-code-auto.md\` vs \`trailhq-trail-code-auto.md\`) and move or remove the standalone copy so only the plugin-scoped copy remains.
 
 2. Shared Folder Specification (<Components Storage Path>/shared):
 The shared directory serves as the centralized cross-agent IPC, discovery, and shared coordination layer across all supported AI coding agents (Antigravity, Cursor, Windsurf, Claude Code, OpenCode, VS Code Copilot, etc.):
@@ -3344,7 +3348,7 @@ When the user asks to remove, delete, or uninstall a plugin:
 9. Mandatory Persistent Agent Rule:
 Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
 - Rule Trigger: Addendum, creation, edit, or removal of any component in Components Storage Path.
-- Rule Invariant 1: Ensure strict compliance with the plugin directory and shared/ directory structures above, and disambiguate any coincidental duplicate component names by appending -1, -2, etc. sequentially.
+- Rule Invariant 1: Ensure strict compliance with the plugin directory and shared/ directory structures above; avoid skill name collisions across plugins by prefixing the skill with its plugin name (e.g. a skill called 'plan' in plugins A and B is named 'A-plan' and 'B-plan'), disambiguate any other coincidental duplicate component names by appending -1, -2, etc. sequentially, and never leave duplicate standalone copies in root skills/rules/agents or IDE native config directories when the component belongs to a plugin (remove or migrate any pre-existing standalone/unprefixed copy matching the same upstream URL or base name).
 - Rule Invariant 2: Always add and preserve the upstream link in the component's manifest or frontmatter.
 - Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) AND its entries in shared/middleware-intents.json must be cleanly removed and trimmed with no orphaned leftovers.
 - Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
@@ -3353,7 +3357,7 @@ Install and persist a dedicated rule in your agent's rule system (e.g. .agents/r
 - Rule Invariant 7: Universal Shared Directory Preservation & Naming — preserve <Components Storage Path>/shared (agent-connectors.json, handoff/, _upstream_backups/, middleware-intents.json) as the designated cross-agent communication and data hub; never treat it as an orphaned or removable plugin; any subfolders in shared/ must be named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw).
 - Rule Invariant 8: Dynamic Smart Middleware Intent Lifecycle & Seeding — (a) on initial run, seed shared/middleware-intents.json based on all currently existing plugins and tools in Components Storage; (b) when adding new components with tools, register their intent keywords and tool patterns in shared/middleware-intents.json; (c) when removing components, trim and prune their intent entries from shared/middleware-intents.json so the personal layer remains trimmed and accurate.
 
-Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components and trim middleware intents, preserve the shared/ cross-agent folder, seed or update tool intent keywords in shared/middleware-intents.json based on existing installed components, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
+Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components and trim middleware intents, resolve skill name collisions across plugins by prefixing plugin names (e.g. A-plan, B-plan), preserve the shared/ cross-agent folder, seed or update tool intent keywords in shared/middleware-intents.json based on existing installed components, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
 
         let copied = false;
         if (navigator.clipboard && navigator.clipboard.writeText) {

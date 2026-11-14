@@ -1,7 +1,7 @@
 window.__PLUGINS_CACHE__ = {
   "path": "",
   "count": 15,
-  "updatedAt": 1794651236598,
+  "updatedAt": 1794661416649,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -2606,7 +2606,9 @@ window.__PLUGINS_CACHE__ = {
       "skills": [
         "trailhq-trail-code"
       ],
-      "rules": [],
+      "rules": [
+        "trailhq-trail-code-auto.md"
+      ],
       "agents": [],
       "files": [
         {
@@ -2638,6 +2640,12 @@ window.__PLUGINS_CACHE__ = {
           "relPath": "README.md",
           "size": 64525,
           "mtime": 1794650361973
+        },
+        {
+          "name": "trailhq-trail-code-auto.md",
+          "relPath": "rules/trailhq-trail-code-auto.md",
+          "size": 1847,
+          "mtime": 1794660288437
         },
         {
           "name": "SKILL.md",
@@ -2909,7 +2917,7 @@ window.__PLUGINS_CACHE__ = {
         "path": "D:\\Software\\AI Agent Space\\plugins\\trail-code",
         "description": "The self-learning context layer for coding agents. Maps your codebase into a context graph, traces call hierarchies, and stores team learnings and decisions.",
         "skillsCount": 1,
-        "filesCount": 6,
+        "filesCount": 7,
         "hasMcp": true,
         "hasHooks": false
       },
@@ -3652,6 +3660,12 @@ window.__PLUGINS_CACHE__ = {
         "pluginId": "science",
         "pluginName": "science",
         "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\science\\rules\\AGENTS.md"
+      },
+      {
+        "name": "trailhq-trail-code-auto.md",
+        "pluginId": "trail-code",
+        "pluginName": "trail-code",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\trail-code\\rules\\trailhq-trail-code-auto.md"
       }
     ]
   }
