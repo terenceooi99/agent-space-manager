@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.2] - 2026-11-14
+
+### Added
+- **Smart Middleware Dynamic Intent Layer (`shared/middleware-intents.json`)**: Layered runtime intent keyword engine (`smart-tools.middleware.js`) enabling users and agents to register custom intent keywords and tool patterns without altering core middleware code.
+- **Initial Run Auto-Seeding (`autoSeedMiddlewareIntents`)**: Scans existing installed plugins/tools in Components Storage on initial run and seeds the personal intent layer automatically.
+- **Uninstallation Intent Trimming (`trimMiddlewareIntent`)**: Concurrently trims and prunes uninstalled plugin tool patterns and intent keywords from `shared/middleware-intents.json` upon component removal.
+- **Copy Prompt V1.5 (`page/app.js`, `page/index.html`)**: Bumped Copy Prompt to V1.5 with dynamic Smart Middleware intent lifecycle directives and updated persistent agent rule invariants.
+
+---
+
 ## [1.0.1] - 2026-11-12
 
 ### Changed

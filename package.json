@@ -1,6 +1,6 @@
 {
   "name": "agent-space-manager",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Universal Agent Space Manager & Dynamic Intent-Based MCP Tool Gateway for Magpie",
   "type": "module",
   "main": "./index.mjs",
