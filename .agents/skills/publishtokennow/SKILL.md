@@ -29,9 +29,11 @@ Automates releasing a new version of **Agent Space Manager** to the **Magpie Plu
 
 1. **`package.json`**:
    - Update `"version": "<SEMVER>"`.
-2. **`page/index.html`**:
+2. **`index.mjs`**:
+   - Ensure `AgentSpaceManagerPlugin.version` is set to `"<SEMVER>"`.
+3. **`page/index.html`**:
    - Update `<span class="plugin-version-badge" id="pluginVersionBadge">V...</span>` to `DISPLAY_VERSION` (`V<SEMVER>`).
-3. **`CHANGELOG.md`**:
+4. **`CHANGELOG.md`**:
    - Inspect recent changes since the last tag (`git log -n 20 --oneline` or `git diff`) to summarize what changed.
    - Prepend a new release section right above the previous release entry using Keep a Changelog format:
      ```markdown
@@ -61,14 +63,16 @@ If any test fails, **stop** and report the failure before tagging or pushing.
 
 1. Stage and commit the release files:
    ```bash
-   git add package.json page/index.html CHANGELOG.md
+   git add package.json index.mjs page/index.html CHANGELOG.md
    git commit -m "chore(release): v<SEMVER>"
    ```
-2. Create the annotated tag and push both branch and tag to `origin`:
+2. Create or update the annotated tag and push both branch and tag to `origin`:
    ```bash
-   git tag -a v<SEMVER> -m "Release v<SEMVER>"
+   git tag -f -a v<SEMVER> -m "Release v<SEMVER>"
+   # Invariant: Verify HEAD has the tag before pushing
+   git tag --points-at HEAD
    git push origin HEAD
-   git push origin v<SEMVER>
+   git push -f origin v<SEMVER>
    ```
 3. Pushing `v<SEMVER>` automatically triggers [`.github/workflows/publish.yml`](.github/workflows/publish.yml), which runs `npm test` and executes `npm publish --access public` using `secrets.NPM_TOKEN`.
 4. If `gh` CLI is available, check the triggered workflow run:
