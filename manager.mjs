@@ -36,6 +36,7 @@ import {
   syncMarkdownRulesBlock,
   syncOwnedFiles,
   syncJsonHooks,
+  syncApps,
   writeHubCommunicationFiles,
   ensureGitInfoExclude,
   parseMarkdownFrontmatter,
@@ -842,6 +843,7 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
     skills: [],
     agents: [],
     rules: [],
+    apps: [],
   };
 
   const seenSkills = new Set();
@@ -849,6 +851,7 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
   const seenHooks = new Set();
   const seenAgents = new Set();
   const seenRules = new Set();
+  const seenApps = new Set();
 
   for (const p of plugins) {
     categories.plugins.push({
@@ -857,11 +860,49 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
       version: p.version,
       path: p.path,
       description: p.description,
+      componentType: p.isApp ? "app" : "plugin",
+      isApp: Boolean(p.isApp),
+      hasApp: Boolean(p.hasApp || p.isApp),
+      appsCount: p.isApp ? 1 : (p.apps || []).length,
       skillsCount: (p.skills || []).length,
       filesCount: (p.files || []).length,
       hasMcp: p.hasMcp,
       hasHooks: p.hasHooks,
     });
+
+    if (p.isApp) {
+      const appKey = p.id || p.name;
+      if (!seenApps.has(appKey)) {
+        seenApps.add(appKey);
+        categories.apps.push({
+          id: p.id,
+          name: p.name,
+          version: p.version,
+          pluginId: p.id,
+          pluginName: p.name,
+          description: p.description,
+          sourcePath: p.path,
+          upstream: p.upstream || null,
+        });
+      }
+    } else {
+      for (const a of p.apps || []) {
+        const appKey = `${p.id}/${a}`;
+        if (!seenApps.has(appKey)) {
+          seenApps.add(appKey);
+          const appDir = fs.existsSync(path.join(p.path, "apps", a))
+            ? path.join(p.path, "apps", a)
+            : path.join(p.path, "app", a);
+          categories.apps.push({
+            id: appKey,
+            name: a,
+            pluginId: p.id,
+            pluginName: p.name,
+            sourcePath: appDir,
+          });
+        }
+      }
+    }
 
     for (const s of p.skills || []) {
       if (!seenSkills.has(s)) {
@@ -968,6 +1009,31 @@ export function buildCategoriesRegistry(plugins = [], hubRoot = "") {
 }
 
 /**
+ * Shallow file/folder listing for standalone App directories (avoids recursing hundreds of browser/binary files).
+ */
+function listShallowAppFiles(appDir) {
+  if (!appDir || !fs.existsSync(appDir)) return [];
+  const results = [];
+  try {
+    for (const e of fs.readdirSync(appDir, { withFileTypes: true })) {
+      if (e.name === ".git" || e.name === "node_modules" || e.name === ".asm-owned.json") continue;
+      const full = path.join(appDir, e.name);
+      try {
+        const st = fs.statSync(full);
+        if (st.isDirectory()) {
+          results.push({ name: `${e.name}/`, relPath: `${e.name}/`, size: 0, mtime: Math.round(st.mtimeMs), isDir: true });
+        } else {
+          results.push({ name: e.name, relPath: e.name, size: st.size, mtime: Math.round(st.mtimeMs) });
+        }
+      } catch {
+        results.push({ name: e.name, relPath: e.name, size: 0, mtime: 0 });
+      }
+    }
+  } catch {}
+  return results;
+}
+
+/**
  * Scans plugins directory for all standard plugin packages and root standalone components.
  */
 export function scanPlugins(hubRoot = resolveHubRoot()) {
@@ -976,11 +1042,50 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
   if (!cleanHub || !fs.existsSync(cleanHub)) return [];
 
   const rootManifestPath = path.join(cleanHub, "plugin.json");
+  const rootAppManifestPath = path.join(cleanHub, "app.json");
   const rootSkillMdPath = path.join(cleanHub, "SKILL.md");
   const hasDirectPluginsFolder = fs.existsSync(path.join(cleanHub, "plugins"));
+  const hasDirectAppFolder = fs.existsSync(path.join(cleanHub, "app"));
+
+  // 0. Single standalone App package directly at hubRoot
+  if (!hasDirectPluginsFolder && !hasDirectAppFolder && fs.existsSync(rootAppManifestPath)) {
+    const entryName = path.basename(cleanHub);
+    let manifest = { name: entryName, version: "1.0.0", description: "" };
+    try {
+      manifest = JSON.parse(stripBom(fs.readFileSync(rootAppManifestPath, "utf8")));
+    } catch {
+      manifest.description = "Invalid app.json";
+    }
+    const files = listShallowAppFiles(cleanHub);
+    return [
+      {
+        id: manifest.id || entryName,
+        name: manifest.name || entryName,
+        version: manifest.version || "1.0.0",
+        description: manifest.description || `Standalone app component (${entryName})`,
+        path: cleanHub,
+        upstream: manifest.upstream || (typeof manifest.repository === "string" ? manifest.repository : manifest.repository?.url) || manifest.homepage || manifest.url || manifest.source || null,
+        componentType: "app",
+        isApp: true,
+        hasApp: true,
+        apps: [entryName],
+        appName: entryName,
+        appEnv: manifest.env || null,
+        appExecutable: manifest.executable || manifest.bin || null,
+        hasMcp: false,
+        hasHooks: false,
+        mcps: [],
+        hooks: [],
+        skills: [],
+        rules: [],
+        agents: [],
+        files,
+      },
+    ];
+  }
 
   // 1. Single plugin or standalone skill package directly at hubRoot
-  if (!hasDirectPluginsFolder && (fs.existsSync(rootManifestPath) || fs.existsSync(rootSkillMdPath))) {
+  if (!hasDirectPluginsFolder && !hasDirectAppFolder && (fs.existsSync(rootManifestPath) || fs.existsSync(rootSkillMdPath))) {
     const entryName = path.basename(cleanHub);
     let manifest = { name: entryName, version: "1.0.0", description: "" };
     if (fs.existsSync(rootManifestPath)) {
@@ -1133,7 +1238,7 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
         if (hasManifest) {
           pluginsDir = cleanHub;
           isDirectHub = true;
-        } else if (!fs.existsSync(path.join(cleanHub, "skills"))) {
+        } else if (!fs.existsSync(path.join(cleanHub, "skills")) && !fs.existsSync(path.join(cleanHub, "app"))) {
           return [];
         }
       } catch {
@@ -1236,6 +1341,20 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
       } catch {}
     }
 
+    const pluginApps = [];
+    for (const subAppFolder of ["apps", "app"]) {
+      const pAppsDir = path.join(pluginDir, subAppFolder);
+      if (fs.existsSync(pAppsDir)) {
+        try {
+          for (const aEnt of fs.readdirSync(pAppsDir, { withFileTypes: true })) {
+            if (aEnt.isDirectory() || aEnt.isSymbolicLink()) {
+              pluginApps.push(aEnt.name);
+            }
+          }
+        } catch {}
+      }
+    }
+
     const files = listFilesRecursiveRel(pluginDir, pluginDir);
 
     plugins.push({
@@ -1247,11 +1366,13 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
       upstream: manifest.upstream || (typeof manifest.repository === "string" ? manifest.repository : manifest.repository?.url) || manifest.homepage || manifest.url || manifest.source || null,
       hasMcp,
       hasHooks,
+      hasApp: pluginApps.length > 0,
       mcps,
       hooks,
       skills,
       rules,
       agents,
+      apps: pluginApps,
       files,
     });
   }
@@ -1294,6 +1415,78 @@ export function scanPlugins(hubRoot = resolveHubRoot()) {
             rules: [],
             agents: [],
             files: rootSkillFiles,
+          });
+        }
+      } catch {}
+    }
+
+    // Discover standalone App components in <hubRoot>/app/<app-name>/
+    const rootAppDir = path.join(cleanHub, "app");
+    if (fs.existsSync(rootAppDir)) {
+      try {
+        const existingIds = new Set(plugins.map((p) => p.id));
+        for (const ae of fs.readdirSync(rootAppDir, { withFileTypes: true })) {
+          if (ae.name.startsWith(".") || ae.name === "node_modules") continue;
+          const appPath = path.join(rootAppDir, ae.name);
+          let isDir = false;
+          try {
+            isDir = ae.isDirectory() || (ae.isSymbolicLink() && fs.statSync(appPath).isDirectory());
+          } catch {}
+          if (!isDir) continue;
+
+          const appManifestPath = path.join(appPath, "app.json");
+          const fallbackPluginJson = path.join(appPath, "plugin.json");
+          let manifest = { name: ae.name, version: "1.0.0", description: `Standalone app component (${ae.name})` };
+          if (fs.existsSync(appManifestPath)) {
+            try {
+              manifest = JSON.parse(stripBom(fs.readFileSync(appManifestPath, "utf8")));
+            } catch {
+              manifest.description = "Invalid app.json";
+            }
+          } else if (fs.existsSync(fallbackPluginJson)) {
+            try {
+              manifest = JSON.parse(stripBom(fs.readFileSync(fallbackPluginJson, "utf8")));
+            } catch {}
+          }
+
+          let appId = manifest.id || ae.name;
+          if (existingIds.has(appId)) {
+            appId = `app-${appId}`;
+          }
+          existingIds.add(appId);
+
+          const appUpstream =
+            manifest.upstream ||
+            (typeof manifest.repository === "string" ? manifest.repository : manifest.repository?.url) ||
+            manifest.homepage ||
+            manifest.url ||
+            manifest.source ||
+            extractComponentUpstream(appPath, "app", manifest) ||
+            null;
+
+          const appFiles = listShallowAppFiles(appPath);
+          plugins.push({
+            id: appId,
+            name: manifest.name || ae.name,
+            version: manifest.version || "1.0.0",
+            description: manifest.description || `Standalone app component (${ae.name})`,
+            path: appPath,
+            upstream: appUpstream,
+            componentType: "app",
+            isApp: true,
+            hasApp: true,
+            apps: [ae.name],
+            appName: ae.name,
+            appEnv: manifest.env || null,
+            appExecutable: manifest.executable || manifest.bin || null,
+            hasMcp: false,
+            hasHooks: false,
+            mcps: [],
+            hooks: [],
+            skills: [],
+            rules: [],
+            agents: [],
+            files: appFiles,
           });
         }
       } catch {}
@@ -1455,8 +1648,8 @@ export function sanitizeAgentConfigDirectory(configDir, agentType = "general") {
       }
     }
 
-    // 2. Sanitize empty ghost directories left behind in plugins / skills
-    for (const sub of ["plugins", "skills"]) {
+    // 2. Sanitize empty ghost directories left behind in plugins / skills / apps
+    for (const sub of ["plugins", "skills", "apps"]) {
       const subDir = path.join(configDir, sub);
       if (fs.existsSync(subDir)) {
         for (const ent of fs.readdirSync(subDir)) {
@@ -1505,7 +1698,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
     const activePluginMap = new Map();
     for (const plugin of allPlugins) {
       const isEnabled = Boolean(normalized.plugins && normalized.plugins[plugin.id] === true);
-      if (isEnabled && plugin.path && fs.existsSync(plugin.path) && !plugin.isRootSkills) {
+      if (isEnabled && plugin.path && fs.existsSync(plugin.path) && !plugin.isRootSkills && !plugin.isApp) {
         activePluginMap.set(plugin.id, plugin.path);
       }
     }
@@ -1535,10 +1728,12 @@ export function syncIdePlugins(ide, allPlugins = []) {
     //    - Harmonize skills.json without wiping user's non-hub entries
     const isGeminiIde = agentType === "antigravity" || primaryDir.toLowerCase().includes(".gemini");
     let skillLinks = [];
+    let appLinks = [];
     let nextFiles = [];
     const nextJsonKeys = {};
     const nextBlocks = [];
     const components = collectEnabledComponents(allPlugins, normalized.plugins);
+    const appsTargetDir = paths.apps || path.join(path.dirname(bundleDir), "apps");
 
     if (isGeminiIde) {
       const geminiConfigDir = path.dirname(bundleDir);
@@ -1551,7 +1746,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
       try {
         if (fs.existsSync(geminiConfigDir)) {
           for (const entryName of fs.readdirSync(geminiConfigDir)) {
-            if (entryName === "plugins" || entryName === "skills" || entryName === "rules" || entryName === "agents") {
+            if (entryName === "plugins" || entryName === "skills" || entryName === "rules" || entryName === "agents" || entryName === "apps") {
               continue;
             }
             const entryPath = path.join(geminiConfigDir, entryName);
@@ -1572,9 +1767,16 @@ export function syncIdePlugins(ide, allPlugins = []) {
       const prevSkillLinks = (prevState.links || []).filter(
         (l) => path.dirname(path.resolve(l)) === path.resolve(geminiSkillsDir)
       );
+      const prevAppLinks = (prevState.links || []).filter(
+        (l) => path.dirname(path.resolve(l)) === path.resolve(appsTargetDir)
+      );
       for (const oldLink of prevState.links || []) {
         const oldParent = path.dirname(path.resolve(oldLink));
-        if (oldParent !== path.resolve(bundleDir) && oldParent !== path.resolve(geminiSkillsDir)) {
+        if (
+          oldParent !== path.resolve(bundleDir) &&
+          oldParent !== path.resolve(geminiSkillsDir) &&
+          oldParent !== path.resolve(appsTargetDir)
+        ) {
           removeJunction(oldLink);
         }
       }
@@ -1644,7 +1846,24 @@ export function syncIdePlugins(ide, allPlugins = []) {
       if (hookRes.ownedKeys.length > 0) nextJsonKeys[paths.hooks.file] = hookRes.ownedKeys;
     }
 
-    const allOwnedLinks = [...bundleLinks, ...skillLinks];
+    // Sync App components (e.g. ms-playwright) via directory junctions
+    if (appsTargetDir) {
+      const prevAppLinks = (prevState.links || []).filter(
+        (l) => path.dirname(path.resolve(l)) === path.resolve(appsTargetDir)
+      );
+      const appSync = syncApps(
+        components.apps,
+        appsTargetDir,
+        prevAppLinks,
+        createJunction,
+        removeJunction,
+        allPlugins,
+        ownerKey
+      );
+      appLinks = appSync.nextLinks;
+    }
+
+    const allOwnedLinks = [...bundleLinks, ...skillLinks, ...appLinks];
     if (isGeminiIde) {
       const geminiConfigDir = path.dirname(bundleDir);
       const dupes = detectDuplicateStandalones(
@@ -1670,6 +1889,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
         skills: skillLinks.length,
         rules: components.rules.length,
         agents: components.agents.length,
+        apps: appLinks.length,
         conflicts: components.conflicts.length,
       },
       conflicts: components.conflicts,
@@ -1680,12 +1900,37 @@ export function syncIdePlugins(ide, allPlugins = []) {
   // Mode 2: Native-Format Converted Agent (Claude Code, Codex, OpenCode, Copilot, Cursor, Windsurf, Gemini CLI, Cline, Roo, Kiro, Universal, Custom)
   const components = collectEnabledComponents(allPlugins, normalized.plugins);
   const skillsTargetDir = paths.skills || primaryDir;
+  const appsTargetDir = paths.apps || path.join(path.dirname(skillsTargetDir), "apps");
+
+  const prevSkillLinks = (prevState.links || []).filter(
+    (l) => path.dirname(path.resolve(l)) === path.resolve(skillsTargetDir)
+  );
+  const prevAppLinks = (prevState.links || []).filter(
+    (l) => path.dirname(path.resolve(l)) === path.resolve(appsTargetDir)
+  );
+  for (const oldLink of prevState.links || []) {
+    const oldParent = path.dirname(path.resolve(oldLink));
+    if (oldParent !== path.resolve(skillsTargetDir) && oldParent !== path.resolve(appsTargetDir)) {
+      removeJunction(oldLink);
+    }
+  }
 
   // 1. Link flattened skills (<skillsTargetDir>/<skill-name>/SKILL.md)
   const skillSync = syncFlattenedSkills(
     components.skills,
     skillsTargetDir,
-    prevState.links || [],
+    prevSkillLinks,
+    createJunction,
+    removeJunction,
+    allPlugins,
+    ownerKey
+  );
+
+  // 1b. Link enabled App components (<appsTargetDir>/<app-name>)
+  const appSync = syncApps(
+    components.apps,
+    appsTargetDir,
+    prevAppLinks,
     createJunction,
     removeJunction,
     allPlugins,
@@ -1762,6 +2007,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
     }
   }
 
+  const allMode2Links = [...skillSync.nextLinks, ...appSync.nextLinks];
   const dupes = detectDuplicateStandalones(
     allPlugins,
     normalized.plugins,
@@ -1771,12 +2017,12 @@ export function syncIdePlugins(ide, allPlugins = []) {
       agentsDir: typeof paths.agents === "object" ? paths.agents?.dir : undefined,
     },
     nextFiles,
-    skillSync.nextLinks
+    allMode2Links
   );
   components.conflicts.push(...dupes);
 
   saveOwnershipState(ownerKey, {
-    links: skillSync.nextLinks,
+    links: allMode2Links,
     files: nextFiles,
     jsonKeys: nextJsonKeys,
     blocks: nextBlocks,
@@ -1788,6 +2034,7 @@ export function syncIdePlugins(ide, allPlugins = []) {
     mode: "convert",
     summary: {
       skills: skillSync.nextLinks.length,
+      apps: appSync.nextLinks.length,
       commands: commandsSyncedCount,
       mcp: mcpSyncedCount,
       rules: rulesSyncedCount,
@@ -2457,9 +2704,9 @@ export function getComponentsStorageSnapshot(hubRoot = resolveHubRoot()) {
       exists: false,
       timestamp: Date.now(),
       plugins: {},
-      rootComponents: { skills: {}, rules: {}, agents: {}, mcp: null, hooks: null },
+      rootComponents: { skills: {}, rules: {}, agents: {}, apps: {}, mcp: null, hooks: null },
       hash: "empty",
-      summary: { pluginCount: 0, skillCount: 0, ruleCount: 0, agentCount: 0, mcpCount: 0, hookCount: 0 },
+      summary: { pluginCount: 0, skillCount: 0, ruleCount: 0, agentCount: 0, mcpCount: 0, hookCount: 0, appCount: 0 },
     };
   }
 
@@ -2492,6 +2739,7 @@ export function getComponentsStorageSnapshot(hubRoot = resolveHubRoot()) {
   let totalAgents = 0;
   let totalMcps = 0;
   let totalHooks = 0;
+  let totalApps = 0;
 
   if (fs.existsSync(pluginsDir)) {
     try {
@@ -2713,10 +2961,37 @@ export function getComponentsStorageSnapshot(hubRoot = resolveHubRoot()) {
     } catch {}
   }
 
+  const rootApps = {};
+  const rootAppsDir = path.join(cleanHub, "app");
+  if (fs.existsSync(rootAppsDir)) {
+    try {
+      for (const a of fs.readdirSync(rootAppsDir)) {
+        if (a.startsWith(".") || a === "node_modules") continue;
+        const aPath = path.join(rootAppsDir, a);
+        try {
+          const aStat = fs.statSync(aPath);
+          if (aStat.isDirectory()) {
+            const appManifest = path.join(aPath, "app.json");
+            let amStat = null;
+            if (fs.existsSync(appManifest)) {
+              try { amStat = fs.statSync(appManifest); } catch {}
+            }
+            rootApps[a] = {
+              mtime: Math.round(amStat ? amStat.mtimeMs : aStat.mtimeMs),
+              size: amStat ? amStat.size : 0,
+            };
+            totalApps++;
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
   const rootComponents = {
     skills: rootSkills,
     rules: rootRules,
     agents: rootAgents,
+    apps: rootApps,
     mcp: rootMcp,
     hooks: rootHooks,
   };
@@ -2754,6 +3029,7 @@ export function getComponentsStorageSnapshot(hubRoot = resolveHubRoot()) {
       agentCount: totalAgents,
       mcpCount: totalMcps,
       hookCount: totalHooks,
+      appCount: totalApps,
     },
   };
 }
@@ -3162,24 +3438,26 @@ export function collectAllComponentsUpstream(hubRoot = resolveHubRoot()) {
 
   for (const p of plugins) {
     let manifest = null;
-    const manifestPath = path.join(p.path, "plugin.json");
+    const manifestPath = path.join(p.path, p.isApp ? "app.json" : "plugin.json");
     if (fs.existsSync(manifestPath)) {
       try { manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")); } catch {}
     }
-    const pluginUpstream = extractComponentUpstream(p.path, "plugin", manifest);
+    const pluginUpstream = extractComponentUpstream(p.path, p.isApp ? "app" : "plugin", manifest);
 
     components.push({
       id: p.id,
       name: p.name || p.id,
-      type: "plugin",
+      type: p.isApp ? "app" : "plugin",
       version: p.version || "1.0.0",
       path: p.path,
       upstream: pluginUpstream,
       skillsCount: p.skills?.length || 0,
       rulesCount: p.rules?.length || 0,
       agentsCount: p.agents?.length || 0,
+      appsCount: p.isApp ? 1 : (p.apps?.length || 0),
       hasMcp: Boolean(p.hasMcp),
       hasHooks: Boolean(p.hasHooks),
+      hasApp: Boolean(p.hasApp || p.isApp),
     });
 
     // Check individual skills in plugin
@@ -3467,8 +3745,35 @@ export function verifyPluginWorkabilityOnDisk(plugin, ide, options = {}) {
 
     const profile = AGENT_PROFILES[normalized.agentType] || AGENT_PROFILES.custom;
 
-    // 1. Bundle Mode (e.g. Antigravity)
-    if (profile.mode === "bundle") {
+    // 0. App Component Check (standalone app in <hubRoot>/app/<app-name>)
+    if (plugin.isApp) {
+      const appsDir = paths.apps || path.join(path.dirname(primaryDir), "apps");
+      const appName = plugin.appName || plugin.id;
+      const appLinkPath = path.join(appsDir, appName);
+      if (!plugin.path || !fs.existsSync(plugin.path)) {
+        return {
+          ...base,
+          workable: false,
+          color: "red",
+          status: "missing_on_disk",
+          summary: `App source missing for "${appName}"`,
+          tooltip: `🔴 Connection failed / Missing source: App directory "${plugin.path || appName}" does not exist on disk.`,
+          reason: `App source directory "${plugin.path || appName}" not found`,
+        };
+      }
+      if (!fs.existsSync(appLinkPath)) {
+        return {
+          ...base,
+          workable: false,
+          color: "red",
+          status: "missing_on_disk",
+          summary: `App "${appName}" missing on disk in ${ide.name || ide.id}`,
+          tooltip: `🔴 Connection failed / Missing on disk: App "${appName}" is not linked in "${appsDir}".`,
+          reason: `App "${appName}" is not deployed in "${appsDir}"`,
+        };
+      }
+    } else if (profile.mode === "bundle") {
+      // 1. Bundle Mode (e.g. Antigravity)
       const bundleDir = paths.bundle || primaryDir;
       const pluginBundleDir = path.join(bundleDir, plugin.id);
       if (!fs.existsSync(pluginBundleDir)) {
@@ -3699,15 +4004,18 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
   const rawHooks = Array.isArray(plugin.hooks) ? plugin.hooks : [];
   const hasHooksInside = Boolean(plugin.hasHooks || rawHooks.length > 0);
 
-  const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || (plugin.filesCount && plugin.filesCount > 0);
+  const rawApps = Array.isArray(plugin.apps) ? plugin.apps : [];
+  const hasAppInside = Boolean(plugin.isApp || plugin.hasApp || rawApps.length > 0);
+
+  const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || hasAppInside || (plugin.filesCount && plugin.filesCount > 0);
   if (!hasAnyFeature && !plugin.path) {
     return {
       workable: false,
       color: "red",
       status: "failed",
       features: {},
-      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false, hasHooks: false },
-      summary: "Empty component (no skills, MCP, rules, or agents found)",
+      quickActions: { slashCommands: [], mentions: [], hasSlash: false, hasMention: false, hasMcp: false, hasRules: false, hasHooks: false, hasApp: false },
+      summary: "Empty component (no skills, MCP, rules, agents, or apps found)",
       tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"`,
       reason: "No workable components discovered in plugin",
     };
@@ -3725,6 +4033,7 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
     rules: isBundle || customPaths.rules ? true : (profile?.capabilities?.rules ?? true),
     agents: isBundle || customPaths.agents ? true : (profile?.capabilities?.agents ?? true),
     hooks: isBundle || customPaths.hooks ? true : (profile?.capabilities?.hooks ?? true),
+    apps: isBundle || customPaths.apps ? true : (profile?.capabilities?.apps ?? true),
   };
 
   const features = {};
@@ -3843,6 +4152,27 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
     };
   }
 
+  // 6. Apps Check (only if present inside component)
+  if (hasAppInside) {
+    presentTypeCount++;
+    const appNames = rawApps.length > 0 ? rawApps : [plugin.appName || plugin.name || plugin.id];
+    const isSupported = capabilities.apps === true;
+    if (isSupported) {
+      workableCount++;
+      actionParts.push(`App: ${appNames.join(", ")}`);
+      detailedTooltipLines.push(`✓ App (${appNames.length}): ${appNames.join(", ")} active`);
+    } else {
+      detailedTooltipLines.push(`✗ App (${appNames.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+    }
+    features.apps = {
+      present: true,
+      count: appNames.length,
+      workable: isSupported,
+      items: appNames,
+      reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+    };
+  }
+
   // If component has types present but NONE of them are supported by this agent
   if (presentTypeCount > 0 && workableCount === 0) {
     return {
@@ -3858,6 +4188,7 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
         hasMcp: false,
         hasRules: false,
         hasHooks: false,
+        hasApp: false,
       },
       summary: `Incompatible with ${ide.name || ide.id}`,
       tooltip: `🔴 Incompatible with ${ide.name || ide.id}: All component types in "${plugin.name || plugin.id}" are unsupported.`,
@@ -3870,6 +4201,7 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
   const hasMcp = hasMcpInside && capabilities.mcp === true;
   const hasRules = hasRulesInside && capabilities.rules === true;
   const hasHooks = hasHooksInside && capabilities.hooks === true;
+  const hasApp = hasAppInside && capabilities.apps === true;
 
   const summary = `Workable in ${ide.name || ide.id}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
   const baseTooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
@@ -3888,6 +4220,7 @@ export function evaluateComponentAgentWorkability(plugin, ide, options = {}) {
       hasMcp,
       hasRules,
       hasHooks,
+      hasApp,
     },
     summary,
     tooltip,
@@ -4469,13 +4802,14 @@ export function scanAgentForeignComponents(agentDef, hubConfig = null, plugins =
   if (normIde.configPath && fs.existsSync(normIde.configPath)) checkDirs.add(normIde.configPath);
   if (paths.primary && fs.existsSync(paths.primary)) checkDirs.add(paths.primary);
   if (paths.skills && fs.existsSync(paths.skills)) checkDirs.add(paths.skills);
+  if (paths.apps && fs.existsSync(paths.apps)) checkDirs.add(paths.apps);
   if (paths.rules && fs.existsSync(paths.rules)) checkDirs.add(paths.rules);
   if (paths.agents && fs.existsSync(paths.agents)) checkDirs.add(paths.agents);
 
-  // Parent directories for plugins, skills, rules, agents subfolders
+  // Parent directories for plugins, skills, rules, agents, apps subfolders
   for (const d of Array.from(checkDirs)) {
     const parent = path.dirname(d);
-    for (const sub of ["plugins", "skills", "rules", "agents"]) {
+    for (const sub of ["plugins", "skills", "rules", "agents", "apps"]) {
       const subPath = path.join(parent, sub);
       if (fs.existsSync(subPath)) checkDirs.add(subPath);
     }

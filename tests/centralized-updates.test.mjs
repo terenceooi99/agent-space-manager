@@ -235,9 +235,9 @@ test("Centralized Weekly Monday Upstream Update Suite", async (t) => {
     assert.ok(content.includes('"upstream": "https://github.com/<owner>/<repo>"'), "Must specify upstream format in plugin.json");
     assert.ok(content.includes('upstream: "https://github.com/<owner>/<repo>"'), "Must specify upstream in YAML frontmatter");
 
-    // 2. Must include Complete Plugin Removal & Cleanup instruction
-    assert.ok(content.includes("Complete Plugin Removal & Cleanup:"), "Must include Complete Plugin Removal & Cleanup section");
-    assert.ok(content.includes("Concurrently remove ALL components related to that plugin"), "Must enforce removal of all related components");
+    // 2. Must include Complete Plugin & App Removal & Cleanup instruction
+    assert.ok(content.includes("Complete Plugin & App Removal & Cleanup:"), "Must include Complete Plugin & App Removal & Cleanup section");
+    assert.ok(content.includes("Concurrently remove ALL components related to that plugin or app"), "Must enforce removal of all related components");
 
     // 3. Must include Centralized Weekly Update Checking instruction
     assert.ok(content.includes("Centralized Weekly Update Checking"), "Must include Centralized Weekly Update Checking section");
@@ -248,23 +248,24 @@ test("Centralized Weekly Monday Upstream Update Suite", async (t) => {
     assert.ok(content.includes("Mandatory Persistent Agent Rule:"), "Must include Mandatory Persistent Agent Rule section");
     assert.ok(content.includes("ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path"), "Must specify rule trigger on addendum, edit, or removal");
 
-    // 5. Must declare and display V1.6 version
-    assert.ok(content.includes('STORAGE_PROMPT_VERSION = "V1.6"'), "Must declare STORAGE_PROMPT_VERSION = 'V1.6'");
-    assert.ok(content.includes("Prompt V1.6") || content.includes("${STORAGE_PROMPT_VERSION}"), "Prompt text must include V1.6 version");
-    assert.ok(content.includes("Copy Prompt (${STORAGE_PROMPT_VERSION})"), "Button must show Copy Prompt (V1.6)");
+    // 5. Must declare and display V1.7 version
+    assert.ok(content.includes('STORAGE_PROMPT_VERSION = "V1.7"'), "Must declare STORAGE_PROMPT_VERSION = 'V1.7'");
+    assert.ok(content.includes("Prompt V1.7") || content.includes("${STORAGE_PROMPT_VERSION}"), "Prompt text must include V1.7 version");
+    assert.ok(content.includes("Copy Prompt (${STORAGE_PROMPT_VERSION})"), "Button must show Copy Prompt (V1.7)");
+    assert.ok(content.includes("app.json") && content.includes("App Component Folder"), "Prompt must document app/ directory structure and app.json manifest");
     assert.ok(content.includes("No Duplicate Standalone Copies"), "Prompt must include No Duplicate Standalone Copies rule");
     assert.ok(content.includes("One-Time Rearrangement Stability"), "Prompt must include One-Time Rearrangement Stability");
-    assert.ok(content.includes("Shared Folder Specification") || content.includes("shared/"), "Prompt must include universal shared folder structure");
+    assert.ok(content.includes("Shared Folder") || content.includes("shared/"), "Prompt must include universal shared folder structure");
     assert.ok(content.includes("stagehand-fastcrw") && content.includes("joining skills"), "Prompt must specify subfolder naming after joining skills");
     assert.ok(content.includes("middleware-intents.json"), "Prompt must include dynamic Smart Middleware intent registry");
     assert.ok(content.includes("Initial Run Seeding") && content.includes("generate the initial shared/middleware-intents.json"), "Prompt must instruct agent to seed initial personal layer from existing plugins on initial run");
     assert.ok(content.includes("trim and remove the plugin's registered intent keywords") || content.includes("trim middleware intents"), "Prompt must enforce trimming middleware intents on removal");
     assert.ok(content.includes("A-plan") && content.includes("B-plan"), "Prompt must include skill name collision rule prefixing plugin name (e.g. A-plan, B-plan)");
 
-    // 6. Index.html must display V1.6 on button
+    // 6. Index.html must display V1.7 on button
     const htmlPath = path.resolve("page", "index.html");
     const htmlContent = fs.readFileSync(htmlPath, "utf8");
-    assert.ok(htmlContent.includes("Copy Prompt (V1.6)"), "index.html must display Copy Prompt (V1.6) on button");
+    assert.ok(htmlContent.includes("Copy Prompt (V1.7)"), "index.html must display Copy Prompt (V1.7) on button");
   });
 
   await t.test("Persistent Rule File: .agents/rules/components-storage-upstream-rule.md conforms to safety invariants", () => {

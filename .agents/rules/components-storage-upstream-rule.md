@@ -41,10 +41,15 @@ Every component stored in the Components Storage Path MUST adhere to the standar
 │   │   └── <agent-id>/       # Target agent inbox queue
 │   ├── _upstream_backups/    # Pre-update backups and component snapshots
 │   ├── middleware-intents.json # Dynamic user & agent Smart Middleware intent keyword registry
-│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation; named after joining skills (e.g. stagehand-fastcrw)
+│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches; named after joining skills (e.g. stagehand-fastcrw)
+├── app/              # Standalone application runtimes, browser binaries & desktop/CLI tools
+│   └── <app-name>/
+│       ├── app.json          # Required app manifest ("id", "name", "version", "description", "upstream", optional "env"/"executable")
+│       └── <runtime-files>/  # Self-contained app binaries, browser builds (e.g. ms-playwright), or runtime assets
 ├── skills/           # Standalone or migrated skills
 ├── hub-config.json   # Hub configuration
 ├── plugins.json      # Discovered/registered plugins index
+├── apps.json         # Discovered/registered apps index
 └── skills.json       # Discovered/registered skills index
 ```
 
@@ -83,6 +88,8 @@ Whenever saving, installing, or modifying components:
    Must include `upstream: "https://github.com/owner/repository"` in YAML frontmatter.
 4. **Agents (`agents/<agent-name>.md`)**:
    Must include `upstream: "https://github.com/owner/repository"` in YAML frontmatter.
+5. **Apps (`app/<app-name>/app.json`)**:
+   Must include `"upstream": "https://github.com/owner/repository"`, `"id"`, `"name"`, `"version"`, and `"description"` (plus optional `"env"` / `"executable"`). Never place standalone binary runtimes like `ms-playwright` inside `shared/`.
 
 ---
 

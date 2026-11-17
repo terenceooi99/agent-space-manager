@@ -45,7 +45,7 @@
     <div class="hub-path-header">
       <span class="hub-path-title">Components Storage Path (Where all skills, MCPs, and plugins are saved)</span>
       <div style="display:flex; gap:8px; align-items:center;">
-        <button type="button" class="btn-sm" id="btnToggleComponentsDetails" style="font-weight:600; font-size:11.5px; cursor:pointer;" title="Expand/Collapse categorized list of all Plugins, MCPs, Hooks, Skills, Agents, and Rules">
+        <button type="button" class="btn-sm" id="btnToggleComponentsDetails" style="font-weight:600; font-size:11.5px; cursor:pointer;" title="Expand/Collapse categorized list of all Plugins, MCPs, Hooks, Skills, Agents, Rules, and Apps">
           <span id="expandIcon">▼</span> <span id="expandLabel">Expand Components List</span>
         </button>
         <span class="hub-path-badge" id="hubPathBadge">Default Hub</span>
@@ -87,6 +87,7 @@
         <button type="button" class="cat-tab" data-cat="skills">Skills (<span id="cat-cnt-skills">0</span>)</button>
         <button type="button" class="cat-tab" data-cat="agents">Agents (<span id="cat-cnt-agents">0</span>)</button>
         <button type="button" class="cat-tab" data-cat="rules">Rules (<span id="cat-cnt-rules">0</span>)</button>
+        <button type="button" class="cat-tab" data-cat="apps">Apps (<span id="cat-cnt-apps">0</span>)</button>
       </div>
 
       <!-- Search bar inside category expander -->
@@ -113,6 +114,7 @@
         <div class="sub-line"><span>Skills:</span> <strong id="cnt-skills">0</strong></div>
         <div class="sub-line"><span>Agents:</span> <strong id="cnt-agents">0</strong></div>
         <div class="sub-line"><span>Rules:</span> <strong id="cnt-rules">0</strong></div>
+        <div class="sub-line"><span>Apps:</span> <strong id="cnt-apps">0</strong></div>
       </div>
     </div>
     
@@ -132,7 +134,7 @@
       <div class="prompt-desc">
         Ask your AI agent to enforce standard layouts, record upstream links, and install rules for component addendum/edits.
       </div>
-      <button type="button" class="btn-copy-prompt" id="btnCopyStoragePrompt" title="Copy prompt for your AI agent to standardize Components Storage file structure, enforce upstream links, clean up plugins, enforce UTF-8 No BOM encoding, respect one-time rearrangement stability, preserve shared cross-agent communication folders, maintain dynamic Smart Middleware intent rules, and install rules">Copy Prompt (V1.6)</button>
+      <button type="button" class="btn-copy-prompt" id="btnCopyStoragePrompt" title="Copy prompt for your AI agent to standardize Components Storage file structure (plugins, app, shared, skills), enforce upstream links, clean up plugins/apps, enforce UTF-8 No BOM encoding, respect one-time rearrangement stability, preserve shared cross-agent communication folders, maintain dynamic Smart Middleware intent rules, and install rules">Copy Prompt (V1.7)</button>
     </div>
     
     <!-- Tile 4: Gateway Tool Optimization (Adjustable Cap with "Default" button) -->
@@ -319,6 +321,10 @@
               <label style="font-size:11px; margin-bottom:0;">
                 Hooks Configuration File:
                 <input type="text" id="cpHooksInput" placeholder="e.g. ~/.claude/hooks.json" style="font-size:11px; padding:4px 6px;">
+              </label>
+              <label style="font-size:11px; margin-bottom:0;">
+                Apps Directory (Runtimes &amp; Tools):
+                <input type="text" id="cpAppsInput" placeholder="e.g. ~/.gemini/config/apps" style="font-size:11px; padding:4px 6px;">
               </label>
             </div>
           </div>

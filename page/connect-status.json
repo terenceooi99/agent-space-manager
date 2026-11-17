@@ -1,18 +1,18 @@
 {
   "success": true,
-  "nonce": "1794491787526-ra0z2e",
+  "nonce": "1794910443279-wj6cba",
   "targetId": "antigravity",
   "targetName": "Antigravity (Google)",
   "bridge": {
     "version": "1.0.0",
     "bridgeProtocol": "magpie-asm-v1",
-    "updatedAt": "2026-11-12T13:56:28.893Z",
+    "updatedAt": "2026-11-17T10:14:04.633Z",
     "hubRoot": "D:\\Software\\AI Agent Space",
     "componentCounts": {
-      "plugins": 13,
-      "skills": 107,
-      "mcpServers": 7,
-      "rules": 2,
+      "plugins": 16,
+      "skills": 118,
+      "mcpServers": 8,
+      "rules": 3,
       "agents": 1,
       "hooks": 0
     },
@@ -66,14 +66,41 @@
           "agentType": "antigravity",
           "mode": "bundle",
           "summary": {
-            "plugins": 1,
+            "plugins": 4,
             "skills": 0,
-            "rules": 0,
-            "agents": 0
+            "rules": 1,
+            "agents": 0,
+            "conflicts": 1
           },
+          "conflicts": [
+            {
+              "type": "duplicate-standalone",
+              "category": "rule",
+              "name": "trail-code-auto.md",
+              "existingPath": "C:\\Users\\teren\\.gemini\\config\\rules\\trail-code-auto.md",
+              "pluginId": "trail-code",
+              "pluginComponent": "trailhq-trail-code-auto.md",
+              "reason": "standalone rule duplicates plugin \"trail-code\" (trailhq-trail-code-auto.md)"
+            }
+          ],
           "results": [
             {
+              "plugin": "game-studio",
+              "action": "linked",
+              "success": true
+            },
+            {
               "plugin": "ponytail",
+              "action": "linked",
+              "success": true
+            },
+            {
+              "plugin": "trail-code",
+              "action": "linked",
+              "success": true
+            },
+            {
+              "plugin": "unslop",
               "action": "linked",
               "success": true
             }
@@ -125,14 +152,41 @@
     "agentType": "antigravity",
     "mode": "bundle",
     "summary": {
-      "plugins": 1,
+      "plugins": 4,
       "skills": 0,
-      "rules": 0,
-      "agents": 0
+      "rules": 1,
+      "agents": 0,
+      "conflicts": 1
     },
+    "conflicts": [
+      {
+        "type": "duplicate-standalone",
+        "category": "rule",
+        "name": "trail-code-auto.md",
+        "existingPath": "C:\\Users\\teren\\.gemini\\config\\rules\\trail-code-auto.md",
+        "pluginId": "trail-code",
+        "pluginComponent": "trailhq-trail-code-auto.md",
+        "reason": "standalone rule duplicates plugin \"trail-code\" (trailhq-trail-code-auto.md)"
+      }
+    ],
     "results": [
       {
+        "plugin": "game-studio",
+        "action": "linked",
+        "success": true
+      },
+      {
         "plugin": "ponytail",
+        "action": "linked",
+        "success": true
+      },
+      {
+        "plugin": "trail-code",
+        "action": "linked",
+        "success": true
+      },
+      {
+        "plugin": "unslop",
         "action": "linked",
         "success": true
       }
@@ -143,19 +197,46 @@
     "agentType": "antigravity",
     "mode": "bundle",
     "summary": {
-      "plugins": 1,
+      "plugins": 4,
       "skills": 0,
-      "rules": 0,
-      "agents": 0
+      "rules": 1,
+      "agents": 0,
+      "conflicts": 1
     },
+    "conflicts": [
+      {
+        "type": "duplicate-standalone",
+        "category": "rule",
+        "name": "trail-code-auto.md",
+        "existingPath": "C:\\Users\\teren\\.gemini\\config\\rules\\trail-code-auto.md",
+        "pluginId": "trail-code",
+        "pluginComponent": "trailhq-trail-code-auto.md",
+        "reason": "standalone rule duplicates plugin \"trail-code\" (trailhq-trail-code-auto.md)"
+      }
+    ],
     "results": [
       {
+        "plugin": "game-studio",
+        "action": "linked",
+        "success": true
+      },
+      {
         "plugin": "ponytail",
+        "action": "linked",
+        "success": true
+      },
+      {
+        "plugin": "trail-code",
+        "action": "linked",
+        "success": true
+      },
+      {
+        "plugin": "unslop",
         "action": "linked",
         "success": true
       }
     ]
   },
   "error": null,
-  "timestamp": 1794491788898
+  "timestamp": 1794910444638
 }

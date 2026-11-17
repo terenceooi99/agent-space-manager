@@ -18,7 +18,7 @@
       return plugin.files;
     }
     const files = [];
-    files.push({ name: "plugin.json", relPath: "plugin.json", size: 520 });
+    files.push({ name: plugin.isApp ? "app.json" : "plugin.json", relPath: plugin.isApp ? "app.json" : "plugin.json", size: 520 });
 
     if (Array.isArray(plugin.skills) && plugin.skills.length > 0) {
       plugin.skills.forEach((s) => {
@@ -41,7 +41,7 @@
         files.push({ name: a, relPath: `agents/${a}`, size: 1280 });
       });
     }
-    if (files.length === 1 && !plugin.hasMcp && !plugin.hasHooks && (!plugin.skills || plugin.skills.length === 0)) {
+    if (files.length === 1 && !plugin.isApp && !plugin.hasMcp && !plugin.hasHooks && (!plugin.skills || plugin.skills.length === 0)) {
       files.push({ name: "README.md", relPath: "README.md", size: 1024 });
     }
     plugin.files = files;
@@ -149,6 +149,23 @@
       }
     }
 
+    // 5b. Apps
+    if (plugin.isApp || plugin.hasApp || (Array.isArray(plugin.apps) && plugin.apps.length > 0)) {
+      const apps = (Array.isArray(plugin.apps) && plugin.apps.length > 0) ? plugin.apps : [plugin.appName || plugin.name || plugin.id];
+      for (const appName of apps) {
+        const match = files.find((f) => f.name === "app.json" || (f.relPath || "").includes(`apps/${appName}`));
+        if (match && match.name === "app.json") seenFiles.add(match.relPath || match.name);
+        items.push({
+          badge: "📦 App",
+          type: "app",
+          name: appName,
+          sub: "App Runtime / Binary",
+          relPath: plugin.isApp ? `app/${appName}/app.json` : (match ? (match.relPath || match.name) : `apps/${appName}`),
+          sizeStr: match ? formatSize(match.size) : "",
+        });
+      }
+    }
+
     // 6. Manifest & Documentation & Other Files
     for (const f of files) {
       const key = f.relPath || f.name;
@@ -162,6 +179,14 @@
         badge = "⚙️ Manifest";
         type = "manifest";
         sub = "Plugin Metadata";
+      } else if (f.name === "app.json") {
+        badge = "⚙️ Manifest";
+        type = "manifest";
+        sub = "App Metadata";
+      } else if (f.isDir || (f.name && f.name.endsWith("/"))) {
+        badge = "📁 Dir";
+        type = "dir";
+        sub = "Runtime Folder";
       } else if (f.name.toLowerCase().startsWith("readme")) {
         badge = "📝 Docs";
         type = "docs";
@@ -1399,6 +1424,7 @@
     if ($("cpRulesInput")) $("cpRulesInput").value = current.rules || defaults.rules || "";
     if ($("cpAgentsInput")) $("cpAgentsInput").value = current.agents || defaults.agents || "";
     if ($("cpHooksInput")) $("cpHooksInput").value = current.hooks || defaults.hooks || "";
+    if ($("cpAppsInput")) $("cpAppsInput").value = current.apps || defaults.apps || "";
   }
 
   function collectComponentPathsFromInputs() {
@@ -1410,6 +1436,7 @@
     const r = $("cpRulesInput")?.value?.trim();
     const a = $("cpAgentsInput")?.value?.trim();
     const h = $("cpHooksInput")?.value?.trim();
+    const ap = $("cpAppsInput")?.value?.trim();
     if (b) res.bundle = b;
     if (s) res.skills = s;
     if (c) res.commands = c;
@@ -1417,6 +1444,7 @@
     if (r) res.rules = r;
     if (a) res.agents = a;
     if (h) res.hooks = h;
+    if (ap) res.apps = ap;
     return res;
   }
 
@@ -1431,6 +1459,7 @@
         { key: "rules", label: "Rules" },
         { key: "agents", label: "Subagents" },
         { key: "hooks", label: "Hooks" },
+        { key: "apps", label: "Apps" },
       ];
       chipsEl.innerHTML = caps.map((c) => {
         const ok = prof.capabilities?.[c.key];
@@ -1600,11 +1629,11 @@
   async function reloadPluginsFromHub(forceReloadScript = false) {
     const effective = computeEffectiveHubPath();
     const targetPath = effective.path;
-    discoveredCategories = { plugins: [], mcps: [], hooks: [], skills: [], agents: [], rules: [] };
+    discoveredCategories = { plugins: [], mcps: [], hooks: [], skills: [], agents: [], rules: [], apps: [] };
     const plugins = await apiClient.getPlugins(targetPath, forceReloadScript);
     discoveredPlugins = Array.isArray(plugins) ? plugins : [];
     if (discoveredPlugins.length === 0) {
-      discoveredCategories = { plugins: [], mcps: [], hooks: [], skills: [], agents: [], rules: [] };
+      discoveredCategories = { plugins: [], mcps: [], hooks: [], skills: [], agents: [], rules: [], apps: [] };
     } else if (!discoveredCategories.plugins || discoveredCategories.plugins.length === 0) {
       discoveredCategories = buildClientCategoriesRegistry(discoveredPlugins);
     }
@@ -1633,6 +1662,7 @@
     let skills = 0;
     let agents = 0;
     let rules = 0;
+    let apps = 0;
 
     discoveredPlugins.forEach((p) => {
       if (p.hasMcp) mcps += (p.mcps?.length || 1);
@@ -1640,9 +1670,11 @@
       skills += (p.skills || []).length;
       agents += (p.agents || []).length;
       rules += (p.rules || []).length;
+      if (p.isApp) apps += 1;
+      else if (Array.isArray(p.apps)) apps += p.apps.length;
     });
 
-    return { plugins, mcps, hooks, skills, agents, rules };
+    return { plugins, mcps, hooks, skills, agents, rules, apps };
   }
 
   function buildClientCategoriesRegistry(plugins = []) {
@@ -1653,12 +1685,14 @@
       skills: [],
       agents: [],
       rules: [],
+      apps: [],
     };
     const seenSkills = new Set();
     const seenMcps = new Set();
     const seenHooks = new Set();
     const seenAgents = new Set();
     const seenRules = new Set();
+    const seenApps = new Set();
 
     for (const p of plugins) {
       ensurePluginFiles(p);
@@ -1668,12 +1702,45 @@
         version: p.version,
         path: p.path,
         description: p.description,
+        isApp: Boolean(p.isApp),
+        hasApp: Boolean(p.hasApp || p.isApp),
+        appsCount: p.isApp ? 1 : (p.apps || []).length,
         skillsCount: (p.skills || []).length,
         filesCount: (p.files || []).length,
         files: p.files,
         hasMcp: p.hasMcp,
         hasHooks: p.hasHooks,
       });
+
+      if (p.isApp) {
+        const appKey = p.id || p.name;
+        if (!seenApps.has(appKey)) {
+          seenApps.add(appKey);
+          categories.apps.push({
+            id: p.id,
+            name: p.name,
+            version: p.version,
+            pluginId: p.id,
+            pluginName: p.name,
+            description: p.description,
+            sourcePath: p.path,
+          });
+        }
+      } else {
+        for (const ap of (p.apps || [])) {
+          const appKey = `${p.id}/${ap}`;
+          if (!seenApps.has(appKey)) {
+            seenApps.add(appKey);
+            categories.apps.push({
+              id: appKey,
+              name: ap,
+              pluginId: p.id,
+              pluginName: p.name,
+              sourcePath: `${p.path}\\apps\\${ap}`,
+            });
+          }
+        }
+      }
 
       for (const s of (p.skills || [])) {
         if (!seenSkills.has(s)) {
@@ -1751,7 +1818,8 @@
     const sLen = (cats.skills || []).length;
     const aLen = (cats.agents || []).length;
     const rLen = (cats.rules || []).length;
-    const totalCount = (pLen + mLen + hLen + sLen + aLen + rLen);
+    const apLen = (cats.apps || []).length;
+    const totalCount = (pLen + mLen + hLen + sLen + aLen + rLen + apLen);
 
     if ($("cat-cnt-total")) $("cat-cnt-total").textContent = totalCount;
     if ($("cat-cnt-all")) $("cat-cnt-all").textContent = totalCount;
@@ -1761,6 +1829,7 @@
     if ($("cat-cnt-skills")) $("cat-cnt-skills").textContent = sLen;
     if ($("cat-cnt-agents")) $("cat-cnt-agents").textContent = aLen;
     if ($("cat-cnt-rules")) $("cat-cnt-rules").textContent = rLen;
+    if ($("cat-cnt-apps")) $("cat-cnt-apps").textContent = apLen;
 
     const container = $("categoryItemsContainer");
     if (!container) return;
@@ -1773,8 +1842,8 @@
     let items = [];
     if (activeCategoryTab === "all" || activeCategoryTab === "plugins") {
       items.push(...cats.plugins.map(p => ({
-        type: "plugin",
-        badge: "🧩 Plugin",
+        type: p.isApp ? "app" : "plugin",
+        badge: p.isApp ? "📦 App" : "🧩 Plugin",
         name: p.name,
         sub: p.version ? `v${p.version}` : "",
         path: p.path,
@@ -1829,6 +1898,16 @@
         sub: r.pluginName ? `from ${r.pluginName}` : "",
         path: r.sourcePath,
         desc: "System Instruction & Rule Spec",
+      })));
+    }
+    if (activeCategoryTab === "all" || activeCategoryTab === "apps") {
+      items.push(...(cats.apps || []).map(ap => ({
+        type: "app",
+        badge: "📦 App",
+        name: ap.name,
+        sub: ap.version ? `v${ap.version}` : (ap.pluginName && ap.pluginName !== ap.name ? `from ${ap.pluginName}` : ""),
+        path: ap.sourcePath,
+        desc: ap.description || "Standalone Application Runtime",
       })));
     }
 
@@ -1923,6 +2002,7 @@
     if ($("cnt-skills")) $("cnt-skills").textContent = String(counts.skills);
     if ($("cnt-agents")) $("cnt-agents").textContent = String(counts.agents);
     if ($("cnt-rules")) $("cnt-rules").textContent = String(counts.rules);
+    if ($("cnt-apps")) $("cnt-apps").textContent = String(counts.apps);
 
     if ($("ideCount")) $("ideCount").textContent = String(hubConfig.ides?.length || 0);
     if ($("projectCount")) $("projectCount").textContent = String(hubConfig.projects?.length || 0);
@@ -2280,14 +2360,17 @@
     const rawHooks = Array.isArray(plugin.hooks) ? plugin.hooks : [];
     const hasHooksInside = Boolean(plugin.hasHooks || rawHooks.length > 0);
 
-    const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || (plugin.filesCount && plugin.filesCount > 0);
+    const rawApps = Array.isArray(plugin.apps) ? plugin.apps : [];
+    const hasAppInside = Boolean(plugin.isApp || plugin.hasApp || rawApps.length > 0);
+
+    const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || hasAppInside || (plugin.filesCount && plugin.filesCount > 0);
     if (!hasAnyFeature && !plugin.path) {
       return { workable: false, color: "red", status: "failed", features: {}, summary: "Empty component", tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"` };
     }
 
     // Resolve agent profile capabilities
     const agentType = String(ide.agentType || ide.id || "").toLowerCase();
-    const profile = agentProfiles.find((p) => p.id === agentType) || { capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true } };
+    const profile = agentProfiles.find((p) => p.id === agentType) || { capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true, apps: true } };
     const isBundle = profile?.mode === "bundle" || agentType === "antigravity";
     const customPaths = ide.componentPaths || {};
 
@@ -2297,6 +2380,7 @@
       rules: isBundle || customPaths.rules ? true : (profile?.capabilities?.rules ?? true),
       agents: isBundle || customPaths.agents ? true : (profile?.capabilities?.agents ?? true),
       hooks: isBundle || customPaths.hooks ? true : (profile?.capabilities?.hooks ?? true),
+      apps: isBundle || customPaths.apps ? true : (profile?.capabilities?.apps ?? true),
     };
 
     const features = {};
@@ -2415,6 +2499,27 @@
       };
     }
 
+    // 6. Apps Check (only if present inside component)
+    if (hasAppInside) {
+      presentTypeCount++;
+      const appNames = rawApps.length > 0 ? rawApps : [plugin.appName || plugin.name || plugin.id];
+      const isSupported = capabilities.apps === true;
+      if (isSupported) {
+        workableCount++;
+        actionParts.push(`App: ${appNames.join(", ")}`);
+        detailedTooltipLines.push(`✓ App (${appNames.length}): ${appNames.join(", ")} active`);
+      } else {
+        detailedTooltipLines.push(`✗ App (${appNames.length}): Skipped (unsupported by ${ide.name || ide.id})`);
+      }
+      features.apps = {
+        present: true,
+        count: appNames.length,
+        workable: isSupported,
+        items: appNames,
+        reason: isSupported ? "Active" : `Unsupported by ${ide.name || ide.id}`,
+      };
+    }
+
     // If component has types present but NONE of them are supported by this agent
     if (presentTypeCount > 0 && workableCount === 0) {
       return {
@@ -2422,7 +2527,7 @@
         color: "red",
         status: "unsupported",
         features,
-        quickActions: { slashCommands, mentions, hasSlash: false, hasMention: false, hasMcp: false, hasRules: false, hasHooks: false },
+        quickActions: { slashCommands, mentions, hasSlash: false, hasMention: false, hasMcp: false, hasRules: false, hasHooks: false, hasApp: false },
         summary: `Incompatible with ${ide.name || ide.id}`,
         tooltip: `🔴 Incompatible with ${ide.name || ide.id}: All component types in "${plugin.name || plugin.id}" are unsupported.`,
         reason: `All component types in "${plugin.name || plugin.id}" are unsupported by ${ide.name || ide.id}`,
@@ -2434,6 +2539,7 @@
     const hasMcp = hasMcpInside && capabilities.mcp === true;
     const hasRules = hasRulesInside && capabilities.rules === true;
     const hasHooks = hasHooksInside && capabilities.hooks === true;
+    const hasApp = hasAppInside && capabilities.apps === true;
 
     const summary = `Workable in ${ide.name || ide.id}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
     const baseTooltip = `🟢 Workable in ${ide.name || ide.id}: Connected & ready.${actionParts.length > 0 ? " Can be used with " + actionParts.join(" | ") : ""}`;
@@ -2452,6 +2558,7 @@
         hasMcp,
         hasRules,
         hasHooks,
+        hasApp,
       },
       summary,
       tooltip,
@@ -2484,7 +2591,10 @@
     const rawHooks = Array.isArray(plugin.hooks) ? plugin.hooks : [];
     const hasHooksInside = Boolean(plugin.hasHooks || rawHooks.length > 0);
 
-    const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || (plugin.filesCount && plugin.filesCount > 0);
+    const rawApps = Array.isArray(plugin.apps) ? plugin.apps : [];
+    const hasAppInside = Boolean(plugin.isApp || plugin.hasApp || rawApps.length > 0);
+
+    const hasAnyFeature = hasSkillsInside || hasAgentsInside || hasMcpInside || hasRulesInside || hasHooksInside || hasAppInside || (plugin.filesCount && plugin.filesCount > 0);
     if (!hasAnyFeature && !plugin.path) {
       return { workable: false, color: "red", status: "failed", features: {}, summary: "Empty component", tooltip: `🔴 Connection failed: No workable components discovered in "${plugin.name || plugin.id}"` };
     }
@@ -2554,6 +2664,14 @@
         detailedTooltipLines.push(`✗ Hooks (${hookCount}): Skipped (unsupported in workspace repo)`);
       }
       features.hooks = { present: true, count: hookCount, workable: isSupported, items: rawHooks, reason: isSupported ? "Active" : "Unsupported" };
+    }
+
+    // 6. Apps
+    if (hasAppInside) {
+      const appNames = rawApps.length > 0 ? rawApps : [plugin.appName || plugin.name || plugin.id];
+      actionParts.push(`App: ${appNames.join(", ")}`);
+      detailedTooltipLines.push(`✓ App (${appNames.length}): ${appNames.join(", ")} active`);
+      features.apps = { present: true, count: appNames.length, workable: true, items: appNames, reason: "Active" };
     }
 
     const summary = `Workable in ${project.name}${actionParts.length > 0 ? " · " + actionParts.join(" · ") : ""}`;
@@ -2638,6 +2756,9 @@
       const row = document.createElement("tr");
 
       let badges = "";
+      if (plugin.isApp || plugin.hasApp || (plugin.apps && plugin.apps.length > 0)) {
+        badges += `<span class="badge badge-app">App</span>`;
+      }
       if (plugin.hasMcp) badges += `<span class="badge badge-mcp">MCP</span>`;
       if (plugin.skills?.length > 0) badges += `<span class="badge badge-skills">${plugin.skills.length} Skills</span>`;
       if (plugin.rules?.length > 0) badges += `<span class="badge badge-rules">Rules</span>`;
@@ -2667,6 +2788,9 @@
             } else if (it.type === "hook") {
               badgeBg = "rgba(234,88,12,0.15)";
               badgeColor = "#ea580c";
+            } else if (it.type === "app") {
+              badgeBg = "rgba(139,92,246,0.15)";
+              badgeColor = "#7c3aed";
             } else if (it.type === "manifest") {
               badgeBg = "rgba(16,185,129,0.12)";
               badgeColor = "#059669";
@@ -2702,6 +2826,11 @@
                 workabilityBadge = isW
                   ? `<span style="font-size:9.5px; color:#10b981; font-weight:600;" title="Lifecycle hook active">✓ Workable</span>`
                   : `<span style="font-size:9.5px; color:#f59e0b; font-weight:600;" title="Agent does not support lifecycle hooks">⚠️ Unsupported</span>`;
+              } else if (it.type === "app") {
+                const isW = workability.features?.apps?.workable ?? true;
+                workabilityBadge = isW
+                  ? `<span style="font-size:9.5px; color:#10b981; font-weight:600;" title="App runtime linked and active">✓ Workable</span>`
+                  : `<span style="font-size:9.5px; color:#f59e0b; font-weight:600;" title="Agent does not support apps">⚠️ Unsupported</span>`;
               }
             }
 
@@ -3249,7 +3378,7 @@
     }
 
     // Standardize Storage Structure Prompt Copy Button (with version display)
-    const STORAGE_PROMPT_VERSION = "V1.6";
+    const STORAGE_PROMPT_VERSION = "V1.7";
     const btnCopyPrompt = $("btnCopyStoragePrompt");
     if (btnCopyPrompt) {
       const originalText = `Copy Prompt (${STORAGE_PROMPT_VERSION})`;
@@ -3261,10 +3390,10 @@
 
         const promptText = `[Components Storage Specification & Upstream Rules Prompt ${STORAGE_PROMPT_VERSION}]
 
-Please organize and force our Components Storage file structure to strictly adhere to the standard plugin specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin uninstallation cleanup, enforce UTF-8 without BOM encoding, respect one-time rearrangement stability, define universal shared folder specifications, maintain dynamic Smart Middleware intent rules, and install a persistent agent rule:
+Please organize and force our Components Storage file structure to strictly adhere to the standard plugin and app specification, record mandatory upstream source links, eliminate decentralized component updaters, ensure complete plugin/app uninstallation cleanup, enforce UTF-8 without BOM encoding, respect one-time rearrangement stability, define universal shared and app folder specifications, maintain dynamic Smart Middleware intent rules, and install a persistent agent rule:
 
 ${targetPathHeader}1. Directory Structure Specification:
-Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, optional standalone skills, hub configuration, and a shared cross-agent communication/data directory:
+Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, standalone apps, optional standalone skills, hub configuration, and a shared cross-agent communication/data directory:
 
 <Components Storage Path>/
 ├── plugins/          # Standard plugin directory
@@ -3279,51 +3408,78 @@ Components Storage root (e.g. \`<Components Storage Path>\`) contains plugins, o
 │       │   └── <upstream GitHub name/self (if self created)-agent-name>.md  # Must include upstream in frontmatter
 │       └── rules/            # Optional rules directory
 │           └── <upstream GitHub name/self (if self created)-rule-name>.md    # Must include upstream in frontmatter
+├── app/              # Standalone application runtimes, browser binaries & desktop/CLI tools
+│   └── <app-name>/
+│       ├── app.json          # Required app manifest ("id", "name", "version", "description", "upstream", optional "env"/"executable")
+│       └── <runtime-files>/  # Self-contained app binaries, browser builds (e.g. ms-playwright), or runtime assets
 ├── shared/           # Cross-agent IPC, discovery registry, handoff, and shared tools directory
 │   ├── agent-connectors.json # Cross-agent messaging and discovery registry (active IDE agents & capabilities)
 │   ├── handoff/              # Cross-agent delegation and task handoff inboxes
 │   │   └── <agent-id>/       # Target agent inbox queue
 │   ├── _upstream_backups/    # Pre-update backups and component snapshots
 │   ├── middleware-intents.json # Dynamic user & agent Smart Middleware intent keyword registry
-│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches, or browser automation; subfolders are named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw, omniroute)
+│   └── <shared-tool-dirs>/   # Shared runtime states, engines, caches; subfolders are named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw, omniroute)
 ├── skills/           # Standalone or migrated skills
 ├── hub-config.json   # Hub configuration
 ├── plugins.json      # Discovered/registered plugins index
+├── apps.json         # Discovered/registered apps index
 └── skills.json       # Discovered/registered skills index
 
 Duplicate Naming, Skill Collision Avoidance & No Duplicate Standalone Rule:
 - Skill Name Collisions Across Plugins: To avoid skill name collision across plugins, if a skill with the same name exists in two or more different plugins (e.g. a skill called "plan" in 2 different plugins called A and B), name the skill in each plugin by prefixing it with its plugin name (e.g. name the skill "plan" in A as "A-plan", and in B as "B-plan") so each skill has a distinct identifier without namespace collisions.
-- Other Component Duplicate Collisions: If two or more other components (plugins, agents, rules, MCPs, or standalone skills) coincidentally have the same name, append \`-1\`, \`-2\`, etc. sequentially (e.g. \`<name>-1\`, \`<name>-2\`) so every component has a unique name without colliding or overwriting.
+- Other Component Duplicate Collisions: If two or more other components (plugins, apps, agents, rules, MCPs, or standalone skills) coincidentally have the same name, append \`-1\`, \`-2\`, etc. sequentially (e.g. \`<name>-1\`, \`<name>-2\`) so every component has a unique name without colliding or overwriting.
 - No Duplicate Standalone Copies: NEVER leave or create a standalone copy in \`<Components Storage Path>/skills/\`, \`rules/\`, \`agents/\`, or directly inside IDE native directories (e.g. \`~/.gemini/config/skills/\`, \`~/.gemini/config/rules/\`, \`~/.cursor/rules/\`, \`~/.claude/\`) when that component belongs to a plugin in \`plugins/<plugin-name>/\`. Whenever installing or migrating a plugin, check for existing standalone or unprefixed copies matching the same \`upstream\` URL or base name (e.g. \`trail-code-auto.md\` vs \`trailhq-trail-code-auto.md\`) and move or remove the standalone copy so only the plugin-scoped copy remains.
 
-2. Shared Folder Specification (<Components Storage Path>/shared):
+2. Shared Folder & App Component Specifications (<Components Storage Path>/shared & <Components Storage Path>/app):
+A. Shared Folder (<Components Storage Path>/shared):
 The shared directory serves as the centralized cross-agent IPC, discovery, and shared coordination layer across all supported AI coding agents (Antigravity, Cursor, Windsurf, Claude Code, OpenCode, VS Code Copilot, etc.):
 - agent-connectors.json: Global discovery registry tracking connected agent profiles, capability flags, root config paths, and communication bridges.
 - handoff/: Inter-agent handoff queues. Enables asynchronous task delegation and context packet transfers between agents across different IDEs.
 - _upstream_backups/: Centralized safety backups created prior to weekly upstream component updates or synchronization runs.
 - middleware-intents.json: Dynamic intent keyword registry for Smart Middleware. Maps tool patterns (e.g. docker, database, git) to user intent keywords so Smart Middleware dynamically surfaces domain tools without exceeding LLM context limits.
-- Shared Tooling & State Subfolder Naming: Shared runtime caches, browser automation tools, and routing engines accessible universally across all connected agents without redundant duplication. Any subfolder created in shared/ for collaborating skills MUST be named after the joining skills (e.g. \`stagehand-fastcrw\` representing the joint operation of \`stagehand\` and \`fastcrw\`).
+- Shared Tooling & State Subfolder Naming: Shared runtime caches and routing engines accessible universally across all connected agents without redundant duplication. Any subfolder created in shared/ for collaborating skills MUST be named after the joining skills (e.g. \`stagehand-fastcrw\` representing the joint operation of \`stagehand\` and \`fastcrw\`).
 - Invariant: Never treat the shared/ directory or its internal files as loose components, and never delete or clear user-managed handoffs or shared configs during plugin cleanup.
 
+B. App Component Folder (<Components Storage Path>/app):
+The app directory stores standalone, toggleable application runtimes, browser engines, and external binaries (e.g. \`ms-playwright\`):
+- Directory Layout: Each app resides in \`<Components Storage Path>/app/<app-name>/\` and MUST contain an \`app.json\` manifest at its root (strict UTF-8 No BOM), alongside its runtime/binary files (such as \`chromium-1243/\`, \`ffmpeg-1011/\`, etc.). Never place standalone binary runtimes like \`ms-playwright\` inside \`shared/\`.
+- Required \`app.json\` Content:
+  \`\`\`json
+  {
+    "id": "<app-name>",
+    "name": "<app-name>",
+    "version": "1.0.0",
+    "description": "Concise description of the standalone application runtime",
+    "upstream": "https://github.com/<owner>/<repo>",
+    "env": {
+      "OPTIONAL_ENV_VAR": "."
+    },
+    "executable": "optional/relative/path/to/binary"
+  }
+  \`\`\`
+- IDE Bridging & Toggling: Agent Space Manager discovers each subfolder in \`app/\` as an \`App\` component (tagged \`App\` in Components & Plugins) that can be toggled ON/OFF per connected IDE or project, linking via directory junction into \`<agent-config>/apps/<app-name>\` (e.g. \`~/.gemini/config/apps/ms-playwright\`). For tools relying on environment variables (such as \`PLAYWRIGHT_BROWSERS_PATH\` for \`ms-playwright\`), ensure the user environment variable points to \`<Components Storage Path>/app/<app-name>\`.
+
 3. Mandatory Upstream Links:
-For EVERY component (plugin, skill, rule, agent, MCP) installed in Components Storage Path:
+For EVERY component (plugin, app, skill, rule, agent, MCP) installed in Components Storage Path:
 - Identify and record the upstream source link (GitHub repository URL, official documentation URL, or author registry link) where the component was saved or fetched from:
   * In plugin.json: Include "upstream": "https://github.com/<owner>/<repo>" (or source repository URL).
+  * In app.json: Include "upstream": "https://github.com/<owner>/<repo>" (or source repository URL).
   * In SKILL.md: Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
   * In rules (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
   * In agents (*.md): Include upstream: "https://github.com/<owner>/<repo>" in the YAML frontmatter.
 
-4. Complete Plugin Removal & Cleanup:
-When the user asks to remove, delete, or uninstall a plugin:
-- Remove the plugin directory itself (plugins/<plugin-name>/).
-- Concurrently remove ALL components related to that plugin across Components Storage and connected agent configs:
+4. Complete Plugin & App Removal & Cleanup:
+When the user asks to remove, delete, or uninstall a plugin or app:
+- Remove the plugin directory (\`plugins/<plugin-name>/\`) or app directory (\`app/<app-name>/\`).
+- Concurrently remove ALL components related to that plugin or app across Components Storage and connected agent configs:
   * Associated skills in the plugin's skills/ directory and any bridged skill links.
   * Associated subagents in agents/ and any bridged agent definitions.
   * Associated rules in rules/ and any bridged rule files or managed rule sections.
   * Associated MCP server definitions in mcp_config.json and their bridged entries.
   * Associated hooks in hooks.json and their bridged hook entries.
+  * Associated bridged app junctions in \`<agent-config>/apps/<app-name>\`.
   * Associated Smart Middleware intent entries in <Components Storage Path>/shared/middleware-intents.json: trim and remove the plugin's registered intent keywords and tool patterns so no dead or stale intent entries remain for uninstalled tools.
-- Ensure no orphaned components, dangling junctions/symlinks, ghost configuration entries, or leftover intent keywords associated with the removed plugin remain.
+- Ensure no orphaned components, dangling junctions/symlinks, ghost configuration entries, or leftover intent keywords associated with the removed plugin or app remain.
 
 5. Centralized Weekly Update Checking (No Decentralized Scripts):
 - Remove and DO NOT create individual, local, or decentralized update scripts (such as update_checker.mjs or update_check_state.json) inside component folders.
@@ -3331,8 +3487,8 @@ When the user asks to remove, delete, or uninstall a plugin:
 - Prune any obsolete local component update checking scripts or decentralized state files.
 
 6. Mandatory File Encoding (Strict UTF-8 Without BOM):
-- ALL manifest and configuration files (plugin.json, mcp_config.json, hooks.json, SKILL.md, and *.md) MUST be written strictly in standard UTF-8 without Byte Order Mark (UTF-8 No BOM).
-- NEVER output or save files with a UTF-8 BOM (\\uFEFF or byte sequence 0xEF, 0xBB, 0xBF). A BOM header corrupts JSON parsing across IDEs and tools, leading to "Invalid plugin.json" errors.
+- ALL manifest and configuration files (plugin.json, app.json, mcp_config.json, hooks.json, SKILL.md, and *.md) MUST be written strictly in standard UTF-8 without Byte Order Mark (UTF-8 No BOM).
+- NEVER output or save files with a UTF-8 BOM (\\uFEFF or byte sequence 0xEF, 0xBB, 0xBF). A BOM header corrupts JSON parsing across IDEs and tools, leading to "Invalid plugin.json" or "Invalid app.json" errors.
 - If executing file writes via Windows PowerShell (5.1), avoid standard Out-File or Set-Content defaults; always write without BOM using Node.js fs.writeFileSync(path, content, "utf8"), PowerShell 7 -Encoding utf8NoBOM, or [System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding($false))).
 
 7. One-Time Rearrangement Stability:
@@ -3348,16 +3504,16 @@ When the user asks to remove, delete, or uninstall a plugin:
 9. Mandatory Persistent Agent Rule:
 Install and persist a dedicated rule in your agent's rule system (e.g. .agents/rules/components-storage-upstream-rule.md or .cursor/rules/components-storage-upstream-rule.mdc) that is ALWAYS TRIGGERED whenever an addendum, creation, modification, edit, or removal of any component in the Components Storage Path (${storagePath || "Components Storage Path"}):
 - Rule Trigger: Addendum, creation, edit, or removal of any component in Components Storage Path.
-- Rule Invariant 1: Ensure strict compliance with the plugin directory and shared/ directory structures above; avoid skill name collisions across plugins by prefixing the skill with its plugin name (e.g. a skill called 'plan' in plugins A and B is named 'A-plan' and 'B-plan'), disambiguate any other coincidental duplicate component names by appending -1, -2, etc. sequentially, and never leave duplicate standalone copies in root skills/rules/agents or IDE native config directories when the component belongs to a plugin (remove or migrate any pre-existing standalone/unprefixed copy matching the same upstream URL or base name).
-- Rule Invariant 2: Always add and preserve the upstream link in the component's manifest or frontmatter.
-- Rule Invariant 3: Complete removal cleanup — when removing a plugin, all components related to that plugin (skills, agents, rules, MCP servers, hooks) AND its entries in shared/middleware-intents.json must be cleanly removed and trimmed with no orphaned leftovers.
+- Rule Invariant 1: Ensure strict compliance with the plugin, app/, and shared/ directory structures above; place standalone application runtimes and browser binaries (e.g. ms-playwright) in app/<app-name>/ with a valid app.json manifest (never in shared/); avoid skill name collisions across plugins by prefixing the skill with its plugin name (e.g. a skill called 'plan' in plugins A and B is named 'A-plan' and 'B-plan'), disambiguate any other coincidental duplicate component names by appending -1, -2, etc. sequentially, and never leave duplicate standalone copies in root skills/rules/agents or IDE native config directories when the component belongs to a plugin (remove or migrate any pre-existing standalone/unprefixed copy matching the same upstream URL or base name).
+- Rule Invariant 2: Always add and preserve the upstream link in the component's manifest (plugin.json, app.json) or frontmatter.
+- Rule Invariant 3: Complete removal cleanup — when removing a plugin or app, all components related to it (skills, agents, rules, MCP servers, hooks, bridged app junctions) AND its entries in shared/middleware-intents.json must be cleanly removed and trimmed with no orphaned leftovers.
 - Rule Invariant 4: Never introduce decentralized or component-level update scripts; all update checking is handled centrally by the Agent Space Manager plugin on Monday startup.
-- Rule Invariant 5: Never write files with a UTF-8 BOM header; always enforce UTF-8 No BOM encoding.
+- Rule Invariant 5: Never write files with a UTF-8 BOM header; always enforce UTF-8 No BOM encoding across plugin.json, app.json, mcp_config.json, hooks.json, and markdown files.
 - Rule Invariant 6: One-Time Rearrangement Stability — if file rearrangement was already performed once, never rearrange or move existing structure again on subsequent prompt runs unless explicitly requested by the user.
 - Rule Invariant 7: Universal Shared Directory Preservation & Naming — preserve <Components Storage Path>/shared (agent-connectors.json, handoff/, _upstream_backups/, middleware-intents.json) as the designated cross-agent communication and data hub; never treat it as an orphaned or removable plugin; any subfolders in shared/ must be named after their joining skills (e.g. stagehand-fastcrw joining stagehand and fastcrw).
 - Rule Invariant 8: Dynamic Smart Middleware Intent Lifecycle & Seeding — (a) on initial run, seed shared/middleware-intents.json based on all currently existing plugins and tools in Components Storage; (b) when adding new components with tools, register their intent keywords and tool patterns in shared/middleware-intents.json; (c) when removing components, trim and prune their intent entries from shared/middleware-intents.json so the personal layer remains trimmed and accurate.
 
-Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components and trim middleware intents, resolve skill name collisions across plugins by prefixing plugin names (e.g. A-plan, B-plan), preserve the shared/ cross-agent folder, seed or update tool intent keywords in shared/middleware-intents.json based on existing installed components, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
+Please inspect ${storagePath || "Components Storage Path"}, clean up non-conforming or loose files, ensure all component manifests (including plugin.json and app.json) and frontmatters contain their upstream links, ensure all JSON files are valid UTF-8 without BOM, purge any decentralized update checking scripts, ensure removal rules cover all related components and trim middleware intents, resolve skill name collisions across plugins by prefixing plugin names (e.g. A-plan, B-plan), keep standalone apps in app/<app-name>/ with app.json, preserve the shared/ cross-agent folder, seed or update tool intent keywords in shared/middleware-intents.json based on existing installed components, respect one-time rearrangement stability if already arranged, and persist the rule into your agent's rules.`;
 
         let copied = false;
         if (navigator.clipboard && navigator.clipboard.writeText) {

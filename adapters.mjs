@@ -159,6 +159,8 @@ export function collectEnabledComponents(allPlugins = [], enabledMap = {}) {
   const seenAgents = new Set();
   const hooks = []; // { id, def, pluginId }
   const seenHooks = new Set();
+  const apps = []; // { id, name, sourceDir, pluginId, env, executable }
+  const seenApps = new Set();
   const conflicts = [];
 
   for (const plugin of allPlugins) {
@@ -168,6 +170,38 @@ export function collectEnabledComponents(allPlugins = [], enabledMap = {}) {
         (plugin.isRootSkills && enabledMap[plugin.id] !== false && Object.values(enabledMap).some((v) => v === true)))
     );
     if (!isEnabled || !plugin.path || !fs.existsSync(plugin.path)) continue;
+
+    // 0. Apps (standalone <hubRoot>/app/<name> or plugin-bundled apps/)
+    if (plugin.isApp) {
+      const appName = plugin.appName || plugin.id;
+      if (!seenApps.has(appName)) {
+        seenApps.add(appName);
+        apps.push({
+          id: plugin.id,
+          name: appName,
+          sourceDir: plugin.path,
+          pluginId: plugin.id,
+          env: plugin.appEnv || null,
+          executable: plugin.appExecutable || null,
+        });
+      }
+    } else if (Array.isArray(plugin.apps) && plugin.apps.length > 0) {
+      for (const aName of plugin.apps) {
+        const appDirCandidates = [path.join(plugin.path, "apps", aName), path.join(plugin.path, "app", aName)];
+        const appDir = appDirCandidates.find((d) => fs.existsSync(d));
+        if (appDir && !seenApps.has(aName)) {
+          seenApps.add(aName);
+          apps.push({
+            id: `${plugin.id}/${aName}`,
+            name: aName,
+            sourceDir: appDir,
+            pluginId: plugin.id,
+            env: null,
+            executable: null,
+          });
+        }
+      }
+    }
 
     // 1. Skills
     for (const sName of plugin.skills || []) {
@@ -234,7 +268,7 @@ export function collectEnabledComponents(allPlugins = [], enabledMap = {}) {
     }
   }
 
-  return { skills, mcpServers, rules, agents, hooks, conflicts };
+  return { skills, mcpServers, rules, agents, hooks, apps, conflicts };
 }
 
 /**
@@ -543,6 +577,147 @@ export function syncFlattenedSkills(
       nextLinks.push(path.resolve(linkPath));
     }
     results.push({ skill: skillName, action: "linked", ...res });
+  }
+
+  return { nextLinks, results };
+}
+
+/**
+ * Syncs enabled App components (e.g. ms-playwright) into an agent's apps/ directory using directory junctions/symlinks.
+ * Never duplicates large binary trees and strictly preserves foreign user directories and symlinks.
+ */
+export function syncApps(
+  apps = [],
+  appsDir,
+  prevLinks = [],
+  createJunctionFn = null,
+  removeJunctionFn = null,
+  allPlugins = [],
+  ownerId = "asm"
+) {
+  const nextLinks = [];
+  const results = [];
+  if (!appsDir) return { nextLinks, results };
+
+  const desiredMap = new Map();
+  for (const a of apps || []) {
+    if (a?.name && a?.sourceDir && fs.existsSync(a.sourceDir)) {
+      desiredMap.set(a.name, a);
+    }
+  }
+
+  const prevSet = new Set((prevLinks || []).map((p) => path.resolve(p)));
+  const unlinkTarget = (targetPath) => {
+    if (removeJunctionFn) {
+      removeJunctionFn(targetPath);
+    } else {
+      try {
+        const st = fs.lstatSync(targetPath);
+        if (st.isSymbolicLink()) fs.unlinkSync(targetPath);
+        else if (isAsmOwnedDirectory(targetPath)) fs.rmSync(targetPath, { recursive: true, force: true });
+      } catch {}
+    }
+  };
+
+  // 1. Prune obsolete ASM-owned links in appsDir
+  if (fs.existsSync(appsDir)) {
+    try {
+      for (const entryName of fs.readdirSync(appsDir)) {
+        const entryPath = path.join(appsDir, entryName);
+        const resolvedEntry = path.resolve(entryPath);
+        try {
+          const stat = fs.lstatSync(entryPath);
+          if (stat.isSymbolicLink()) {
+            let currentTarget = "";
+            try {
+              currentTarget = fs.readlinkSync(entryPath);
+            } catch {}
+            const isOwned = prevSet.has(resolvedEntry) || isTargetInsideHub(currentTarget, allPlugins);
+            if (!isOwned) continue;
+
+            const desired = desiredMap.get(entryName);
+            const matchesDesired =
+              desired && currentTarget && path.resolve(currentTarget) === path.resolve(desired.sourceDir);
+            if (!matchesDesired) {
+              unlinkTarget(entryPath);
+              results.push({ app: entryName, action: "unlinked", success: true });
+            }
+          } else if (stat.isDirectory() && isAsmOwnedDirectory(entryPath) && !desiredMap.has(entryName)) {
+            fs.rmSync(entryPath, { recursive: true, force: true });
+            results.push({ app: entryName, action: "unlinked", success: true });
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  // Clean any prevLinks from a previous appsDir
+  for (const oldLink of prevLinks || []) {
+    if (path.dirname(path.resolve(oldLink)) !== path.resolve(appsDir)) {
+      unlinkTarget(oldLink);
+    }
+  }
+
+  if (desiredMap.size === 0) {
+    try {
+      if (fs.existsSync(appsDir) && fs.readdirSync(appsDir).length === 0) {
+        fs.rmSync(appsDir, { recursive: true, force: true });
+      }
+    } catch {}
+    return { nextLinks, results };
+  }
+
+  ensureDir(appsDir);
+
+  // 2. Link desired apps
+  for (const [appName, appDef] of desiredMap.entries()) {
+    const linkPath = path.join(appsDir, appName);
+    const resolvedLink = path.resolve(linkPath);
+
+    if (fs.existsSync(linkPath) || (() => { try { fs.lstatSync(linkPath); return true; } catch { return false; } })()) {
+      try {
+        const st = fs.lstatSync(linkPath);
+        if (st.isSymbolicLink()) {
+          let currentTarget = "";
+          try {
+            currentTarget = fs.readlinkSync(linkPath);
+          } catch {}
+          if (currentTarget && path.resolve(currentTarget) === path.resolve(appDef.sourceDir)) {
+            nextLinks.push(resolvedLink);
+            results.push({ app: appName, action: "linked", success: true });
+            continue;
+          }
+          const isOwned = prevSet.has(resolvedLink) || isTargetInsideHub(currentTarget, allPlugins);
+          if (!isOwned) {
+            results.push({ app: appName, action: "conflict", success: false, error: "Foreign symlink exists" });
+            continue;
+          }
+          unlinkTarget(linkPath);
+        } else {
+          results.push({ app: appName, action: "conflict", success: false, error: "User-owned directory exists" });
+          continue;
+        }
+      } catch {}
+    }
+
+    let ok = false;
+    if (createJunctionFn) {
+      const res = createJunctionFn(appDef.sourceDir, linkPath);
+      ok = Boolean(res === true || res?.success);
+    } else {
+      try {
+        fs.symlinkSync(appDef.sourceDir, linkPath, process.platform === "win32" ? "junction" : "dir");
+        ok = true;
+      } catch {
+        ok = false;
+      }
+    }
+    if (ok) {
+      nextLinks.push(resolvedLink);
+      results.push({ app: appName, action: "linked", success: true });
+    } else {
+      results.push({ app: appName, action: "failed", success: false, error: `Failed to link ${appName}` });
+    }
   }
 
   return { nextLinks, results };
@@ -1106,8 +1281,29 @@ export function writeHubCommunicationFiles(hubRoot, hubConfig, allPlugins = [], 
   const allRules = [];
   const allAgents = [];
   const allHooks = [];
+  const allApps = [];
 
   for (const p of allPlugins) {
+    if (p.isApp) {
+      allApps.push({
+        id: p.id,
+        name: p.name,
+        version: p.version,
+        description: p.description,
+        path: p.path,
+        upstream: p.upstream || null,
+        env: p.appEnv || null,
+      });
+    } else if (Array.isArray(p.apps)) {
+      for (const a of p.apps) {
+        allApps.push({
+          id: `${p.id}/${a}`,
+          name: a,
+          pluginId: p.id,
+          path: path.join(p.path, fs.existsSync(path.join(p.path, "apps", a)) ? "apps" : "app", a),
+        });
+      }
+    }
     for (const s of p.skills || []) {
       if (!seenSkills.has(s)) {
         seenSkills.add(s);
@@ -1146,6 +1342,7 @@ export function writeHubCommunicationFiles(hubRoot, hubConfig, allPlugins = [], 
       rules: allRules.length,
       agents: allAgents.length,
       hooks: allHooks.length,
+      apps: allApps.length,
     },
     activeAgents,
     activeProjects,
@@ -1200,6 +1397,7 @@ export function writeHubCommunicationFiles(hubRoot, hubConfig, allPlugins = [], 
   // 3. Consolidated root manifests
   try {
     fs.writeFileSync(path.join(hubRoot, "skills.json"), JSON.stringify({ skills: allSkills }, null, 2), "utf8");
+    fs.writeFileSync(path.join(hubRoot, "apps.json"), JSON.stringify({ apps: allApps }, null, 2), "utf8");
     fs.writeFileSync(
       path.join(hubRoot, "plugins.json"),
       JSON.stringify(
@@ -1209,9 +1407,13 @@ export function writeHubCommunicationFiles(hubRoot, hubConfig, allPlugins = [], 
             name: p.name,
             version: p.version,
             description: p.description,
+            componentType: p.isApp ? "app" : "plugin",
+            isApp: Boolean(p.isApp),
             skillsCount: p.skills?.length || 0,
+            appsCount: p.isApp ? 1 : (p.apps?.length || 0),
             hasMcp: p.hasMcp,
             hasHooks: p.hasHooks,
+            hasApp: Boolean(p.hasApp || p.isApp),
           })),
         },
         null,

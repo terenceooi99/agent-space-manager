@@ -1,7 +1,7 @@
 {
   "path": "",
-  "count": 15,
-  "updatedAt": 1794661416649,
+  "count": 17,
+  "updatedAt": 1794919263258,
   "plugins": [
     {
       "id": "android-cli-plugin",
@@ -12,6 +12,7 @@
       "upstream": "https://github.com/google/android-tools",
       "hasMcp": false,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [],
       "hooks": [],
       "skills": [
@@ -21,6 +22,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "logo.png",
@@ -99,6 +101,7 @@
       "upstream": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
       "hasMcp": false,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [],
       "hooks": [],
       "skills": [
@@ -111,6 +114,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "plugin.json",
@@ -201,6 +205,7 @@
       "upstream": "https://github.com/fastcrw/fastcrw",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "fastcrw"
       ],
@@ -210,6 +215,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "cleanup_chrome.js",
@@ -270,6 +276,7 @@
       "upstream": "https://github.com/flutter/agent-plugins",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "dart-mcp-server"
       ],
@@ -307,6 +314,7 @@
       "agents": [
         "a11y_agent.md"
       ],
+      "apps": [],
       "files": [
         {
           "name": "a11y_agent.md",
@@ -539,6 +547,281 @@
       ]
     },
     {
+      "id": "game-studio",
+      "name": "game-studio",
+      "version": "0.1.2",
+      "description": "Design, prototype, and ship browser games with guided 2D and 3D workflows, asset pipelines, and playtesting support.",
+      "path": "D:\\Software\\AI Agent Space\\plugins\\game-studio",
+      "upstream": "https://github.com/openai/plugins/tree/main/plugins/game-studio",
+      "hasMcp": false,
+      "hasHooks": false,
+      "hasApp": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [
+        "game-playtest",
+        "game-studio",
+        "game-ui-frontend",
+        "phaser-2d-game",
+        "react-three-fiber-game",
+        "sprite-pipeline",
+        "three-webgl-game",
+        "web-3d-asset-pipeline",
+        "web-game-foundations"
+      ],
+      "rules": [],
+      "agents": [],
+      "apps": [],
+      "files": [
+        {
+          "name": "plugin.json",
+          "relPath": ".codex-plugin/plugin.json",
+          "size": 1465,
+          "mtime": 1794910346782
+        },
+        {
+          "name": "app-icon.png",
+          "relPath": "assets/app-icon.png",
+          "size": 8885,
+          "mtime": 1794910346782
+        },
+        {
+          "name": "game-studio.svg",
+          "relPath": "assets/game-studio.svg",
+          "size": 1506,
+          "mtime": 1794910346783
+        },
+        {
+          "name": "plugin.json",
+          "relPath": "plugin.json",
+          "size": 368,
+          "mtime": 1794910393777
+        },
+        {
+          "name": "alternative-3d-engines.md",
+          "relPath": "references/alternative-3d-engines.md",
+          "size": 2093,
+          "mtime": 1794910346783
+        },
+        {
+          "name": "engine-selection.md",
+          "relPath": "references/engine-selection.md",
+          "size": 2556,
+          "mtime": 1794910346783
+        },
+        {
+          "name": "frontend-prompts.md",
+          "relPath": "references/frontend-prompts.md",
+          "size": 3809,
+          "mtime": 1794910346784
+        },
+        {
+          "name": "gltf-loading-starter.md",
+          "relPath": "references/gltf-loading-starter.md",
+          "size": 1023,
+          "mtime": 1794910346784
+        },
+        {
+          "name": "phaser-architecture.md",
+          "relPath": "references/phaser-architecture.md",
+          "size": 1256,
+          "mtime": 1794910346784
+        },
+        {
+          "name": "playtest-checklist.md",
+          "relPath": "references/playtest-checklist.md",
+          "size": 1650,
+          "mtime": 1794910346785
+        },
+        {
+          "name": "rapier-integration-starter.md",
+          "relPath": "references/rapier-integration-starter.md",
+          "size": 1097,
+          "mtime": 1794910346785
+        },
+        {
+          "name": "react-three-fiber-stack.md",
+          "relPath": "references/react-three-fiber-stack.md",
+          "size": 1806,
+          "mtime": 1794910346785
+        },
+        {
+          "name": "react-three-fiber-starter.md",
+          "relPath": "references/react-three-fiber-starter.md",
+          "size": 1475,
+          "mtime": 1794910346785
+        },
+        {
+          "name": "sprite-pipeline.md",
+          "relPath": "references/sprite-pipeline.md",
+          "size": 1763,
+          "mtime": 1794910346786
+        },
+        {
+          "name": "three-hud-layout-patterns.md",
+          "relPath": "references/three-hud-layout-patterns.md",
+          "size": 2253,
+          "mtime": 1794910346786
+        },
+        {
+          "name": "three-webgl-architecture.md",
+          "relPath": "references/three-webgl-architecture.md",
+          "size": 1508,
+          "mtime": 1794910346786
+        },
+        {
+          "name": "threejs-stack.md",
+          "relPath": "references/threejs-stack.md",
+          "size": 1671,
+          "mtime": 1794910346786
+        },
+        {
+          "name": "threejs-vanilla-starter.md",
+          "relPath": "references/threejs-vanilla-starter.md",
+          "size": 1826,
+          "mtime": 1794910346787
+        },
+        {
+          "name": "web-3d-asset-pipeline.md",
+          "relPath": "references/web-3d-asset-pipeline.md",
+          "size": 1827,
+          "mtime": 1794910346787
+        },
+        {
+          "name": "webgl-debugging-and-performance.md",
+          "relPath": "references/webgl-debugging-and-performance.md",
+          "size": 1335,
+          "mtime": 1794910346787
+        },
+        {
+          "name": "build_sprite_edit_canvas.py",
+          "relPath": "scripts/build_sprite_edit_canvas.py",
+          "size": 2919,
+          "mtime": 1794910346787
+        },
+        {
+          "name": "normalize_sprite_strip.py",
+          "relPath": "scripts/normalize_sprite_strip.py",
+          "size": 5281,
+          "mtime": 1794910346787
+        },
+        {
+          "name": "render_sprite_preview_sheet.py",
+          "relPath": "scripts/render_sprite_preview_sheet.py",
+          "size": 3316,
+          "mtime": 1794910346789
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/game-playtest/agents/openai.yaml",
+          "size": 229,
+          "mtime": 1794910346790
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/game-playtest/SKILL.md",
+          "size": 3063,
+          "mtime": 1794910393808
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/game-studio/agents/openai.yaml",
+          "size": 217,
+          "mtime": 1794910346790
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/game-studio/SKILL.md",
+          "size": 5565,
+          "mtime": 1794910393813
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/game-ui-frontend/agents/openai.yaml",
+          "size": 236,
+          "mtime": 1794910346791
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/game-ui-frontend/SKILL.md",
+          "size": 5247,
+          "mtime": 1794910393819
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/phaser-2d-game/agents/openai.yaml",
+          "size": 217,
+          "mtime": 1794910346792
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/phaser-2d-game/SKILL.md",
+          "size": 3345,
+          "mtime": 1794910393825
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/react-three-fiber-game/agents/openai.yaml",
+          "size": 243,
+          "mtime": 1794910346793
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/react-three-fiber-game/SKILL.md",
+          "size": 4185,
+          "mtime": 1794910393829
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/sprite-pipeline/agents/openai.yaml",
+          "size": 238,
+          "mtime": 1794910346794
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/sprite-pipeline/SKILL.md",
+          "size": 3560,
+          "mtime": 1794910393834
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/three-webgl-game/agents/openai.yaml",
+          "size": 238,
+          "mtime": 1794910346795
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/three-webgl-game/SKILL.md",
+          "size": 6032,
+          "mtime": 1794910393839
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/web-3d-asset-pipeline/agents/openai.yaml",
+          "size": 240,
+          "mtime": 1794910346795
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/web-3d-asset-pipeline/SKILL.md",
+          "size": 3606,
+          "mtime": 1794910393843
+        },
+        {
+          "name": "openai.yaml",
+          "relPath": "skills/web-game-foundations/agents/openai.yaml",
+          "size": 233,
+          "mtime": 1794910346796
+        },
+        {
+          "name": "SKILL.md",
+          "relPath": "skills/web-game-foundations/SKILL.md",
+          "size": 4762,
+          "mtime": 1794910393847
+        }
+      ]
+    },
+    {
       "id": "gemini-api",
       "name": "gemini-api",
       "version": "2.3.0",
@@ -547,6 +830,7 @@
       "upstream": "https://github.com/google-gemini/gemini-skills",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "gemini-api-docs"
       ],
@@ -558,6 +842,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "mcp_config.json",
@@ -642,6 +927,7 @@
       "upstream": "https://github.com/google/antigravity-sdk-python",
       "hasMcp": false,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [],
       "hooks": [],
       "skills": [
@@ -649,6 +935,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "plugin.json",
@@ -829,6 +1116,7 @@
       "upstream": "https://developers.google.com/knowledge",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "google-developer-knowledge"
       ],
@@ -838,6 +1126,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "mcp_config.json",
@@ -892,6 +1181,7 @@
       "upstream": "https://github.com/jevgraph/jevgraph",
       "hasMcp": false,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [],
       "hooks": [],
       "skills": [
@@ -900,6 +1190,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "plugin.json",
@@ -936,6 +1227,7 @@
       "upstream": "https://github.com/lightpanda-io/browser",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "lightpanda"
       ],
@@ -945,6 +1237,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "cdp_launcher.mjs",
@@ -981,6 +1274,7 @@
       "upstream": "https://github.com/DietrichGebert/ponytail",
       "hasMcp": false,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [],
       "hooks": [],
       "skills": [
@@ -993,6 +1287,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "plugin.json",
@@ -1047,6 +1342,7 @@
       "upstream": "https://github.com/rtk-ai/rtk",
       "hasMcp": false,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [],
       "hooks": [],
       "skills": [
@@ -1068,6 +1364,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "plugin.json",
@@ -1176,6 +1473,7 @@
       "upstream": "https://github.com/google-deepmind/science",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "biomolecular_structure_viewer_mcp"
       ],
@@ -1227,6 +1525,7 @@
         "AGENTS.md"
       ],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "CONTRIBUTING.md",
@@ -2523,6 +2822,7 @@
       "upstream": "https://github.com/browserbase/stagehand",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "stagehand"
       ],
@@ -2533,6 +2833,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "mcp_server.mjs",
@@ -2599,6 +2900,7 @@
       "upstream": "https://github.com/trailhq/Trail-Code",
       "hasMcp": true,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [
         "trail"
       ],
@@ -2610,6 +2912,7 @@
         "trailhq-trail-code-auto.md"
       ],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "LICENSE",
@@ -2664,6 +2967,7 @@
       "upstream": "https://github.com/heydamir/unslop",
       "hasMcp": false,
       "hasHooks": false,
+      "hasApp": false,
       "mcps": [],
       "hooks": [],
       "skills": [
@@ -2671,6 +2975,7 @@
       ],
       "rules": [],
       "agents": [],
+      "apps": [],
       "files": [
         {
           "name": "plugin.json",
@@ -2763,6 +3068,75 @@
           "mtime": 1794591519411
         }
       ]
+    },
+    {
+      "id": "ms-playwright",
+      "name": "ms-playwright",
+      "version": "1.2.43",
+      "description": "Playwright browser binaries (Chromium, Headless Shell, FFmpeg) for headless and headed browser automation",
+      "path": "D:\\Software\\AI Agent Space\\app\\ms-playwright",
+      "upstream": "https://github.com/microsoft/playwright",
+      "componentType": "app",
+      "isApp": true,
+      "hasApp": true,
+      "apps": [
+        "ms-playwright"
+      ],
+      "appName": "ms-playwright",
+      "appEnv": {
+        "PLAYWRIGHT_BROWSERS_PATH": "."
+      },
+      "appExecutable": null,
+      "hasMcp": false,
+      "hasHooks": false,
+      "mcps": [],
+      "hooks": [],
+      "skills": [],
+      "rules": [],
+      "agents": [],
+      "files": [
+        {
+          "name": ".links/",
+          "relPath": ".links/",
+          "size": 0,
+          "mtime": 1794839344589,
+          "isDir": true
+        },
+        {
+          "name": "app.json",
+          "relPath": "app.json",
+          "size": 312,
+          "mtime": 1794918131555
+        },
+        {
+          "name": "chromium-1243/",
+          "relPath": "chromium-1243/",
+          "size": 0,
+          "mtime": 1794839344596,
+          "isDir": true
+        },
+        {
+          "name": "chromium_headless_shell-1243/",
+          "relPath": "chromium_headless_shell-1243/",
+          "size": 0,
+          "mtime": 1794839345001,
+          "isDir": true
+        },
+        {
+          "name": "ffmpeg-1011/",
+          "relPath": "ffmpeg-1011/",
+          "size": 0,
+          "mtime": 1794839345306,
+          "isDir": true
+        },
+        {
+          "name": "winldd-1007/",
+          "relPath": "winldd-1007/",
+          "size": 0,
+          "mtime": 1794839345307,
+          "isDir": true
+        }
+      ]
     }
   ],
   "categories": {
@@ -2773,6 +3147,10 @@
         "version": "1.0.16625370",
         "path": "D:\\Software\\AI Agent Space\\plugins\\android-cli-plugin",
         "description": "Core tools and knowledge required to develop for Android.",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 3,
         "filesCount": 11,
         "hasMcp": false,
@@ -2784,6 +3162,10 @@
         "version": "1.10.1",
         "path": "D:\\Software\\AI Agent Space\\plugins\\chrome-devtools-plugin",
         "description": "Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 6,
         "filesCount": 13,
         "hasMcp": false,
@@ -2795,6 +3177,10 @@
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\fastcrw",
         "description": "High-performance fastCRW web crawler and markdown extraction tool with MCP server",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 1,
         "filesCount": 8,
         "hasMcp": true,
@@ -2806,9 +3192,28 @@
         "version": "1.0.6",
         "path": "D:\\Software\\AI Agent Space\\plugins\\flutter",
         "description": "Official plugin for Dart and Flutter that installs Flutter/Dart Skills, Rules, Custom Agents, and Dart MCP server for building natively compiled, visually stunning applications for mobile, web, desktop, and embedded devices from a single codebase",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 25,
         "filesCount": 38,
         "hasMcp": true,
+        "hasHooks": false
+      },
+      {
+        "id": "game-studio",
+        "name": "game-studio",
+        "version": "0.1.2",
+        "path": "D:\\Software\\AI Agent Space\\plugins\\game-studio",
+        "description": "Design, prototype, and ship browser games with guided 2D and 3D workflows, asset pipelines, and playtesting support.",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
+        "skillsCount": 9,
+        "filesCount": 41,
+        "hasMcp": false,
         "hasHooks": false
       },
       {
@@ -2817,6 +3222,10 @@
         "version": "2.3.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\gemini-api",
         "description": "Build applications with the Gemini Interactions API and Live API, including text, image, video, and speech generation, managed agents, and real-time multimodal streaming.",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 3,
         "filesCount": 12,
         "hasMcp": true,
@@ -2828,6 +3237,10 @@
         "version": "0.0.9",
         "path": "D:\\Software\\AI Agent Space\\plugins\\google-antigravity-sdk",
         "description": "Using the Google Antigravity Python SDK to build AI agents",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 1,
         "filesCount": 28,
         "hasMcp": false,
@@ -2839,6 +3252,10 @@
         "version": "1.0.1",
         "path": "D:\\Software\\AI Agent Space\\plugins\\google-developer-knowledge",
         "description": "Search and retrieve official documentation across Google Cloud, Gemini, Android, Firebase, Flutter, and Web. Requires Google Cloud credentials (ADC) or an API key.",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 1,
         "filesCount": 7,
         "hasMcp": true,
@@ -2850,6 +3267,10 @@
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\jevgraph",
         "description": "JevGraph non-code document and specification relation extraction engine",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 2,
         "filesCount": 4,
         "hasMcp": false,
@@ -2861,6 +3282,10 @@
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\lightpanda",
         "description": "Lightpanda & Headless Chrome CDP browser automation and dynamic JavaScript execution engine",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 1,
         "filesCount": 4,
         "hasMcp": true,
@@ -2872,6 +3297,10 @@
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\ponytail",
         "description": "Minimalist YAGNI development philosophy: reach for standard library and minimal diffs",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 6,
         "filesCount": 7,
         "hasMcp": false,
@@ -2883,6 +3312,10 @@
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\rtk",
         "description": "Rust Token Killer (RTK) and token reduction utilities for AI coding agents",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 15,
         "filesCount": 16,
         "hasMcp": false,
@@ -2894,6 +3327,10 @@
         "version": "1.3.1",
         "path": "D:\\Software\\AI Agent Space\\plugins\\science",
         "description": "Curated collection of agent skills for science tasks.",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 41,
         "filesCount": 214,
         "hasMcp": true,
@@ -2905,6 +3342,10 @@
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\stagehand",
         "description": "Stagehand browser automation and web extraction MCP server",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 2,
         "filesCount": 9,
         "hasMcp": true,
@@ -2916,6 +3357,10 @@
         "version": "0.29.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\trail-code",
         "description": "The self-learning context layer for coding agents. Maps your codebase into a context graph, traces call hierarchies, and stores team learnings and decisions.",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 1,
         "filesCount": 7,
         "hasMcp": true,
@@ -2927,8 +3372,27 @@
         "version": "1.0.0",
         "path": "D:\\Software\\AI Agent Space\\plugins\\unslop",
         "description": "Turns vibecoded, AI-looking UI into a designed interface with its own character.",
+        "componentType": "plugin",
+        "isApp": false,
+        "hasApp": false,
+        "appsCount": 0,
         "skillsCount": 1,
         "filesCount": 15,
+        "hasMcp": false,
+        "hasHooks": false
+      },
+      {
+        "id": "ms-playwright",
+        "name": "ms-playwright",
+        "version": "1.2.43",
+        "path": "D:\\Software\\AI Agent Space\\app\\ms-playwright",
+        "description": "Playwright browser binaries (Chromium, Headless Shell, FFmpeg) for headless and headed browser automation",
+        "componentType": "app",
+        "isApp": true,
+        "hasApp": true,
+        "appsCount": 1,
+        "skillsCount": 0,
+        "filesCount": 6,
         "hasMcp": false,
         "hasHooks": false
       }
@@ -3194,6 +3658,60 @@
         "pluginId": "flutter",
         "pluginName": "flutter",
         "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\flutter\\skills\\flutter-use-http-package"
+      },
+      {
+        "name": "game-playtest",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\game-playtest"
+      },
+      {
+        "name": "game-studio",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\game-studio"
+      },
+      {
+        "name": "game-ui-frontend",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\game-ui-frontend"
+      },
+      {
+        "name": "phaser-2d-game",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\phaser-2d-game"
+      },
+      {
+        "name": "react-three-fiber-game",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\react-three-fiber-game"
+      },
+      {
+        "name": "sprite-pipeline",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\sprite-pipeline"
+      },
+      {
+        "name": "three-webgl-game",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\three-webgl-game"
+      },
+      {
+        "name": "web-3d-asset-pipeline",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\web-3d-asset-pipeline"
+      },
+      {
+        "name": "web-game-foundations",
+        "pluginId": "game-studio",
+        "pluginName": "game-studio",
+        "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\game-studio\\skills\\web-game-foundations"
       },
       {
         "name": "gemini-api-dev",
@@ -3666,6 +4184,18 @@
         "pluginId": "trail-code",
         "pluginName": "trail-code",
         "sourcePath": "D:\\Software\\AI Agent Space\\plugins\\trail-code\\rules\\trailhq-trail-code-auto.md"
+      }
+    ],
+    "apps": [
+      {
+        "id": "ms-playwright",
+        "name": "ms-playwright",
+        "version": "1.2.43",
+        "pluginId": "ms-playwright",
+        "pluginName": "ms-playwright",
+        "description": "Playwright browser binaries (Chromium, Headless Shell, FFmpeg) for headless and headed browser automation",
+        "sourcePath": "D:\\Software\\AI Agent Space\\app\\ms-playwright",
+        "upstream": "https://github.com/microsoft/playwright"
       }
     ]
   }

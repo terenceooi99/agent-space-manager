@@ -66,7 +66,7 @@ export const AGENT_PROFILES = {
     label: "Antigravity (Google)",
     mode: "bundle",
     description: "Native plugin bundles (~/.gemini/config/plugins) + global skills/rules/agents (~/.gemini/config/skills)",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true, apps: true },
     match: /\b(antigravity|agy)\b/i,
     exeNames: ["agy", "antigravity"],
     resolvePaths(home = getHomeDir()) {
@@ -75,6 +75,7 @@ export const AGENT_PROFILES = {
         primary: path.join(base, "plugins"),
         bundle: path.join(base, "plugins"),
         skills: path.join(base, "skills"),
+        apps: path.join(base, "apps"),
         rulesDir: { dir: path.join(base, "rules"), suffix: ".md", format: "antigravity-rule" },
         agentsDir: { dir: path.join(base, "agents"), suffix: ".md" },
         mcp: { file: path.join(base, "mcp_config.json"), format: "json", key: "mcpServers" },
@@ -100,7 +101,7 @@ export const AGENT_PROFILES = {
     label: "Claude Code (Anthropic)",
     mode: "convert",
     description: "Skills in ~/.claude/skills, /commands in ~/.claude/commands, MCP in ~/.claude.json, Rules in ~/.claude/CLAUDE.md, @agents in ~/.claude/agents, Hooks in ~/.claude/hooks.json",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true, apps: true },
     match: /\bclaude\b/i,
     exeNames: ["claude"],
     resolvePaths(home = getHomeDir()) {
@@ -108,6 +109,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(claudeDir, "skills"),
         skills: path.join(claudeDir, "skills"),
+        apps: path.join(claudeDir, "apps"),
         commandsDir: { dir: path.join(claudeDir, "commands"), suffix: ".md", format: "claude-command" },
         agents: path.join(claudeDir, "agents"),
         mcp: { file: path.join(home, ".claude.json"), format: "json", key: "mcpServers" },
@@ -133,7 +135,7 @@ export const AGENT_PROFILES = {
     label: "Codex CLI (OpenAI)",
     mode: "convert",
     description: "Skills in ~/.codex/skills, /prompts in ~/.codex/prompts, MCP in ~/.codex/config.toml, Rules in ~/.codex/AGENTS.md, @agents in ~/.codex/agents",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false, apps: true },
     match: /\bcodex\b/i,
     exeNames: ["codex"],
     resolvePaths(home = getHomeDir()) {
@@ -141,6 +143,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(codexDir, "skills"),
         skills: path.join(codexDir, "skills"),
+        apps: path.join(codexDir, "apps"),
         commandsDir: { dir: path.join(codexDir, "prompts"), suffix: ".md", format: "markdown-command" },
         agents: { dir: path.join(codexDir, "agents"), suffix: ".md" },
         mcp: { file: path.join(codexDir, "config.toml"), format: "toml-block" },
@@ -164,7 +167,7 @@ export const AGENT_PROFILES = {
     label: "OpenCode",
     mode: "convert",
     description: "Skills (@) in ~/.config/opencode/skills, Slash commands (/) in commands/, Subagents (@) in agents/, MCP in opencode.json, Rules in AGENTS.md",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false, apps: true },
     match: /\bopencode\b/i,
     exeNames: ["opencode", "opencode-cli"],
     resolvePaths(home = getHomeDir()) {
@@ -172,6 +175,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(ocDir, "skills"),
         skills: path.join(ocDir, "skills"),
+        apps: path.join(ocDir, "apps"),
         commandsDir: { dir: path.join(ocDir, "commands"), suffix: ".md", format: "opencode-command" },
         agents: { dir: path.join(ocDir, "agents"), suffix: ".md", format: "opencode-agent" },
         mcp: { file: path.join(ocDir, "opencode.json"), format: "opencode-json", key: "mcp" },
@@ -195,7 +199,7 @@ export const AGENT_PROFILES = {
     label: "VS Code / GitHub Copilot",
     mode: "convert",
     description: "Skills in ~/.copilot/skills, MCP in Code/User/mcp.json, /Prompts, Instructions & @Agents in Code/User/prompts, Hooks in ~/.copilot/hooks",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true, apps: true },
     match: /\b(vscode|copilot|visual\s*studio\s*code|code)\b/i,
     exeNames: ["code"],
     resolvePaths(home = getHomeDir(), appData = getAppDataDir(home)) {
@@ -203,6 +207,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(home, ".copilot", "skills"),
         skills: path.join(home, ".copilot", "skills"),
+        apps: path.join(home, ".copilot", "apps"),
         commandsDir: { dir: path.join(codeUser, "prompts"), suffix: ".prompt.md", format: "copilot-prompt" },
         mcp: { file: path.join(codeUser, "mcp.json"), format: "json", key: "servers" },
         rulesDir: { dir: path.join(codeUser, "prompts"), suffix: ".instructions.md" },
@@ -228,7 +233,7 @@ export const AGENT_PROFILES = {
     label: "Cursor AI",
     mode: "convert",
     description: "Skills in ~/.cursor/skills, /commands in ~/.cursor/commands, MCP in ~/.cursor/mcp.json, Rules in ~/.cursor/rules, @agents in ~/.cursor/agents, Hooks in ~/.cursor/hooks.json",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true, apps: true },
     match: /\bcursor\b/i,
     exeNames: ["cursor"],
     resolvePaths(home = getHomeDir()) {
@@ -236,6 +241,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(curDir, "skills"),
         skills: path.join(curDir, "skills"),
+        apps: path.join(curDir, "apps"),
         commandsDir: { dir: path.join(curDir, "commands"), suffix: ".md", format: "markdown-command" },
         rulesDir: { dir: path.join(curDir, "rules"), suffix: ".mdc" },
         agentsDir: { dir: path.join(curDir, "agents"), suffix: ".md" },
@@ -261,7 +267,7 @@ export const AGENT_PROFILES = {
     label: "Windsurf (Codeium)",
     mode: "convert",
     description: "Skills in ~/.codeium/windsurf/skills, /workflows in global_workflows/, MCP in mcp_config.json, Rules in memories/global_rules.md, Hooks in hooks.json",
-    capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: true, apps: true },
     match: /\b(windsurf|codeium)\b/i,
     exeNames: ["windsurf"],
     resolvePaths(home = getHomeDir()) {
@@ -269,6 +275,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(wsDir, "skills"),
         skills: path.join(wsDir, "skills"),
+        apps: path.join(wsDir, "apps"),
         commandsDir: { dir: path.join(wsDir, "global_workflows"), suffix: ".md", format: "markdown-command" },
         mcp: { file: path.join(wsDir, "mcp_config.json"), format: "json", key: "mcpServers" },
         rules: { file: path.join(wsDir, "memories", "global_rules.md"), format: "inline-block" },
@@ -291,7 +298,7 @@ export const AGENT_PROFILES = {
     label: "Gemini CLI (Standalone)",
     mode: "convert",
     description: "Skills in ~/.gemini/skills, /commands in ~/.gemini/commands, MCP in ~/.gemini/settings.json, Rules in ~/.gemini/GEMINI.md, @agents in ~/.gemini/agents, Hooks in ~/.gemini/hooks",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true, apps: true },
     match: /\bgemini[-_\s]*cli\b/i,
     exeNames: ["gemini"],
     resolvePaths(home = getHomeDir()) {
@@ -299,6 +306,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(gemDir, "skills"),
         skills: path.join(gemDir, "skills"),
+        apps: path.join(gemDir, "apps"),
         commandsDir: { dir: path.join(gemDir, "commands"), suffix: ".toml", format: "gemini-toml-command" },
         agents: { dir: path.join(gemDir, "agents"), suffix: ".md" },
         mcp: { file: path.join(gemDir, "settings.json"), format: "json", key: "mcpServers" },
@@ -324,7 +332,7 @@ export const AGENT_PROFILES = {
     label: "Cline (VS Code Extension)",
     mode: "convert",
     description: "Skills in ~/.cline/skills, /workflows in ~/Documents/Cline/Workflows, MCP in cline_mcp_settings.json, Rules in ~/Documents/Cline/Rules, Hooks in ~/Documents/Cline/Hooks",
-    capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: false, hooks: true, apps: true },
     match: /\b(cline|claude-dev)\b/i,
     exeNames: ["cline"],
     resolvePaths(home = getHomeDir(), appData = getAppDataDir(home)) {
@@ -332,6 +340,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(home, ".cline", "skills"),
         skills: path.join(home, ".cline", "skills"),
+        apps: path.join(home, ".cline", "apps"),
         commandsDir: { dir: path.join(home, "Documents", "Cline", "Workflows"), suffix: ".md", format: "markdown-command" },
         mcp: { file: path.join(storage, "cline_mcp_settings.json"), format: "json", key: "mcpServers" },
         rulesDir: { dir: path.join(home, "Documents", "Cline", "Rules"), suffix: ".md" },
@@ -352,7 +361,7 @@ export const AGENT_PROFILES = {
     label: "Roo Code",
     mode: "convert",
     description: "Skills in ~/.roo/skills, /commands in ~/.roo/commands, MCP in rooveterinaryinc.roo-cline mcp_settings.json, Rules in ~/.roo/rules, @agents in ~/.roo/agents",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: false, apps: true },
     match: /\b(roo|roo-code|roo-cline)\b/i,
     exeNames: ["roo"],
     resolvePaths(home = getHomeDir(), appData = getAppDataDir(home)) {
@@ -360,6 +369,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(home, ".roo", "skills"),
         skills: path.join(home, ".roo", "skills"),
+        apps: path.join(home, ".roo", "apps"),
         commandsDir: { dir: path.join(home, ".roo", "commands"), suffix: ".md", format: "markdown-command" },
         agents: { dir: path.join(home, ".roo", "agents"), suffix: ".md" },
         mcp: { file: path.join(storage, "mcp_settings.json"), format: "json", key: "mcpServers" },
@@ -383,7 +393,7 @@ export const AGENT_PROFILES = {
     label: "Kiro (AWS)",
     mode: "convert",
     description: "Skills in ~/.kiro/skills, /workflows in ~/.kiro/workflows, MCP in ~/.kiro/settings/mcp.json, Steering rules in ~/.kiro/steering, @agents in ~/.kiro/agents, Hooks in ~/.kiro/hooks",
-    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true },
+    capabilities: { skills: true, mcp: true, rules: true, agents: true, hooks: true, apps: true },
     match: /\bkiro\b/i,
     exeNames: ["kiro"],
     resolvePaths(home = getHomeDir()) {
@@ -391,6 +401,7 @@ export const AGENT_PROFILES = {
       return {
         primary: path.join(kiroDir, "skills"),
         skills: path.join(kiroDir, "skills"),
+        apps: path.join(kiroDir, "apps"),
         commandsDir: { dir: path.join(kiroDir, "workflows"), suffix: ".md", format: "markdown-command" },
         agents: { dir: path.join(kiroDir, "agents"), suffix: ".md" },
         mcp: { file: path.join(kiroDir, "settings", "mcp.json"), format: "json", key: "mcpServers" },
@@ -416,12 +427,12 @@ export const AGENT_PROFILES = {
     label: "Universal Agent Skills (~/.agents/skills)",
     mode: "convert",
     description: "Shared ~/.agents/skills directory read by OpenCode, Copilot, Codex, and Antigravity",
-    capabilities: { skills: true, mcp: false, rules: false, agents: false, hooks: false },
+    capabilities: { skills: true, mcp: false, rules: false, agents: false, hooks: false, apps: true },
     match: /\b(agents-universal|universal|\.agents)\b/i,
     exeNames: [],
     resolvePaths(home = getHomeDir()) {
       const dir = path.join(home, ".agents", "skills");
-      return { primary: dir, skills: dir };
+      return { primary: dir, skills: dir, apps: path.join(home, ".agents", "apps") };
     },
     resolveProjectPaths(repoPath) {
       return {
@@ -436,13 +447,13 @@ export const AGENT_PROFILES = {
     label: "Custom Agent / Directory",
     mode: "convert",
     description: "User-specified target directory (links individual skills or plugin bundles)",
-    capabilities: { skills: true, mcp: false, rules: false, agents: false, hooks: false },
+    capabilities: { skills: true, mcp: false, rules: false, agents: false, hooks: false, apps: true },
     match: /^$/,
     exeNames: [],
     resolvePaths(home = getHomeDir(), _appData, customName = "agent") {
       const clean = (customName || "agent").toLowerCase().replace(/[^a-z0-9_-]/g, "") || "agent";
       const dir = path.join(home, `.${clean}`, "skills");
-      return { primary: dir, skills: dir };
+      return { primary: dir, skills: dir, apps: path.join(home, `.${clean}`, "apps") };
     },
     resolveProjectPaths(repoPath) {
       return {
@@ -514,6 +525,7 @@ export function listAgentProfilesForUi() {
         primary: resolved.primary,
         bundle: resolved.bundle || (p.mode === "bundle" ? resolved.primary : null),
         skills: resolved.skills || (p.mode === "bundle" ? path.join(path.dirname(resolved.primary), "skills") : resolved.primary),
+        apps: resolved.apps || path.join(path.dirname(resolved.primary), "apps"),
         commands: resolved.commandsDir?.dir || null,
         mcp: resolved.mcp?.file || (p.mode === "bundle" ? path.join(path.dirname(resolved.primary), "mcp_config.json") : null),
         rules: resolved.rules?.file || resolved.rulesDir?.dir || (p.mode === "bundle" ? path.join(path.dirname(resolved.primary), "rules") : null),
@@ -596,6 +608,9 @@ export function resolveEffectiveAgentPaths(ide, home = getHomeDir(), appData = g
       ? { ...res.hooks, file: hFile }
       : { file: hFile, format: "json" };
   }
+  if (cp.apps) {
+    res.apps = expandHomePath(cp.apps, home, appData);
+  }
 
   // If primary configPath was explicitly passed on ide.configPath, expand it
   if (ide.configPath && !cp.bundle && !cp.skills) {
@@ -605,6 +620,10 @@ export function resolveEffectiveAgentPaths(ide, home = getHomeDir(), appData = g
     } else {
       res.skills = res.primary;
     }
+  }
+
+  if (!res.apps && (res.skills || res.bundle || res.primary)) {
+    res.apps = path.join(path.dirname(res.bundle || res.skills || res.primary), "apps");
   }
 
   return res;
@@ -648,6 +667,9 @@ export function resolveEffectiveProjectPaths(project, ide) {
   if (cp.hooks) {
     const file = expandHomePath(cp.hooks);
     res.hooks = typeof res.hooks === "object" ? { ...res.hooks, file } : { file, format: "json" };
+  }
+  if (cp.apps) {
+    res.apps = expandHomePath(cp.apps);
   }
   return res;
 }
