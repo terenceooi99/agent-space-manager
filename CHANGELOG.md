@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.4] - 2026-11-17
+
+### Added / Changed
+- **App Component Type (`agents.mjs`, `adapters.mjs`, `manager.mjs`)**: Added `App` as a first-class toggleable component type discovered from `<hubRoot>/app/<app-name>/` (`app.json`) and plugin-bundled `apps/`, with directory-junction syncing via `syncApps`, `apps.json` hub catalog, `agent-space-bridge.json` counts, and on-disk workability status verification.
+- **Dashboard UI & `App` Tag (`page/index.html`, `page/style.css`, `page/app.js`)**: Added `Apps` metric tile (`#cnt-apps`), `Apps` category filter tab (`#cat-cnt-apps`), `.badge-app` (`App` tag) in Components & Plugins, and `#cpAppsInput` custom target path override.
+- **Copy Prompt V1.7 (`page/app.js`, `page/index.html`, `.agents/rules/components-storage-upstream-rule.md`)**: Documented the `<Components Storage Path>/app/` directory layout, required `app.json` manifest structure, upstream/UTF-8 No BOM rules, and IDE `apps/` cleanup invariants.
+
+---
+
 ## [1.0.3] - 2026-11-14
 
 ### Added / Changed
